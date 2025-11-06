@@ -37,7 +37,6 @@ pico_sdk_init()
 add_executable(Pico_AutoInput
     Pico_AutoInput.cpp
     WS2812.cpp
-    flash.c
     ${CMAKE_CURRENT_LIST_DIR}/PNGdec/src/PNGdec.cpp
     ${CMAKE_CURRENT_LIST_DIR}/PNGdec/src/adler32.c
     ${CMAKE_CURRENT_LIST_DIR}/PNGdec/src/crc32.c
@@ -52,6 +51,7 @@ add_executable(Pico_AutoInput
     ${CMAKE_CURRENT_LIST_DIR}/pico-usb-flash-drive/fatfs_driver.c
     ${CMAKE_CURRENT_LIST_DIR}/pico-usb-flash-drive/usb_msc_driver.c
     ${CMAKE_CURRENT_LIST_DIR}/pico-usb-flash-drive/usb_descriptors.c
+    ${CMAKE_CURRENT_LIST_DIR}/pico-usb-flash-drive/flash.c
 )
 
 
@@ -73,6 +73,7 @@ target_compile_definitions(Pico_AutoInput PRIVATE
 
 target_include_directories(Pico_AutoInput PRIVATE
         ${PICO_SDK_PATH}/lib/tinyusb/lib/fatfs/source
+        ${CMAKE_CURRENT_LIST_DIR}/pico-usb-flash-drive
         ${CMAKE_CURRENT_LIST_DIR}
         ${CMAKE_CURRENT_LIST_DIR}/PNGdec/src
 )
