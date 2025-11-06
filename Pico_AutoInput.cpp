@@ -1,3 +1,4 @@
+#include "TinyUSB_Mouse_and_Keyboard/TinyUSB_Mouse_and_Keyboard.h"
 #include <stdio.h>
 #include "PNGdec/src/PNGdec.h"
 #include "pico/stdlib.h"
@@ -14,6 +15,7 @@
 #include <string.h>
 #include <bsp/board.h>
 #include <tusb.h>
+#include "usb_descriptors.h"
 #include <ff.h>
 
 #include "bootsel_button.h"
@@ -156,8 +158,6 @@ int main()
 {
     // Initialize the board
     board_init();
-    tud_init(BOARD_TUD_RHPORT);
-    // default init
     stdio_init_all();
 
     // Set up our UART
@@ -204,6 +204,26 @@ int main()
 
     bool write_mode_flag = false;
     test_and_init_filesystem();
+    g_usb_mode = USB_MODE_HID;
+    Keyboard.begin();
+    // Aキー10回送信（tud_taskを10ms以内で呼び出し続ける）
+    int a_sent = 0;
+    absolute_time_t last_send = get_absolute_time();
+
+    while (a_sent < 10)
+    {
+        tud_task();
+        if (to_ms_since_boot(last_send) > 20)
+        {
+            Keyboard.write('a');
+            tud_task();
+            a_sent++;
+            last_send = get_absolute_time();
+        }
+        sleep_ms(1);
+    }
+    ledStrip1->fill(WS2812::RGB(0, 255, 0));
+    ledStrip1->show();
 
     // メインループ
     while (true)
@@ -211,7 +231,10 @@ int main()
         write_mode_flag = bb_get_bootsel_button();
         if (write_mode_flag)
         {
-            ledStrip1->fill(WS2812::RGB(0, 255, 0)); // Red
+            tud_deinit(BOARD_TUD_RHPORT);
+            g_usb_mode = USB_MODE_MSC;
+            tud_init(BOARD_TUD_RHPORT);
+            ledStrip1->fill(WS2812::RGB(0, 255, 0));
             ledStrip1->show();
             while (true)
             {
@@ -219,8 +242,6 @@ int main()
                 tud_task();
             }
         }
-        else
-        {
-        }
+        tud_task(); // 10ms以内で呼び出し続ける
     }
 }

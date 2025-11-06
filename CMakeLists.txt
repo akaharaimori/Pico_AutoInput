@@ -50,8 +50,9 @@ add_executable(Pico_AutoInput
     ${PICO_SDK_PATH}/lib/tinyusb/lib/fatfs/source/ffunicode.c
     ${CMAKE_CURRENT_LIST_DIR}/pico-usb-flash-drive/fatfs_driver.c
     ${CMAKE_CURRENT_LIST_DIR}/pico-usb-flash-drive/usb_msc_driver.c
-    ${CMAKE_CURRENT_LIST_DIR}/pico-usb-flash-drive/usb_descriptors.c
+    ${CMAKE_CURRENT_LIST_DIR}/usb_descriptors.cpp
     ${CMAKE_CURRENT_LIST_DIR}/pico-usb-flash-drive/flash.c
+    ${CMAKE_CURRENT_LIST_DIR}/TinyUSB_Mouse_and_Keyboard/TinyUSB_Mouse_and_Keyboard.cpp
 )
 
 
@@ -69,6 +70,7 @@ pico_enable_stdio_usb(Pico_AutoInput 0)
 # Add the standard include files to the build
 target_compile_definitions(Pico_AutoInput PRIVATE
         __PICO__=1
+        USE_TINYUSB
 )
 
 target_include_directories(Pico_AutoInput PRIVATE
@@ -76,6 +78,7 @@ target_include_directories(Pico_AutoInput PRIVATE
         ${CMAKE_CURRENT_LIST_DIR}/pico-usb-flash-drive
         ${CMAKE_CURRENT_LIST_DIR}
         ${CMAKE_CURRENT_LIST_DIR}/PNGdec/src
+        ${CMAKE_CURRENT_LIST_DIR}/TinyUSB_Mouse_and_Keyboard
 )
 
 # Add all libraries
@@ -95,6 +98,5 @@ target_link_libraries(Pico_AutoInput
         tinyusb_device
         pico_stdlib
         )
-pico_enable_stdio_usb(Pico_AutoInput 1)
 pico_add_extra_outputs(Pico_AutoInput)
 
