@@ -206,6 +206,7 @@ int main()
     test_and_init_filesystem();
     g_usb_mode = USB_MODE_HID;
     Keyboard.begin();
+    Mouse.begin();
     // Aキー10回送信（tud_taskを10ms以内で呼び出し続ける）
     int a_sent = 0;
     absolute_time_t last_send = get_absolute_time();
@@ -242,6 +243,10 @@ int main()
                 tud_task();
             }
         }
+        Mouse.move(5, 0, 0); // Move mouse to right
+        sleep_ms(5);
+        Mouse.move(-5, 0, 0); // Stop mouse
+        sleep_ms(5);
         tud_task(); // 10ms以内で呼び出し続ける
     }
 }
