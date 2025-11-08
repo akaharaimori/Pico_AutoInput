@@ -647,7 +647,7 @@ static int execute_line(ScriptState &st, int current_index)
             std::string arg = trim(line.substr(p + 1, q - p - 1));
             if (arg == "KeyMouse")
             {
-                tud_deinit(0);
+                tud_deinit(BOARD_TUD_RHPORT);
                 sleep_ms(100);
                 g_usb_mode = USB_MODE_HID;
                 // Mouse/Keyboard モード用に初期化
@@ -658,7 +658,7 @@ static int execute_line(ScriptState &st, int current_index)
             }
             else if (arg == "ProController")
             {
-                tud_deinit(0);
+                tud_deinit(BOARD_TUD_RHPORT);
                 sleep_ms(100);
                 g_usb_mode = USB_MODE_HID_Switch;
                 switchcontrollerpico_init();
@@ -754,6 +754,11 @@ static int execute_line(ScriptState &st, int current_index)
     if (starts_with_cmd(line, "KeyPress") || starts_with_cmd(line, "KeyRelease") ||
         starts_with_cmd(line, "KeyPushFor") || starts_with_cmd(line, "KeyType"))
     {
+        // debug: print USB/TinyUSB status before attempting HID ops
+        printf("DBG: g_usb_mode=%d tud_mounted=%d tud_hid_ready=%d tud_suspended=%d\r\n",
+               (int)g_usb_mode, tud_mounted() ? 1 : 0, tud_hid_ready() ? 1 : 0, tud_suspended() ? 1 : 0);
+        tud_task();
+
         // 引数リスト（()内）を抽出
         size_t p = line.find('(');
         size_t q = line.find(')');

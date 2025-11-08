@@ -4,17 +4,154 @@ Mode(KeyMouse)
 LABEL LOOP
 SetLED(255,0,0)
 WAIT 0.5
-SET r = Rand(0,2)
-IF r == 0 GOTO KEY_SECTION
-IF r == 1 GOTO MOUSE_SECTION
-GOTO AFTER
+GOTO KEY_SECTION
 
 LABEL KEY_SECTION
 SetLED(0,255,0)
-WAIT 0.2
-KeyPress("A")
 WAIT 0.1
-KeyRelease("A")
+// type printable characters and special symbols (include tab)
+KeyType("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789=-~^|\\{[`@+;*:}]_?/>.\t", 0.02, 0.02)
+WAIT 0.1
+// test modifier keys and special keys that KeyType can't produce
+KeyPress(128) // KEY_LEFT_CTRL
+WAIT 0.05
+KeyRelease(128)
+WAIT 0.02
+KeyPress(129) // KEY_LEFT_SHIFT
+WAIT 0.05
+KeyRelease(129)
+WAIT 0.02
+KeyPress(130) // KEY_LEFT_ALT
+WAIT 0.05
+KeyRelease(130)
+WAIT 0.02
+WAIT 0.05
+WAIT 0.02
+KeyPress(132) // KEY_RIGHT_CTRL
+WAIT 0.05
+KeyRelease(132)
+WAIT 0.02
+KeyPress(133) // KEY_RIGHT_SHIFT
+WAIT 0.05
+KeyRelease(133)
+WAIT 0.02
+KeyPress(134) // KEY_RIGHT_ALT
+WAIT 0.05
+KeyRelease(134)
+WAIT 0.02
+WAIT 0.05
+WAIT 0.05
+// function keys F1..F12 (decimal 194..205)
+KeyPress(194)
+WAIT 0.05
+KeyRelease(194)
+WAIT 0.02
+KeyPress(195)
+WAIT 0.05
+KeyRelease(195)
+WAIT 0.02
+KeyPress(196)
+WAIT 0.05
+KeyRelease(196)
+WAIT 0.02
+KeyPress(197)
+WAIT 0.05
+KeyRelease(197)
+WAIT 0.02
+KeyPress(198)
+WAIT 0.05
+KeyRelease(198)
+WAIT 0.02
+KeyPress(199)
+WAIT 0.05
+KeyRelease(199)
+WAIT 0.02
+KeyPress(200)
+WAIT 0.05
+KeyRelease(200)
+WAIT 0.02
+KeyPress(201)
+WAIT 0.05
+KeyRelease(201)
+WAIT 0.02
+KeyPress(202)
+WAIT 0.05
+KeyRelease(202)
+WAIT 0.02
+KeyPress(203)
+WAIT 0.05
+KeyRelease(203)
+WAIT 0.02
+KeyPress(204)
+WAIT 0.05
+KeyRelease(204)
+WAIT 0.02
+KeyPress(205)
+WAIT 0.05
+KeyRelease(205)
+WAIT 0.05
+// navigation and control keys
+KeyPress(176) // KEY_RETURN
+WAIT 0.05
+KeyRelease(176)
+WAIT 0.02
+KeyPress(177) // KEY_ESC
+WAIT 0.05
+KeyRelease(177)
+WAIT 0.02
+KeyPress(178) // KEY_BACKSPACE
+WAIT 0.05
+KeyRelease(178)
+WAIT 0.02
+KeyPress(179) // KEY_TAB
+WAIT 0.05
+KeyRelease(179)
+WAIT 0.02
+KeyPress(193) // KEY_CAPS_LOCK
+WAIT 0.25
+KeyRelease(193)
+WAIT 0.05
+KeyPress(209) // KEY_INSERT
+WAIT 0.05
+KeyRelease(209)
+WAIT 0.02
+KeyPress(210) // KEY_HOME
+WAIT 0.05
+KeyRelease(210)
+WAIT 0.02
+KeyPress(211) // KEY_PAGE_UP
+WAIT 0.05
+KeyRelease(211)
+WAIT 0.02
+KeyPress(212) // KEY_DELETE
+WAIT 0.05
+KeyRelease(212)
+WAIT 0.02
+KeyPress(213) // KEY_END
+WAIT 0.05
+KeyRelease(213)
+WAIT 0.02
+KeyPress(214) // KEY_PAGE_DOWN
+WAIT 0.05
+KeyRelease(214)
+WAIT 0.05
+// arrow keys (decimal 218..215 order per header)
+KeyPress(218) // KEY_UP_ARROW
+WAIT 0.05
+KeyRelease(218)
+WAIT 0.02
+KeyPress(217) // KEY_DOWN_ARROW
+WAIT 0.05
+KeyRelease(217)
+WAIT 0.02
+KeyPress(216) // KEY_LEFT_ARROW
+WAIT 0.05
+KeyRelease(216)
+WAIT 0.02
+KeyPress(215) // KEY_RIGHT_ARROW
+WAIT 0.05
+KeyRelease(215)
+WAIT 0.1
 GOTO AFTER
 
 LABEL MOUSE_SECTION
