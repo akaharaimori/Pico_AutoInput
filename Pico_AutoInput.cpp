@@ -1,6 +1,7 @@
-#include "TinyUSB_Mouse_and_Keyboard/TinyUSB_Mouse_and_Keyboard.h"
+// 必要なライブラリインポートを整理
 #include <stdio.h>
-#include "PNGdec/src/PNGdec.h"
+#include <stdlib.h>
+#include <string.h>
 #include "pico/stdlib.h"
 #include "hardware/dma.h"
 #include "hardware/pio.h"
@@ -9,16 +10,22 @@
 #include "hardware/watchdog.h"
 #include "hardware/clocks.h"
 #include "hardware/uart.h"
-#include <stdlib.h>
-#include "WS2812.hpp"
-#include <stdlib.h>
-#include <string.h>
 #include <bsp/board.h>
 #include <tusb.h>
 #include "usb_descriptors.h"
 #include <ff.h>
+#include "WS2812.hpp"
+#include "PNGdec/src/PNGdec.h"
+#include "bootsel_button.h"
+#include "flash.h"
+#include "TinyUSB_Mouse_and_Keyboard/TinyUSB_Mouse_and_Keyboard.h"
+#include "SwitchControllerPico/src/SwitchControllerPico.h"
+#include "SwitchControllerPico/src/NintendoSwitchControllPico.h"
 
 #include "bootsel_button.h"
+
+// allow controlling stdio drivers (USB stdio is disabled via CMake for this target)
+extern bool ExecuteScript(const char *filename);
 #include "flash.h"
 
 #define WS2812_PIN1 16
@@ -37,15 +44,38 @@
 #define UART_RX_PIN 5
 
 // fatfs driver
-static FATFS filesystem;
+FATFS filesystem; /* single shared instance for the program (remove internal linkage) */
 static FIL txt_file;
-static WS2812 *ledStrip1 = NULL; // グローバルLEDストリップポインタ
+WS2812 *ledStrip1 = NULL; // グローバルLEDストリップポインタ (外部から参照可能)
 
 // LED色定義
 static const uint32_t MODE_SHOW = WS2812::RGB(0, 0, 255);  // 表示モード: 青
 static const uint32_t MODE_WRITE = WS2812::RGB(255, 0, 0); // 書き込みモード: 赤
 static const uint32_t LED_OFF = WS2812::RGB(0, 0, 0);      // 消灯
 
+// Helper used by ScriptProcessor to apply color without pulling WS2812 header into that TU
+// Matches extern declaration in ScriptProcessor.cpp: extern void ApplyStripColor(int r, int g, int b);
+void ApplyStripColor(int r, int g, int b)
+{
+    if (!ledStrip1)
+        return;
+    // clamp just in case
+    if (r < 0)
+        r = 0;
+    if (r > 255)
+        r = 255;
+    if (g < 0)
+        g = 0;
+    if (g > 255)
+        g = 255;
+    if (b < 0)
+        b = 0;
+    if (b > 255)
+        b = 255;
+    uint32_t col = WS2812::RGB((uint8_t)r, (uint8_t)g, (uint8_t)b);
+    ledStrip1->fill(col);
+    ledStrip1->show();
+}
 /*
  * `fatfs_flash_driver.c:disk_initialize()` is called to test the file
  * system and initialize it if necessary.
@@ -167,11 +197,15 @@ int main()
     gpio_set_function(UART_TX_PIN, GPIO_FUNC_UART);
     gpio_set_function(UART_RX_PIN, GPIO_FUNC_UART);
 
+    // register UART stdio driver (full init) so we can route printf to UART1
+    stdio_uart_init_full(UART_ID, BAUD_RATE, UART_TX_PIN, UART_RX_PIN);
+    // USB stdio is disabled in CMake for this target; no explicit disable is necessary.
+
     // Use some the various UART functions to send out data
     // In a default system, printf will also output via the default UART
 
     // Send out a string, with CR/LF conversions
-    uart_puts(UART_ID, " Hello, UART!\n");
+    printf(" Hello, UART!\n");
 
     // For more examples of UART use see https://github.com/raspberrypi/pico-examples/tree/master/uart
 
@@ -204,49 +238,93 @@ int main()
 
     bool write_mode_flag = false;
     test_and_init_filesystem();
-    g_usb_mode = USB_MODE_HID;
-    Keyboard.begin();
-    Mouse.begin();
-    // Aキー10回送信（tud_taskを10ms以内で呼び出し続ける）
-    int a_sent = 0;
-    absolute_time_t last_send = get_absolute_time();
+    // g_usb_mode = USB_MODE_HID;
+    // Keyboard.begin();
+    // Mouse.begin();
+    // // Aキー10回送信（tud_taskを10ms以内で呼び出し続ける）
+    // int a_sent = 0;
+    // absolute_time_t last_send = get_absolute_time();
 
-    while (a_sent < 10)
-    {
-        tud_task();
-        if (to_ms_since_boot(last_send) > 20)
-        {
-            Keyboard.write('a');
-            tud_task();
-            a_sent++;
-            last_send = get_absolute_time();
-        }
-        sleep_ms(1);
-    }
+    // while (a_sent < 10)
+    // {
+    //     tud_task();
+    //     if (to_ms_since_boot(last_send) > 20)
+    //     {
+    //         Keyboard.write('a');
+    //         tud_task();
+    //         a_sent++;
+    //         last_send = get_absolute_time();
+    //     }
+    //     sleep_ms(1);
+    // }
     ledStrip1->fill(WS2812::RGB(0, 255, 0));
     ledStrip1->show();
+    // debug marker: initialization complete
+    printf("MAIN: initialization complete, entering main loop\r\n");
+    // tud_task();
+    printf("MAIN: init done\n");
 
     // メインループ
     while (true)
     {
         write_mode_flag = bb_get_bootsel_button();
+        printf("MAIN: loop start, boot button=%d\r\n", write_mode_flag ? 1 : 0);
+        // tud_task();
+        printf("MAIN: loop iter\n");
+
         if (write_mode_flag)
         {
-            tud_deinit(BOARD_TUD_RHPORT);
-            g_usb_mode = USB_MODE_MSC;
-            tud_init(BOARD_TUD_RHPORT);
-            ledStrip1->fill(WS2812::RGB(0, 255, 0));
-            ledStrip1->show();
-            while (true)
+            // ボタン押下時：長押しならUSBメモリ（MSC）モードに入り、短押しならスクリプトを実行する
+            printf("MAIN: detected button press, starting press timer\r\n");
+            // tud_task();
+            printf("MAIN: button pressed\n");
+
+            // 押下時間を計測（開始／終了ともに時刻を取得して差分を取る）
+            absolute_time_t press_start = get_absolute_time();
+            while (bb_get_bootsel_button())
             {
-                read_write_task();
-                tud_task();
+                // 押している間は待つ（tud_task を回して USB スタックを維持）
+                // tud_task();
+                sleep_ms(1);
+            }
+            // 押し終わった時刻を取得して差分を計算
+            absolute_time_t press_end = get_absolute_time();
+
+            printf("MAIN: button released, calculating held time\r\n");
+            // tud_task();
+            uint64_t held_ms = to_ms_since_boot(press_end) - to_ms_since_boot(press_start);
+            printf("MAIN: held_ms=%llu\r\n", (unsigned long long)held_ms);
+            // tud_task();
+
+            const uint64_t LONG_PRESS_MS = 1000; // 長押し閾値: 1000ms
+            if (held_ms >= LONG_PRESS_MS)
+            {
+                // 長押し：USB MSC モードに切り替え、ファイル書き込み待機ループへ
+                printf("MAIN: long press detected -> entering MSC mode\r\n");
+                // tud_task();
+                // tud_deinit(BOARD_TUD_RHPORT);
+                g_usb_mode = USB_MODE_MSC;
+                tud_init(BOARD_TUD_RHPORT);
+                ledStrip1->fill(WS2812::RGB(0, 255, 0));
+                ledStrip1->show();
+                while (true)
+                {
+                    read_write_task();
+                    tud_task();
+                }
+            }
+            else
+            {
+                // 短押し：スクリプト実行
+                printf("MAIN: short press detected -> ExecuteScript(\"led_test.txt\")\r\n");
+                // tud_task();
+                printf("MAIN: about to call ExecuteScript\n");
+                ExecuteScript("led_test.txt");
+                printf("MAIN: ExecuteScript returned\r\n");
+                // tud_task();
+                printf("MAIN: ExecuteScript returned\n");
             }
         }
-        Mouse.move(5, 0, 0); // Move mouse to right
-        sleep_ms(5);
-        Mouse.move(-5, 0, 0); // Stop mouse
-        sleep_ms(5);
-        tud_task(); // 10ms以内で呼び出し続ける
+        // tud_task();
     }
 }

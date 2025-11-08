@@ -1,3 +1,6 @@
 [submodule "TinyUSB_Mouse_and_Keyboard"]
 	path = TinyUSB_Mouse_and_Keyboard
 	url = https://github.com/akaharaimori/TinyUSB_Mouse_and_Keyboard.git
+[submodule "tinyexpr-plusplus"]
+	path = tinyexpr-plusplus
+	url = https://github.com/akaharaimori/tinyexpr-plusplus.git

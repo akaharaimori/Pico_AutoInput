@@ -1,0 +1,178 @@
+## 1\. 言語基本仕様
+
+### 実行モデル
+
+  * **RAMキャッシュ:** スクリプト（`.txt`）実行時、インタプリタはまずスクリプトファイル全体をPicoのSRAMに読み込み（キャッシュ）ます。
+  * **プリパス:** RAMへのキャッシュ後、インタプリタはキャッシュ全体を一度スキャン（プリパス）し、すべての `LABEL` の名前とメモリアドレスを「Label辞書」に登録します。
+  * **実行:** プリパス完了後、RAMキャッシュの先頭からスクリプトの実行を開始します。`GOTO` や `GOSUB` は、RAM上のアドレス（ポインタ）を直接変更することで高速に実行されます。
+
+### 大文字小文字の区別
+
+  * **コマンド (関数名):** 区別**しません**。`set`, `Set`, `SET` はすべて同じコマンドとして認識されます。
+  * **変数名・ラベル名:** 区別**します**。`myVar` と `myvar` は異なる変数として扱われます。
+
+### 変数型
+
+  * すべての変数は **`double` 型**（64ビット浮動小数点数）として「Var辞書」で管理されます。
+  * `SET x = IsPressed()` が実行されると、`x` には `0.0` または `1.0` が `double` 型で格納されます。
+
+### コメント
+
+  * 行の先頭が `REM` または `#` で始まる行は、すべて無視されます。
+
+### 式 (Expression)
+
+  * `SET`, `WAIT`, `IF` などのコマンドが要求する `<expression>` (数式) は、`tinyexpr` ライブラリによって評価されます。
+  * 式の中では、Var辞書に登録された変数名、`Rand()` などの式内関数、および `+`, `-`, `*`, `/`, `>`, `<`, `==` などの演算子が使用できます。
+
+-----
+
+## 2\. 内部データ構造
+
+### Lifoスタック (GoSub用スタック)
+
+  * **目的:** `GOSUB` の戻り先アドレスを管理します。
+  * **動作:** `GOSUB` 実行時に、次の行のRAMアドレス（`char*`）を `PUSH` します。`RETURN` 実行時にアドレスを `POP` し、そこへジャンプします。
+  * **型:** `char*` の固定長配列（スタック）。
+
+### スクリプトによる可変辞書
+
+#### Label辞書
+
+  * **作成タイミング:** プリパス時。
+  * **目的:** `GOTO`/`GOSUB` のジャンプ先を管理します。
+  * **キー:** ラベル名 (String)
+  * **値:** ラベルの**次の行**のRAMアドレス (\<code\>char\*\</code\>)
+
+#### Var辞書
+
+  * **作成タイミング:** 実行時。
+  * **目的:** `SET` で代入された変数の値を管理します。
+  * **キー:** 変数名 (String)
+  * **値:** 変数の値 (\<code\>double\</code\>)
+  * **管理:** 現在の変数数を保持するカウンタを使い、固定長配列で辞書をエミュレートします。
+
+-----
+
+## 3\. コマンドリファレンス
+
+### 制御フロー
+
+  * **`LABEL <name>`**
+      * プリパス時に「Label辞書」に登録されます。実行時には無視されます。
+  * **`GOTO <name>`**
+      * 「Label辞書」から `<name>` を検索し、対応するRAMアドレスへジャンプします。
+  * **`IF <condition_expression> GOTO <name>`**
+      * `<condition_expression>` を評価します。結果が `0.0` 以外（真）の場合のみ、`GOTO <name>` を実行します。
+  * **`GOSUB <name>`**
+      * 現在の次の行のアドレスを「GoSub用スタック」に `PUSH` した後、`GOTO <name>` を実行します。
+  * **`RETURN`**
+      * 「GoSub用スタック」からアドレスを `POP` し、そこへジャンプします。
+  * **`WAIT <expression>`**
+      * `<expression>` で評価された秒数（`double`型）だけ、スクリプトの実行を停止します。(`WAIT 0.5` で0.5秒待機)
+  * **`END`**
+      * スクリプトの実行を即座に停止します。
+
+### 変数
+
+  * **`SET <var> = <expression>`**
+      * `<expression>` を評価し、その結果（`double`）を「Var辞書」に `<var>` というキーで保存（または上書き）します。
+
+### モード設定
+
+  * **`Mode(KeyMouse)`**
+      * USB HIDデバイスを「キーボード＆マウス」モードに設定します。
+  * **`Mode(ProController)`**
+      * USB HIDデバイスを「Proコントローラー」モードに設定します。
+  * **`UseLED(<expression>)`**
+      * `<expression>` が `0.0` 以外の場合、内蔵LED管理機能を有効にします。`0.0` の場合は無効にします。
+
+### キーボードIO (KeyMouseモード)
+
+  * **`KeyPress(key)`**
+      * 指定したキー（文字列またはHIDコード）を押し下げます。
+  * **`KeyRelease(key)`**
+      * 指定したキーを離します。
+  * **`KeyPushFor(key, <expression>)`**
+      * 指定したキーを `<expression>` 秒間だけ押します。
+  * **`KeyType(String, <press_duration_expr>, <release_duration_expr>)`**
+      * `String`（文字列リテラル）を1文字ずつタイピングします。
+      * 1文字あたり `<press_duration_expr>` 秒押し、`<release_duration_expr>` 秒離す動作を繰り返します。
+
+### マウスIO (KeyMouseモード)
+
+  * **`MouseMove(x_expr, y_expr, rel_expr)`**
+      * `rel_expr` が `0.0` の場合、`(x_expr, y_expr)` の絶対座標に移動します。
+      * `rel_expr` が `0.0` 以外の場合、`(x_expr, y_expr)` の分だけ相対移動します。
+  * **`MousePress(button)`**
+      * `LEFT`, `RIGHT`, `MIDDLE` のいずれかのボタンを押し下げます。
+  * **`MouseRelease(button)`**
+      * ボタンを離します。
+  * **`MousePushFor(button, <expression>)`**
+      * ボタンを `<expression>` 秒間だけ押します。
+  * **`Mouserun(filename_string, time_scale_expr, angle_expr, scale_expr)`**
+      * `filename_string` で指定された `.txt` ファイルをFlashからストリーミング再生します。詳細は「5. ストリーミングデータ形式」を参照。
+          * `time_scale_expr`: ファイル内の `time(ms)` に乗算される時間倍率。
+          * `angle_expr`: `x,y` の操作を回転させる角度（ラジアン）。
+          * `scale_expr`: `x,y` の操作をスケーリング（拡大縮小）する倍率。
+
+### ProコントローラーIO (ProControllerモード)
+
+  * **`ProConPress(key)`**
+      * ボタン（`A`, `B`, `L`, `R`, `UP`, `DOWN` など）を押し下げます。
+  * **`ProConRelease(Key)`**
+      * ボタンを離します。
+  * **`ProConPushFor(key, <expression>)`**
+      * ボタンを `<expression>` 秒間だけ押します。
+  * **`ProConJoy(<lx_expr>, <ly_expr>, <rx_expr>, <ry_expr>)`**
+      * 左右のジョイスティックの位置を `(lx, ly)` と `(rx, ry)` に設定します（通常 -128.0 ～ 127.0 の範囲）。
+
+### LED (UseLEDが有効な場合)
+
+  * **`SetLED(<r_expr>, <g_expr>, <b_expr>)`**
+      * 内蔵LEDのRGB値を設定します（通常 0.0 ～ 255.0 の範囲）。
+
+### その他
+
+  * **`PRINT <expression>`**
+      * `<expression>` を評価し、その結果（`double`）をデバッグ用のUSBシリアルに出力します。
+  * **`REM <comment>`**
+      * コメント行として無視されます。
+
+-----
+
+## 4\. 式内（組み込み）関数リファレンス
+
+これらは `SET` や `IF` などの `<expression>` の中で使用できます。
+
+  * **`IsPressed()`**
+      * Pico本体のボタン（フラッシュと干渉するピン）が押されているかを返します。
+      * 戻り値: 押されている場合 `1.0`、押されていない場合 `0.0`。
+  * **`Rand(<min_expr>, <max_expr>)`**
+      * `<min_expr>` (下限) と `<max_expr>` (上限) の間のランダムな `double` 値を返します。
+  * **`GetTime()`**
+      * スクリプト実行開始時からの経過時間を**ミリ秒 (ms)** で返します。
+      * 戻り値: 経過ミリ秒 (`double` 型)。`double` の精度により、長時間の実行でも精度低下は事実上発生しません。
+
+-----
+
+## 5\. ストリーミングデータ形式
+
+### `Mouserun` の `.txt` ファイル仕様
+
+  * `filename_string` で指定されたファイルは、Flashから1行ずつ読み込まれます。
+  * **フォーマット (CSV形式):**
+    `x,y,rel,LEFT,RIGHT,MIDDLE,time(ms)`
+  * **各列の型と意味:**
+      * `x` (int8): X方向の移動量
+      * `y` (int8): Y方向の移動量
+      * `rel` (int8): マウスのホイールの回転量
+      * `LEFT` (bool): `1` なら左ボタンを押す
+      * `RIGHT` (bool): `1` なら右ボタンを押す
+      * `MIDDLE` (bool): `1` なら中央ボタンを押す
+      * `time(ms)` (uint32): **次の行**を実行するまでの待機時間（ミリ秒）
+  * **実行時の動作:**
+    1.  `x, y` を読み込み、`scale_expr` と `angle_expr` に基づいてスケーリング・回転計算を行います。
+    2.  計算結果の座標とボタン情報（`LEFT`, `RIGHT`, `MIDDLE`）でHIDレポートを送信します。
+    3.  `time(ms) * time_scale_expr` ミリ秒だけ待機します。
+    4.  ファイルの最後まで繰り返します。

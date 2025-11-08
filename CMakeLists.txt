@@ -5,6 +5,13 @@ cmake_minimum_required(VERSION 3.13)
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+add_compile_options(-fexceptions)
+set(PICO_CXX_ENABLE_EXCEPTIONS 1)
+# -fno-exceptionsや-fno-unwind-tables等を明示的に削除
+string(REPLACE "-fno-exceptions" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+string(REPLACE "-fno-unwind-tables" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+string(REPLACE "-fno-rtti" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+string(REPLACE "-fno-use-cxa-atexit" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
 
 # Initialise pico_sdk from installed location
 # (note this can come from environment, CMake cache etc)
@@ -36,6 +43,7 @@ pico_sdk_init()
 # Add executable. Default name is the project name, version 0.1
 add_executable(Pico_AutoInput
     Pico_AutoInput.cpp
+    ScriptProcessor.cpp
     WS2812.cpp
     ${CMAKE_CURRENT_LIST_DIR}/PNGdec/src/PNGdec.cpp
     ${CMAKE_CURRENT_LIST_DIR}/PNGdec/src/adler32.c
@@ -53,12 +61,15 @@ add_executable(Pico_AutoInput
     ${CMAKE_CURRENT_LIST_DIR}/usb_descriptors.cpp
     ${CMAKE_CURRENT_LIST_DIR}/pico-usb-flash-drive/flash.c
     ${CMAKE_CURRENT_LIST_DIR}/TinyUSB_Mouse_and_Keyboard/TinyUSB_Mouse_and_Keyboard.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/SwitchControllerPico/src/SwitchControllerPico.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/SwitchControllerPico/src/NintendoSwitchControllPico.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/tinyexpr-plusplus/tinyexpr.cpp
 )
 
 
 pico_set_program_name(Pico_AutoInput "Pico_AutoInput")
 pico_set_program_version(Pico_AutoInput "0.1")
-
+ 
 # Generate PIO headers
 pico_generate_pio_header(Pico_AutoInput ${CMAKE_CURRENT_LIST_DIR}/blink.pio)
 pico_generate_pio_header(Pico_AutoInput ${CMAKE_CURRENT_LIST_DIR}/WS2812.pio)
@@ -79,7 +90,9 @@ target_include_directories(Pico_AutoInput PRIVATE
         ${CMAKE_CURRENT_LIST_DIR}
         ${CMAKE_CURRENT_LIST_DIR}/PNGdec/src
         ${CMAKE_CURRENT_LIST_DIR}/TinyUSB_Mouse_and_Keyboard
-)
+        ${CMAKE_CURRENT_LIST_DIR}/SwitchControllerPico/src
+        ${CMAKE_CURRENT_LIST_DIR}/tinyexpr-plusplus
+    )
 
 # Add all libraries
 target_link_libraries(Pico_AutoInput
@@ -98,5 +111,11 @@ target_link_libraries(Pico_AutoInput
         tinyusb_device
         pico_stdlib
         )
+
+# Ensure this target is compiled and linked for the correct Cortex-M0+ Thumb architecture
+# Apply target-level flags only (avoid global flags that previously caused unexpected side-effects).
+target_compile_options(Pico_AutoInput PRIVATE -mthumb -mcpu=cortex-m0plus)
+target_link_options(Pico_AutoInput PRIVATE -mthumb -mcpu=cortex-m0plus)
+
 pico_add_extra_outputs(Pico_AutoInput)
 

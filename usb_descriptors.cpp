@@ -2,7 +2,8 @@
 typedef enum
 {
   USB_MODE_MSC,
-  USB_MODE_HID
+  USB_MODE_HID,
+  USB_MODE_HID_Switch // Switchコントローラー用モード追加
 } usb_mode_t;
 
 usb_mode_t g_usb_mode = USB_MODE_HID;
@@ -42,6 +43,19 @@ uint8_t const desc_hid_report[] =
         TUD_HID_REPORT_DESC_MOUSE(HID_REPORT_ID(RID_MOUSE))
         // 必要なら他のHIDレポートも追加可能
 };
+
+uint8_t const desc_hid_report_switch[] =
+    {
+        // Switch用プロコントローラーHIDレポートディスクリプタ（SwitchSerialController_pico.inoのCUSTOM_DESCRIPTORを参照）
+        0x05, 0x01, 0x09, 0x05, 0xa1, 0x01, 0x15, 0x00, 0x25, 0x01,
+        0x35, 0x00, 0x45, 0x01, 0x75, 0x01, 0x95, 0x10, 0x05, 0x09,
+        0x19, 0x01, 0x29, 0x10, 0x81, 0x02, 0x05, 0x01, 0x25, 0x07,
+        0x46, 0x3b, 0x01, 0x75, 0x04, 0x95, 0x01, 0x65, 0x14, 0x09,
+        0x39, 0x81, 0x42, 0x65, 0x00, 0x95, 0x01, 0x81, 0x01, 0x26,
+        0xff, 0x00, 0x46, 0xff, 0x00, 0x09, 0x30, 0x09, 0x31, 0x09,
+        0x32, 0x09, 0x35, 0x75, 0x08, 0x95, 0x04, 0x81, 0x02, 0x06,
+        0x00, 0xff, 0x09, 0x20, 0x95, 0x01, 0x81, 0x02, 0x0a, 0x21,
+        0x26, 0x95, 0x08, 0x91, 0x02, 0xc0};
 // 必須TinyUSB HIDコールバック（Pico SDK公式方式）
 extern "C"
 {
@@ -49,6 +63,10 @@ extern "C"
   uint8_t const *tud_hid_descriptor_report_cb(uint8_t instance)
   {
     (void)instance;
+    if (g_usb_mode == USB_MODE_HID_Switch)
+    {
+      return desc_hid_report_switch;
+    }
     return desc_hid_report;
   }
   // OUTレポート受信時（未使用なら空実装でOK）
@@ -121,6 +139,30 @@ tusb_desc_device_t const desc_device_hid =
 
         .bNumConfigurations = 0x01};
 
+// Switch用プロコントローラーのデバイスデスクリプタ
+tusb_desc_device_t const desc_device_switch =
+    {
+        .bLength = sizeof(tusb_desc_device_t),
+        .bDescriptorType = TUSB_DESC_DEVICE,
+        .bcdUSB = USB_BCD,
+
+        // HIDはインターフェース側でクラスを定義するので 0 でOK
+        .bDeviceClass = 0x00,
+        .bDeviceSubClass = 0x00,
+        .bDeviceProtocol = 0x00,
+
+        .bMaxPacketSize0 = CFG_TUD_ENDPOINT0_SIZE,
+
+        .idVendor = 0x0f0d,  // HORI Switch Pro Controller VID
+        .idProduct = 0x0092, // HORI Switch Pro Controller PID
+        .bcdDevice = 0x0100,
+
+        .iManufacturer = 0x01,
+        .iProduct = 0x02,
+        .iSerialNumber = 0x03,
+
+        .bNumConfigurations = 0x01};
+
 // MSCモード用のデバイスデスクリプタ
 tusb_desc_device_t const desc_device_msc =
     {
@@ -155,6 +197,10 @@ uint8_t const *tud_descriptor_device_cb(void)
   if (g_usb_mode == USB_MODE_MSC)
   {
     return (uint8_t const *)&desc_device_msc;
+  }
+  else if (g_usb_mode == USB_MODE_HID_Switch)
+  {
+    return (uint8_t const *)&desc_device_switch;
   }
   else
   {
@@ -205,6 +251,17 @@ uint8_t const desc_fs_configuration_hid[] =
         // TUD_HID_DESCRIPTOR(itf, str, proto, report_len, ep_in_addr, ep_size, ep_interval)
         TUD_HID_DESCRIPTOR(ITF_NUM_HID, 4, HID_ITF_PROTOCOL_NONE, sizeof(desc_hid_report), 0x81, 64, 10),
 };
+
+// Switch用プロコントローラーのConfiguration Descriptor
+#define ITF_NUM_SWITCH 0
+#define ITF_NUM_TOTAL_SWITCH 1
+#define CONFIG_TOTAL_LEN_SWITCH (TUD_CONFIG_DESC_LEN + TUD_HID_DESC_LEN)
+uint8_t const desc_fs_configuration_switch[] =
+    {
+        TUD_CONFIG_DESCRIPTOR(1, ITF_NUM_TOTAL_SWITCH, 0, CONFIG_TOTAL_LEN_SWITCH, 0x00, 100),
+        // Switch用HIDインターフェース
+        TUD_HID_DESCRIPTOR(ITF_NUM_SWITCH, 4, HID_ITF_PROTOCOL_NONE, sizeof(desc_hid_report_switch), 0x81, 64, 10),
+};
 //--------------------------------------------------------------------+
 // ■■■ 変更点 4: Configuration Descriptor Callback ■■■
 //
@@ -220,6 +277,10 @@ uint8_t const *tud_descriptor_configuration_cb(uint8_t index)
   {
     return desc_fs_configuration_msc;
   }
+  else if (g_usb_mode == USB_MODE_HID_Switch)
+  {
+    return desc_fs_configuration_switch;
+  }
   else
   {
     return desc_fs_configuration_hid;
@@ -231,7 +292,6 @@ uint8_t const *tud_descriptor_configuration_cb(uint8_t index)
 // (CDCの文字列は削除済み)
 //--------------------------------------------------------------------+
 
-// array of pointer to string descriptors
 char const *string_desc_arr[] =
     {
         (const char[]){0x09, 0x04}, // 0: is supported language is English (0x0409)
@@ -250,6 +310,7 @@ uint16_t const *tud_descriptor_string_cb(uint8_t index, uint16_t langid)
   (void)langid;
 
   uint8_t chr_count;
+  const char *str = NULL;
 
   if (index == 0)
   {
@@ -260,11 +321,27 @@ uint16_t const *tud_descriptor_string_cb(uint8_t index, uint16_t langid)
   {
     // Note: the 0xEE index string is a Microsoft OS 1.0 Descriptors.
     // https://docs.microsoft.com/en-us/windows-hardware/drivers/usbcon/microsoft-defined-usb-descriptors
-
     if (!(index < sizeof(string_desc_arr) / sizeof(string_desc_arr[0])))
       return NULL;
 
-    const char *str = string_desc_arr[index];
+    // モードごとに文字列を切り替え
+    if (g_usb_mode == USB_MODE_HID_Switch)
+    {
+      if (index == 1)
+        str = "HORI";
+      else if (index == 2)
+        str = "HORI Switch Pro Controller";
+      else if (index == 3)
+        str = "000000000001";
+      else if (index == 4)
+        str = "Switch HID Interface";
+      else
+        str = "";
+    }
+    else
+    {
+      str = string_desc_arr[index];
+    }
 
     // Cap at max char
     chr_count = (uint8_t)strlen(str);
