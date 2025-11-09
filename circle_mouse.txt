@@ -1,0 +1,27 @@
+UseLED(0)
+Mode(KeyMouse)
+REM Draw a circle while holding left mouse button, then release
+LABEL START
+MousePress(LEFT)
+SET angle = 0
+SET radius = 300
+SET step = 0.1
+// initialize prev position to current circle point to avoid jump
+SET x = round(radius * cos(angle))
+SET y = round(radius * sin(angle))
+SET prevx = x
+SET prevy = y
+SET angle = angle + step
+LABEL CIRCLE_LOOP
+SET x = round(radius * cos(angle))
+SET y = round(radius * sin(angle))
+SET dx = x - prevx
+SET dy = y - prevy
+MouseMove(dx, dy, 1)
+WAIT 0.02
+SET prevx = x
+SET prevy = y
+SET angle = angle + step
+IF angle < 6.28318530718 GOTO CIRCLE_LOOP
+MouseRelease(LEFT)
+END

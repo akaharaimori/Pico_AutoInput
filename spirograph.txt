@@ -1,0 +1,57 @@
+UseLED(0)
+Mode(KeyMouse)
+REM Spirograph (hypotrochoid) drawing script. MouseMove uses speed (delta).
+MousePress(LEFT)
+SET R_big = 100
+SET r_small = 35
+SET d = 60
+SET step = 0.05
+SET scale = 300
+SET steps = 4000
+SET i = 0
+SET t = 0
+// initialize prev scaled position to first point to avoid jumps and amplify deltas correctly
+SET x = (R_big - r_small) * cos(t) + d * cos(((R_big - r_small) / r_small) * t)
+SET y = (R_big - r_small) * sin(t) - d * sin(((R_big - r_small) / r_small) * t)
+SET prevx = round(x * scale)
+SET prevy = round(y * scale)
+LABEL LOOP
+SET t = i * step
+SET x = (R_big - r_small) * cos(t) + d * cos(((R_big - r_small) / r_small) * t)
+SET y = (R_big - r_small) * sin(t) - d * sin(((R_big - r_small) / r_small) * t)
+// debug: expose intermediate trig values to diagnose constant results
+SET sin_t = sin(t)
+SET cos_t = cos(t)
+SET k = (R_big - r_small) / r_small
+SET cos_k_t = cos(k * t)
+SET sin_k_t = sin(k * t)
+SET term1 = (R_big - r_small) * cos_t
+SET term2 = d * cos_k_t
+// use integer scaled positions to ensure measurable deltas
+SET xs = round(x * scale)
+SET ys = round(y * scale)
+SET dx = xs - prevx
+SET dy = ys - prevy
+// debug prints for spirograph movement and intermediates
+PRINT t
+PRINT i
+PRINT sin_t
+PRINT cos_t
+PRINT k
+PRINT cos_k_t
+PRINT term1
+PRINT term2
+PRINT x
+PRINT y
+PRINT xs
+PRINT ys
+PRINT dx
+PRINT dy
+MouseMove(dx, dy, 1)
+WAIT 0.01
+SET prevx = xs
+SET prevy = ys
+SET i = i + 1
+IF i < steps GOTO LOOP
+MouseRelease(LEFT)
+END

@@ -43,6 +43,7 @@ static FATFS filesystem;
 
 // ---- tinyexpr 連携：組み込み関数 ----
 static absolute_time_t g_script_start_time;
+static uint64_t g_script_start_us = 0; // script start in microseconds
 // Avoid invoking std::random_device at static initialization time (pulls in heavy platform support
 // and can bloat the binary). Seed the engine at script start instead.
 static std::mt19937_64 g_rand_engine;
@@ -64,7 +65,12 @@ static te_type te_Rand(te_type a, te_type b)
 
 static te_type te_GetTime()
 {
-    uint64_t ms = to_ms_since_boot(g_script_start_time);
+    // return milliseconds elapsed since the script started using microsecond baseline
+    if (g_script_start_us == 0)
+        return static_cast<te_type>(0.0);
+    uint64_t now_us = time_us_64();
+    uint64_t delta_us = (now_us >= g_script_start_us) ? (now_us - g_script_start_us) : 0;
+    uint64_t ms = delta_us / 1000u;
     return static_cast<te_type>(ms);
 }
 
@@ -1282,6 +1288,8 @@ bool ExecuteScript(const char *filename)
 
     // set script start time
     g_script_start_time = get_absolute_time();
+    // also store high-resolution microsecond baseline for GetTime implementation
+    g_script_start_us = time_us_64();
 
     // prepass to collect labels
     prepass_script(st);
