@@ -316,10 +316,10 @@ int main()
             else
             {
                 // 短押し：スクリプト実行
-                printf("MAIN: short press detected -> ExecuteScript(\"led_test.txt\")\r\n");
+                printf("MAIN: short press detected -> ExecuteScript(\"Script.txt\")\r\n");
                 // tud_task();
                 printf("MAIN: about to call ExecuteScript\n");
-                ExecuteScript("led_test.txt");
+                ExecuteScript("Script.txt");
                 printf("MAIN: ExecuteScript returned\r\n");
                 // tud_task();
                 printf("MAIN: ExecuteScript returned\n");

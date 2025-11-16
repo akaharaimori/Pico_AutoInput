@@ -8,6 +8,23 @@
 #include <set>
 #include <cmath>
 #include <random>
+#include <cstdarg>
+
+static bool g_script_debug = false;
+
+// dbg_printf: prints only when g_script_debug is true
+static void dbg_printf(const char *fmt, ...)
+{
+    if (!g_script_debug)
+        return;
+    va_list ap;
+    va_start(ap, fmt);
+    vprintf(fmt, ap);
+    va_end(ap);
+}
+
+// redirect printf in this TU to dbg_printf so DEBUG(...) controls output
+#define printf(...) dbg_printf(__VA_ARGS__)
 
 #include "pico/stdlib.h"
 #include "ff.h"
@@ -40,6 +57,30 @@ extern void ApplyStripColor(int r, int g, int b);
 // - スクリプト読み込みは FATFS (FF) を利用します。
 
 static FATFS filesystem;
+
+// tud_task wrapper: call underlying tud_task() only when forced or at least 5ms elapsed since last call.
+// This reduces excessive invocations while allowing HID operations to request immediate processing.
+static uint64_t g_last_tud_task_us = 0;
+
+// declare original tud_task so we can call it directly inside the wrapper
+extern "C" void tud_task(void);
+
+static inline void maybe_tud_task(bool force)
+{
+    uint64_t now = time_us_64();
+    // treat uninitialized last as expired
+    if (force || g_last_tud_task_us == 0 || (now >= g_last_tud_task_us && (now - g_last_tud_task_us) >= 5000))
+    {
+        // call the real tinyusb task function
+        ::tud_task();
+        g_last_tud_task_us = now;
+    }
+}
+
+// Replace bare tud_task() calls in this translation unit to call maybe_tud_task(false).
+// Calls that need immediate execution should use maybe_tud_task(true).
+#undef tud_task
+#define tud_task() maybe_tud_task(false)
 
 // ---- tinyexpr 連携：組み込み関数 ----
 static absolute_time_t g_script_start_time;
@@ -83,6 +124,10 @@ struct ScriptState
     std::map<std::string, double> vars; // Var dictionary
     bool end_flag = false;
     bool use_led = false;
+    // when true, log EXECUTE[...] lines; controllable via DEBUG(expr)
+    bool debug_exec = false;
+    // track currently pressed keys (HID codes or ASCII) so KeyPress/KeyRelease behave consistently
+    std::set<uint8_t> pressed_keys;
 };
 
 // ヘルパー：文字列の前後の空白を取り除く
@@ -122,23 +167,69 @@ static inline bool starts_with_cmd(const std::string &line, const char *cmd)
 }
 
 // 現在の変数辞書から tinyexpr 用の変数／関数集合を構築する
+static std::string mangle_expression_identifiers(ScriptState &st, const std::string &expr)
+{
+    // Replace identifiers that exactly match script variable names with a mangled form
+    // so tinyexpr treats them as case-sensitive distinct identifiers.
+    std::string out;
+    size_t i = 0;
+    while (i < expr.size())
+    {
+        char c = expr[i];
+        if ((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || c == '_')
+        {
+            size_t j = i + 1;
+            while (j < expr.size())
+            {
+                char d = expr[j];
+                if ((d >= 'A' && d <= 'Z') || (d >= 'a' && d <= 'z') || (d >= '0' && d <= '9') || d == '_')
+                    ++j;
+                else
+                    break;
+            }
+            std::string ident = expr.substr(i, j - i);
+            if (st.vars.find(ident) != st.vars.end())
+            {
+                out += "__V_";
+                out += ident;
+            }
+            else
+            {
+                out += ident;
+            }
+            i = j;
+        }
+        else
+        {
+            out.push_back(c);
+            ++i;
+        }
+    }
+    return out;
+}
+
+/*
+ Build te variables using mangled variable names "__V_<Orig>" so that tinyexpr
+ treats identifiers in a case-sensitive way while the script language retains
+ original-case variable semantics in st.vars.
+*/
 static std::set<te_variable> build_te_variables_and_funcs(ScriptState &st)
 {
     std::set<te_variable> vars;
-    // add variables (as te_type pointer)
+    // add variables (mangled names) so tinyexpr sees case-sensitive distinct identifiers
     for (auto &kv : st.vars)
     {
-        // te_variable: name, value (const te_type*), type TE_DEFAULT
         te_variable v;
-        v.m_name = kv.first;
+        // register as __V_<originalName>
+        std::string mname = std::string("__V_") + kv.first;
+        v.m_name = mname;
         v.m_value = static_cast<const te_type *>(&kv.second);
         v.m_type = TE_DEFAULT;
         v.m_context = nullptr;
         vars.insert(std::move(v));
     }
 
-    // add built-in functions
-    // IsPressed()
+    // add built-in functions (keep original names & casing)
     {
         te_variable fn;
         fn.m_name = "IsPressed";
@@ -146,7 +237,6 @@ static std::set<te_variable> build_te_variables_and_funcs(ScriptState &st)
         fn.m_type = TE_DEFAULT;
         vars.insert(fn);
     }
-    // Rand(min, max)
     {
         te_variable fn;
         fn.m_name = "Rand";
@@ -154,7 +244,6 @@ static std::set<te_variable> build_te_variables_and_funcs(ScriptState &st)
         fn.m_type = TE_DEFAULT;
         vars.insert(fn);
     }
-    // GetTime()
     {
         te_variable fn;
         fn.m_name = "GetTime";
@@ -165,6 +254,116 @@ static std::set<te_variable> build_te_variables_and_funcs(ScriptState &st)
     return vars;
 }
 
+// Helper: map human-friendly key names to Arduino/TinyUSB keyboard codes or ASCII.
+// Script commands use names like "ENTER", "SPACE", "F1", "A", "1", "LEFT", "UP".
+static uint8_t key_name_to_hid(const std::string &name)
+{
+    std::string s = name;
+    // uppercase for case-insensitive compare
+    for (char &c : s)
+        if (c >= 'a' && c <= 'z')
+            c = c - 'a' + 'A';
+
+    // single letter A-Z -> return ASCII lowercase/uppercase is handled by host via modifier;
+    // but for Keyboard.press we can send the ASCII code for printable chars.
+    if (s.size() == 1)
+    {
+        char c = s[0];
+        if (c >= 'A' && c <= 'Z')
+            return static_cast<uint8_t>(c); // send ASCII letter
+        if (c >= '0' && c <= '9')
+            return static_cast<uint8_t>(c); // send ASCII digit
+    }
+
+    // Map function keys F1..F12 to Arduino/TinyUSB KEY_F* constants defined in TinyUSB_Mouse_and_Keyboard.h
+    if (s.size() >= 2 && s[0] == 'F')
+    {
+        int num = atoi(s.c_str() + 1);
+        if (num >= 1 && num <= 12)
+        {
+            switch (num)
+            {
+            case 1:
+                return KEY_F1;
+            case 2:
+                return KEY_F2;
+            case 3:
+                return KEY_F3;
+            case 4:
+                return KEY_F4;
+            case 5:
+                return KEY_F5;
+            case 6:
+                return KEY_F6;
+            case 7:
+                return KEY_F7;
+            case 8:
+                return KEY_F8;
+            case 9:
+                return KEY_F9;
+            case 10:
+                return KEY_F10;
+            case 11:
+                return KEY_F11;
+            case 12:
+                return KEY_F12;
+            default:
+                return 0;
+            }
+        }
+    }
+
+    if (s == "ENTER" || s == "RETURN")
+        return KEY_RETURN;
+    if (s == "ESC" || s == "ESCAPE")
+        return KEY_ESC;
+    if (s == "BACKSPACE" || s == "BKSP")
+        return KEY_BACKSPACE;
+    if (s == "TAB")
+        return KEY_TAB;
+    if (s == "SPACE" || s == "SPACEBAR")
+        return static_cast<uint8_t>(' ');
+    if (s == "CAPSLOCK" || s == "CAPS")
+        return KEY_CAPS_LOCK;
+
+    // Common punctuation: return ASCII where appropriate so host receives intended character
+    if (s == "MINUS" || s == "-")
+        return static_cast<uint8_t>('-');
+    if (s == "EQUAL" || s == "=")
+        return static_cast<uint8_t>('=');
+    if (s == "LEFTBRACE" || s == "[")
+        return static_cast<uint8_t>('[');
+    if (s == "RIGHTBRACE" || s == "]")
+        return static_cast<uint8_t>(']');
+    if (s == "BACKSLASH" || s == "\\")
+        return static_cast<uint8_t>('\\');
+    if (s == "SEMICOLON" || s == ";")
+        return static_cast<uint8_t>(';');
+    if (s == "APOSTROPHE" || s == "'")
+        return static_cast<uint8_t>('\'');
+    if (s == "GRAVE" || s == "`")
+        return static_cast<uint8_t>('`');
+    if (s == "COMMA" || s == ",")
+        return static_cast<uint8_t>(',');
+    if (s == "DOT" || s == "." || s == "PERIOD")
+        return static_cast<uint8_t>('.');
+    if (s == "SLASH" || s == "/")
+        return static_cast<uint8_t>('/');
+
+    // Arrow keys -> use Arduino/TinyUSB constants
+    if (s == "RIGHT" || s == "ARROWRIGHT")
+        return KEY_RIGHT_ARROW;
+    if (s == "LEFT" || s == "ARROWLEFT")
+        return KEY_LEFT_ARROW;
+    if (s == "DOWN" || s == "ARROWDOWN")
+        return KEY_DOWN_ARROW;
+    if (s == "UP" || s == "ARROWUP")
+        return KEY_UP_ARROW;
+
+    // unknow
+    return 0;
+}
+
 // tinyexpr を用いて式を評価する。成功フラグと値を返す。
 static std::pair<bool, double> eval_expression(ScriptState &st, const std::string &expr)
 {
@@ -173,16 +372,38 @@ static std::pair<bool, double> eval_expression(ScriptState &st, const std::strin
         te_parser p;
         auto vars = build_te_variables_and_funcs(st);
         p.set_variables_and_functions(vars);
-        p.compile(expr);
+        // transform expression so script variables are referenced by their mangled names
+        std::string transformed = mangle_expression_identifiers(st, expr);
+
+        // Debug: log original and transformed expression to help diagnose parse errors
+        printf("eval_expression: original='%s'\r\n", expr.c_str());
+        printf("eval_expression: transformed='%s'\r\n", transformed.c_str());
+        tud_task();
+
+        p.compile(transformed);
         double r = static_cast<double>(p.evaluate());
         if (std::isnan(r))
+        {
+            printf("eval_expression: result is NaN for '%s'\r\n", transformed.c_str());
+            tud_task();
             return {false, 0.0};
+        }
         return {true, r};
     }
     catch (...)
     {
-        // 出力を追加して何の式で失敗したか追跡する
+        // 出力を追加して何の式で失敗したか追跡する（transformed を出力）
         printf("eval_expression: failed to evaluate '%s'\r\n", expr.c_str());
+        // Attempt to provide transformed version as well if possible
+        try
+        {
+            std::string transformed = mangle_expression_identifiers(st, expr);
+            printf("eval_expression: transformed (on error) = '%s'\r\n", transformed.c_str());
+        }
+        catch (...)
+        {
+            // ignore additional failures
+        }
         tud_task();
         return {false, 0.0};
     }
@@ -244,6 +465,57 @@ static inline std::string token_after(const std::string &line, size_t start)
     while (j < line.size() && !isspace((unsigned char)line[j]))
         ++j;
     return line.substr(i, j - i);
+}
+
+// Helper: split a substring by top-level commas only (respecting quotes, escapes and nested parentheses)
+// Returns trimmed parts.
+static std::vector<std::string> split_top_level_args(const std::string &s, size_t start = 0, size_t end = std::string::npos)
+{
+    std::vector<std::string> parts;
+    if (end == std::string::npos)
+        end = s.size();
+    if (start >= end)
+        return parts;
+    bool in_q = false;
+    int depth = 0;
+    size_t last = start;
+    for (size_t i = start; i < end; ++i)
+    {
+        char ch = s[i];
+        if (ch == '\\')
+        {
+            // skip escaped char (inside or outside quotes)
+            ++i;
+            continue;
+        }
+        if (ch == '\"')
+        {
+            in_q = !in_q;
+            continue;
+        }
+        if (!in_q)
+        {
+            if (ch == '(')
+            {
+                ++depth;
+                continue;
+            }
+            if (ch == ')')
+            {
+                if (depth > 0)
+                    --depth;
+                continue;
+            }
+            if (ch == ',' && depth == 0)
+            {
+                parts.push_back(trim(s.substr(last, i - last)));
+                last = i + 1;
+            }
+        }
+    }
+    if (last < end)
+        parts.push_back(trim(s.substr(last, end - last)));
+    return parts;
 }
 
 // Mouserun 実装：Flash から CSV を読み込み再生する
@@ -496,9 +768,12 @@ static int execute_line(ScriptState &st, int current_index)
     std::string line = trim(raw);
     if (line.empty())
         return current_index + 1;
-    // log every executed line for debug
-    printf("EXECUTE[%d]: %s\r\n", current_index, line.c_str());
-    tud_task();
+    // log every executed line for debug (controlled by DEBUG())
+    if (st.debug_exec)
+    {
+        printf("EXECUTE[%d]: %s\r\n", current_index, line.c_str());
+        tud_task();
+    }
     // comments
     if (line[0] == '#' || starts_with_cmd(line, "REM"))
         return current_index + 1;
@@ -647,7 +922,7 @@ static int execute_line(ScriptState &st, int current_index)
     {
         // extract inside parentheses
         size_t p = line.find('(');
-        size_t q = line.find(')');
+        size_t q = line.rfind(')');
         if (p != std::string::npos && q != std::string::npos && q > p)
         {
             std::string arg = trim(line.substr(p + 1, q - p - 1));
@@ -687,26 +962,42 @@ static int execute_line(ScriptState &st, int current_index)
         return current_index + 1;
     }
 
+    // DEBUG(expr) - enable/disable EXECUTE logging
+    if (starts_with_cmd(line, "DEBUG"))
+    {
+        size_t p = line.find('(');
+        size_t q = line.find(')');
+        if (p != std::string::npos && q != std::string::npos && q > p)
+        {
+            std::string arg = trim(line.substr(p + 1, q - p - 1));
+            auto [ok, val] = eval_expression(st, arg);
+            st.debug_exec = (ok && val != 0.0);
+            // ensure file-wide debug flag follows the per-script flag so dbg_printf prints consistently
+            g_script_debug = st.debug_exec;
+            printf("DEBUG: execute logs %s\r\n", st.debug_exec ? "ENABLED" : "DISABLED");
+            tud_task();
+        }
+        return current_index + 1;
+    }
+
     // SetLED(r,g,b)
     if (starts_with_cmd(line, "SetLED"))
     {
         // parse three expressions separated by commas
         size_t p = line.find('(');
-        size_t q = line.find(')');
+        size_t q = line.rfind(')');
         if (p != std::string::npos && q != std::string::npos && q > p)
         {
             std::string args = line.substr(p + 1, q - p - 1);
-            // split
-            std::vector<std::string> parts;
-            size_t start = 0;
-            while (start < args.size())
+            // split using top-level-aware helper
+            auto parts = split_top_level_args(args);
+            // debug: print parts for diagnosis
+            printf("SetLED: args='%s' parts.count=%zu\r\n", args.c_str(), parts.size());
+            for (size_t _i = 0; _i < parts.size(); ++_i)
             {
-                size_t comma = args.find(',', start);
-                if (comma == std::string::npos)
-                    comma = args.size();
-                parts.push_back(trim(args.substr(start, comma - start)));
-                start = comma + 1;
+                printf("SetLED: part[%zu] = '%s'\r\n", _i, parts[_i].c_str());
             }
+            tud_task();
             if (parts.size() >= 3)
             {
                 auto r = eval_expression(st, parts[0]);
@@ -765,76 +1056,219 @@ static int execute_line(ScriptState &st, int current_index)
                (int)g_usb_mode, tud_mounted() ? 1 : 0, tud_hid_ready() ? 1 : 0, tud_suspended() ? 1 : 0);
         tud_task();
 
+        // local helper: resolve token to an integer code (HID constant or ASCII)
+        auto resolve_code = [](const std::string &keytok) -> int
+        {
+            if (keytok.empty())
+                return 0;
+            // numeric literal?
+            bool is_num = true;
+            for (char ch : keytok)
+                if (!(ch >= '0' && ch <= '9'))
+                {
+                    is_num = false;
+                    break;
+                }
+            if (is_num)
+                return atoi(keytok.c_str());
+            // mapped name
+            uint8_t mapped = key_name_to_hid(keytok);
+            if (mapped != 0)
+                return mapped;
+            // single character -> ascii
+            if (keytok.size() == 1)
+                return (int)keytok[0];
+            // fallback: attempt atoi (will yield 0)
+            return atoi(keytok.c_str());
+        };
+
         // 引数リスト（()内）を抽出
         size_t p = line.find('(');
-        size_t q = line.find(')');
-        if (p == std::string::npos || q == std::string::npos || q <= p)
+        size_t q = std::string::npos;
+        if (p == std::string::npos)
+            return current_index + 1;
+        // Use the last ')' in the line as the closing paren (search from end)
+        q = line.rfind(')');
+        if (q == std::string::npos || q <= p)
             return current_index + 1;
         std::string args = line.substr(p + 1, q - p - 1);
+
         if (starts_with_cmd(line, "KeyPress"))
         {
             std::string keytok = trim(args);
-            // 引用符付きなら文字列として送信、そうでなければ HID コード番号として扱う
+            // quoted string -> press each character and track as pressed
             if (!keytok.empty() && keytok.front() == '\"' && keytok.back() == '\"')
             {
                 std::string s = keytok.substr(1, keytok.size() - 2);
                 for (char c : s)
                 {
-                    Keyboard.press((uint8_t)c);
+                    uint8_t code = (uint8_t)c;
+                    Keyboard.press(code);
+                    st.pressed_keys.insert(code);
                     tud_task();
                 }
             }
             else
             {
-                // try as number keycode
-                int code = atoi(keytok.c_str());
-                Keyboard.press((uint8_t)code);
-                tud_task();
+                int code = resolve_code(keytok);
+                if (code != 0)
+                {
+                    uint8_t uc = static_cast<uint8_t>(code);
+                    Keyboard.press(uc);
+                    st.pressed_keys.insert(uc);
+                    tud_task();
+                }
             }
         }
         else if (starts_with_cmd(line, "KeyRelease"))
         {
             std::string keytok = trim(args);
+            // quoted string -> release each character and clear tracking
             if (!keytok.empty() && keytok.front() == '\"' && keytok.back() == '\"')
             {
                 std::string s = keytok.substr(1, keytok.size() - 2);
                 for (char c : s)
                 {
-                    Keyboard.release((uint8_t)c);
+                    uint8_t code = (uint8_t)c;
+                    Keyboard.release(code);
+                    st.pressed_keys.erase(code);
                     tud_task();
                 }
             }
             else
             {
-                int code = atoi(keytok.c_str());
-                Keyboard.release((uint8_t)code);
-                tud_task();
+                int code = resolve_code(keytok);
+                if (code != 0)
+                {
+                    uint8_t uc = static_cast<uint8_t>(code);
+                    Keyboard.release(uc);
+                    st.pressed_keys.erase(uc);
+                    tud_task();
+                }
             }
         }
         else if (starts_with_cmd(line, "KeyPushFor"))
         {
             // KeyPushFor(key, expr_seconds)
-            size_t comma = args.find(',');
-            if (comma != std::string::npos)
             {
-                std::string keytok = trim(args.substr(0, comma));
-                std::string expr = trim(args.substr(comma + 1));
-                int code = 0;
-                if (!keytok.empty() && keytok.front() == '\"' && keytok.back() == '\"')
+                auto parts = split_top_level_args(args);
+                if (parts.size() >= 2)
                 {
-                    std::string s = keytok.substr(1, keytok.size() - 2);
-                    if (!s.empty())
-                        code = (int)s[0];
+                    std::string keytok = trim(parts[0]);
+                    std::string expr = trim(parts[1]);
+                    int code = 0;
+                    if (!keytok.empty() && keytok.front() == '\"' && keytok.back() == '\"')
+                    {
+                        std::string s = keytok.substr(1, keytok.size() - 2);
+                        if (!s.empty())
+                            code = (int)s[0];
+                    }
+                    else
+                    {
+                        code = resolve_code(keytok);
+                    }
+                    auto [ok, val] = eval_expression(st, expr);
+                    if (!ok)
+                        val = 0.0;
+                    if (code != 0)
+                    {
+                        uint8_t uc = static_cast<uint8_t>(code);
+                        Keyboard.press(uc);
+                        st.pressed_keys.insert(uc);
+                        tud_task();
+                        uint32_t ms = static_cast<uint32_t>(round(val * 1000.0));
+                        uint32_t rem = ms;
+                        while (rem)
+                        {
+                            uint32_t step = rem > 20 ? 20 : rem;
+                            sleep_ms(step);
+                            tud_task();
+                            rem -= step;
+                        }
+                        Keyboard.release(uc);
+                        st.pressed_keys.erase(uc);
+                        tud_task();
+                    }
+                }
+            }
+        }
+        else if (starts_with_cmd(line, "KeyType"))
+        {
+            // KeyType("string", press_duration_expr, release_duration_expr)
+            // First argument MUST be a quoted string. Second/third arguments are expressions
+            // and are evaluated via eval_expression (supports Rand(), etc).
+            if (p == std::string::npos || q == std::string::npos || q <= p)
+                return current_index + 1;
+
+            // use top-level-aware splitter for arguments
+            std::string args = line.substr(p + 1, q - p - 1);
+            auto parts = split_top_level_args(args);
+            if (parts.size() < 3)
+                return current_index + 1;
+
+            // Parse first argument as a quoted string and unescape common sequences
+            std::string raw_first = trim(parts[0]);
+            if (raw_first.size() < 2 || raw_first.front() != '\"' || raw_first.back() != '\"')
+            {
+                // first argument must be quoted string per new requirement
+                return current_index + 1;
+            }
+            std::string inner = raw_first.substr(1, raw_first.size() - 2);
+            std::string s;
+            for (size_t i = 0; i < inner.size(); ++i)
+            {
+                char c = inner[i];
+                if (c == '\\' && i + 1 < inner.size())
+                {
+                    char n = inner[++i];
+                    switch (n)
+                    {
+                    case 'n':
+                        s.push_back('\n');
+                        break;
+                    case 'r':
+                        s.push_back('\r');
+                        break;
+                    case 't':
+                        s.push_back('\t');
+                        break;
+                    case '\\':
+                        s.push_back('\\');
+                        break;
+                    case '\"':
+                        s.push_back('\"');
+                        break;
+                    default:
+                        // unknown escape -> keep char as-is
+                        s.push_back(n);
+                        break;
+                    }
                 }
                 else
-                    code = atoi(keytok.c_str());
-                auto [ok, val] = eval_expression(st, expr);
-                if (!ok)
-                    val = 0.0;
-                Keyboard.press((uint8_t)code);
-                tud_task();
-                uint32_t ms = static_cast<uint32_t>(round(val * 1000.0));
-                uint32_t rem = ms;
+                {
+                    s.push_back(c);
+                }
+            }
+
+            // evaluate durations (allow expressions like Rand(0.01, Rand(0.02, 0.05)))
+            auto [ok1, press_d] = eval_expression(st, parts[1]);
+            auto [ok2, release_d] = eval_expression(st, parts[2]);
+            double press_ms = ok1 ? press_d * 1000.0 : 50.0;
+            double release_ms = ok2 ? release_d * 1000.0 : 50.0;
+
+            // Emit characters using press/release so HID mapping path is used.
+            for (char c : s)
+            {
+                uint8_t code = static_cast<uint8_t>(c);
+                // debug trace for diagnosis
+                printf("KeyType: emit char '%c' (0x%02X)\r\n", (c >= 32 && c <= 126) ? c : '?', (unsigned)code);
+                maybe_tud_task(true);
+                // press-hold-release to respect durations
+                Keyboard.press(code);
+                st.pressed_keys.insert(code);
+                maybe_tud_task(true);
+
+                uint32_t rem = static_cast<uint32_t>(round(press_ms));
                 while (rem)
                 {
                     uint32_t step = rem > 20 ? 20 : rem;
@@ -842,69 +1276,19 @@ static int execute_line(ScriptState &st, int current_index)
                     tud_task();
                     rem -= step;
                 }
-                Keyboard.release((uint8_t)code);
-                tud_task();
-            }
-        }
-        else if (starts_with_cmd(line, "KeyType"))
-        {
-            // KeyType("String", press_duration, release_duration)
-            // parse args split by commas but first arg may be quoted string
-            std::vector<std::string> parts;
-            size_t idx = 0;
-            // first arg: quoted string
-            while (idx < args.size() && isspace((unsigned char)args[idx]))
-                ++idx;
-            if (idx < args.size() && args[idx] == '\"')
-            {
-                ++idx;
-                size_t j = idx;
-                while (j < args.size() && args[j] != '\"')
-                    ++j;
-                std::string str = args.substr(idx, j - idx);
-                parts.push_back(std::string("\"") + str + "\"");
-                idx = j + 1;
-            }
-            // remaining comma separated
-            while (idx < args.size())
-            {
-                size_t comma = args.find(',', idx);
-                if (comma == std::string::npos)
-                    comma = args.size();
-                parts.push_back(trim(args.substr(idx, comma - idx)));
-                idx = comma + 1;
-            }
-            if (parts.size() >= 3)
-            {
-                std::string s = parts[0];
-                if (s.front() == '\"' && s.back() == '\"')
-                    s = s.substr(1, s.size() - 2);
-                auto [ok1, press_d] = eval_expression(st, parts[1]);
-                auto [ok2, release_d] = eval_expression(st, parts[2]);
-                double press_ms = ok1 ? press_d * 1000.0 : 50.0;
-                double release_ms = ok2 ? release_d * 1000.0 : 50.0;
-                for (char c : s)
+
+                Keyboard.release(code);
+                st.pressed_keys.erase(code);
+                maybe_tud_task(true);
+
+                // wait release interval between characters
+                rem = static_cast<uint32_t>(round(release_ms));
+                while (rem)
                 {
-                    Keyboard.press((uint8_t)c);
+                    uint32_t step = rem > 20 ? 20 : rem;
+                    sleep_ms(step);
                     tud_task();
-                    uint32_t rem = static_cast<uint32_t>(round(press_ms));
-                    while (rem)
-                    {
-                        uint32_t step = rem > 20 ? 20 : rem;
-                        sleep_ms(step);
-                        tud_task();
-                        rem -= step;
-                    }
-                    Keyboard.release((uint8_t)c);
-                    tud_task();
-                    rem = static_cast<uint32_t>(round(release_ms));
-                    while (rem)
-                    {
-                        uint32_t step = rem > 20 ? 20 : rem;
-                        sleep_ms(step);
-                        tud_task();
-                        rem -= step;
-                    }
+                    rem -= step;
                 }
             }
         }
@@ -919,21 +1303,12 @@ static int execute_line(ScriptState &st, int current_index)
         if (starts_with_cmd(line, "MouseMove"))
         {
             size_t p = line.find('(');
-            size_t q = line.find(')');
+            size_t q = line.rfind(')');
             if (p == std::string::npos || q == std::string::npos || q <= p)
                 return current_index + 1;
             std::string args = line.substr(p + 1, q - p - 1);
-            // カンマで分割
-            std::vector<std::string> parts;
-            size_t start = 0;
-            while (start < args.size())
-            {
-                size_t comma = args.find(',', start);
-                if (comma == std::string::npos)
-                    comma = args.size();
-                parts.push_back(trim(args.substr(start, comma - start)));
-                start = comma + 1;
-            }
+            // split using top-level-aware helper
+            auto parts = split_top_level_args(args);
             if (parts.size() >= 3)
             {
                 auto [okx, vx] = eval_expression(st, parts[0]);
@@ -955,7 +1330,7 @@ static int execute_line(ScriptState &st, int current_index)
                         if (iy > 127)
                             iy = 127;
                         Mouse.move((signed char)ix, (signed char)iy, 0);
-                        tud_task();
+                        maybe_tud_task(true);
                     }
                     else
                     {
@@ -971,7 +1346,7 @@ static int execute_line(ScriptState &st, int current_index)
                         if (iy > 127)
                             iy = 127;
                         Mouse.move((signed char)ix, (signed char)iy, 0);
-                        tud_task();
+                        maybe_tud_task(true);
                     }
                 }
             }
@@ -979,7 +1354,7 @@ static int execute_line(ScriptState &st, int current_index)
         else if (starts_with_cmd(line, "MousePress"))
         {
             size_t p = line.find('(');
-            size_t q = line.find(')');
+            size_t q = line.rfind(')');
             if (p == std::string::npos || q == std::string::npos || q <= p)
                 return current_index + 1;
             std::string arg = trim(line.substr(p + 1, q - p - 1));
@@ -989,12 +1364,12 @@ static int execute_line(ScriptState &st, int current_index)
                 Mouse.press(MOUSE_RIGHT);
             else if (arg == "MIDDLE")
                 Mouse.press(MOUSE_MIDDLE);
-            tud_task();
+            maybe_tud_task(true);
         }
         else if (starts_with_cmd(line, "MouseRelease"))
         {
             size_t p = line.find('(');
-            size_t q = line.find(')');
+            size_t q = line.rfind(')');
             if (p == std::string::npos || q == std::string::npos || q <= p)
                 return current_index + 1;
             std::string arg = trim(line.substr(p + 1, q - p - 1));
@@ -1004,51 +1379,53 @@ static int execute_line(ScriptState &st, int current_index)
                 Mouse.release(MOUSE_RIGHT);
             else if (arg == "MIDDLE")
                 Mouse.release(MOUSE_MIDDLE);
-            tud_task();
+            maybe_tud_task(true);
         }
         else if (starts_with_cmd(line, "MousePushFor"))
         {
             // MousePushFor(button, expr)
             size_t p = line.find('(');
-            size_t q = line.find(')');
+            size_t q = line.rfind(')');
             if (p == std::string::npos || q == std::string::npos || q <= p)
                 return current_index + 1;
             std::string args = line.substr(p + 1, q - p - 1);
-            size_t comma = args.find(',');
-            if (comma == std::string::npos)
-                return current_index + 1;
-            std::string button = trim(args.substr(0, comma));
-            std::string expr = trim(args.substr(comma + 1));
-            auto [ok, val] = eval_expression(st, expr);
-            uint32_t ms = ok ? static_cast<uint32_t>(round(val * 1000.0)) : 0;
-            if (button == "LEFT")
-                Mouse.press(MOUSE_LEFT);
-            else if (button == "RIGHT")
-                Mouse.press(MOUSE_RIGHT);
-            else if (button == "MIDDLE")
-                Mouse.press(MOUSE_MIDDLE);
-            tud_task();
-            uint32_t rem = ms;
-            while (rem)
             {
-                uint32_t step = rem > 20 ? 20 : rem;
-                sleep_ms(step);
+                auto parts = split_top_level_args(args);
+                if (parts.size() < 2)
+                    return current_index + 1;
+                std::string button = trim(parts[0]);
+                std::string expr = trim(parts[1]);
+                auto [ok, val] = eval_expression(st, expr);
+                uint32_t ms = ok ? static_cast<uint32_t>(round(val * 1000.0)) : 0;
+                if (button == "LEFT")
+                    Mouse.press(MOUSE_LEFT);
+                else if (button == "RIGHT")
+                    Mouse.press(MOUSE_RIGHT);
+                else if (button == "MIDDLE")
+                    Mouse.press(MOUSE_MIDDLE);
                 tud_task();
-                rem -= step;
+                uint32_t rem = ms;
+                while (rem)
+                {
+                    uint32_t step = rem > 20 ? 20 : rem;
+                    sleep_ms(step);
+                    tud_task();
+                    rem -= step;
+                }
+                if (button == "LEFT")
+                    Mouse.release(MOUSE_LEFT);
+                else if (button == "RIGHT")
+                    Mouse.release(MOUSE_RIGHT);
+                else if (button == "MIDDLE")
+                    Mouse.release(MOUSE_MIDDLE);
+                tud_task();
             }
-            if (button == "LEFT")
-                Mouse.release(MOUSE_LEFT);
-            else if (button == "RIGHT")
-                Mouse.release(MOUSE_RIGHT);
-            else if (button == "MIDDLE")
-                Mouse.release(MOUSE_MIDDLE);
-            tud_task();
         }
         else if (starts_with_cmd(line, "Mouserun"))
         {
             // Mouserun(filename_string, time_scale_expr, angle_expr, scale_expr)
             size_t p = line.find('(');
-            size_t q = line.find(')');
+            size_t q = line.rfind(')');
             if (p == std::string::npos || q == std::string::npos || q <= p)
                 return current_index + 1;
             std::string args = line.substr(p + 1, q - p - 1);
@@ -1066,16 +1443,8 @@ static int execute_line(ScriptState &st, int current_index)
                 filename = args.substr(idx, j - idx);
                 idx = j + 1;
             }
-            // remaining splits by commas
-            std::vector<std::string> parts;
-            while (idx < args.size())
-            {
-                size_t comma = args.find(',', idx);
-                if (comma == std::string::npos)
-                    comma = args.size();
-                parts.push_back(trim(args.substr(idx, comma - idx)));
-                idx = comma + 1;
-            }
+            // remaining splits by commas (top-level aware)
+            auto parts = split_top_level_args(args, idx, args.size());
             double time_scale = 1.0, angle = 0.0, scale = 1.0;
             if (parts.size() >= 3)
             {
@@ -1102,7 +1471,7 @@ static int execute_line(ScriptState &st, int current_index)
         if (starts_with_cmd(line, "ProConPress"))
         {
             size_t p = line.find('(');
-            size_t q = line.find(')');
+            size_t q = line.rfind(')');
             if (p == std::string::npos || q == std::string::npos || q <= p)
                 return current_index + 1;
             std::string arg = trim(line.substr(p + 1, q - p - 1));
@@ -1119,7 +1488,7 @@ static int execute_line(ScriptState &st, int current_index)
             // call SwitchController
             SwitchController().pressButton(b);
             SwitchController().sendReport();
-            tud_task();
+            maybe_tud_task(true);
         }
         else if (starts_with_cmd(line, "ProConRelease"))
         {
@@ -1139,60 +1508,53 @@ static int execute_line(ScriptState &st, int current_index)
                 b = Button::R;
             SwitchController().releaseButton(b);
             SwitchController().sendReport();
-            tud_task();
+            maybe_tud_task(true);
         }
         else if (starts_with_cmd(line, "ProConPushFor"))
         {
             size_t p = line.find('(');
-            size_t q = line.find(')');
+            size_t q = line.rfind(')');
             if (p == std::string::npos || q == std::string::npos || q <= p)
                 return current_index + 1;
             std::string args = line.substr(p + 1, q - p - 1);
-            size_t comma = args.find(',');
-            if (comma == std::string::npos)
-                return current_index + 1;
-            std::string bname = trim(args.substr(0, comma));
-            std::string expr = trim(args.substr(comma + 1));
-            Button b = Button::A;
-            if (bname == "A")
-                b = Button::A;
-            else if (bname == "B")
-                b = Button::B;
-            auto [ok, val] = eval_expression(st, expr);
-            uint32_t ms = ok ? static_cast<uint32_t>(round(val * 1000.0)) : 0;
-            SwitchController().pressButton(b);
-            SwitchController().sendReport();
-            tud_task();
-            uint32_t rem = ms;
-            while (rem)
             {
-                uint32_t step = rem > 20 ? 20 : rem;
-                sleep_ms(step);
-                tud_task();
-                rem -= step;
+                auto parts = split_top_level_args(args);
+                if (parts.size() < 2)
+                    return current_index + 1;
+                std::string bname = trim(parts[0]);
+                std::string expr = trim(parts[1]);
+                Button b = Button::A;
+                if (bname == "A")
+                    b = Button::A;
+                else if (bname == "B")
+                    b = Button::B;
+                auto [ok, val] = eval_expression(st, expr);
+                uint32_t ms = ok ? static_cast<uint32_t>(round(val * 1000.0)) : 0;
+                SwitchController().pressButton(b);
+                SwitchController().sendReport();
+                maybe_tud_task(true);
+                uint32_t rem = ms;
+                while (rem)
+                {
+                    uint32_t step = rem > 20 ? 20 : rem;
+                    sleep_ms(step);
+                    tud_task();
+                    rem -= step;
+                }
+                SwitchController().releaseButton(b);
+                SwitchController().sendReport();
+                maybe_tud_task(true);
             }
-            SwitchController().releaseButton(b);
-            SwitchController().sendReport();
-            tud_task();
         }
         else if (starts_with_cmd(line, "ProConJoy"))
         {
             size_t p = line.find('(');
-            size_t q = line.find(')');
+            size_t q = line.rfind(')');
             if (p == std::string::npos || q == std::string::npos || q <= p)
                 return current_index + 1;
             std::string args = line.substr(p + 1, q - p - 1);
             // parse four expressions
-            std::vector<std::string> parts;
-            size_t start = 0;
-            while (start < args.size())
-            {
-                size_t comma = args.find(',', start);
-                if (comma == std::string::npos)
-                    comma = args.size();
-                parts.push_back(trim(args.substr(start, comma - start)));
-                start = comma + 1;
-            }
+            auto parts = split_top_level_args(args);
             if (parts.size() >= 4)
             {
                 auto lx = eval_expression(st, parts[0]);
@@ -1280,9 +1642,14 @@ bool ExecuteScript(const char *filename)
     printf("ExecuteScript: starting '%s'\r\n", filename);
     tud_task();
     ScriptState st;
+    // default: EXECUTE logs disabled
+    st.debug_exec = false;
+    // initialize global debug flag for this script
+    g_script_debug = st.debug_exec;
     if (!load_script_file(filename, st))
     {
         printf("ExecuteScript: failed to open '%s'\r\n", filename);
+        g_script_debug = false;
         return false;
     }
 
@@ -1308,5 +1675,7 @@ bool ExecuteScript(const char *filename)
 
     printf("ExecuteScript: finished '%s'\r\n", filename);
     tud_task();
+    // clear global debug flag
+    g_script_debug = false;
     return true;
 }
