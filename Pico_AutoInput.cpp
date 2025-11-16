@@ -238,25 +238,60 @@ int main()
 
     bool write_mode_flag = false;
     test_and_init_filesystem();
-    // g_usb_mode = USB_MODE_HID;
-    // Keyboard.begin();
-    // Mouse.begin();
-    // // Aキー10回送信（tud_taskを10ms以内で呼び出し続ける）
-    // int a_sent = 0;
-    // absolute_time_t last_send = get_absolute_time();
+    // If Script.txt does not exist on startup, create it with default rainbow loop
+    {
+        FRESULT _res = f_mount(&filesystem, "/", 1);
+        if (_res == FR_OK)
+        {
+            FIL _fp;
+            _res = f_open(&_fp, "Script.txt", FA_READ);
+            if (_res != FR_OK)
+            {
+                // create and write default script
+                const char *default_script =
+                    "//これはデフォルトのスクリプトファイルです。\n"
+                    "//BOOTSELボタンを短く押すと、このスクリプトが実行されます。\n"
+                    "//このスクリプトファイルを書き換えて好きなスクリプトを実行してください。\n"
+                    "//examplesフォルダの中のスクリプトの内容をコピーして貼り付けると使用例が実行できます。\n"
+                    "UseLED(1)\n"
+                    "SET loopc = 0\n"
+                    "LABEL LOOP\n"
+                    "SET loopc = loopc + 1\n"
+                    "SET t = GetTime() / 1000.0\n"
+                    "SetLED((sin(t * 2) + 1.0) * 127.5,(sin(t * 2 + 2.09439510239) + 1.0) * 127.5,(sin(t * 2 + 4.18879020479) + 1.0) * 127.5)\n"
+                    "WAIT 0.001\n"
+                    "GOTO LOOP\n";
+                _res = f_open(&_fp, "Script.txt", FA_WRITE | FA_CREATE_ALWAYS);
+                if (_res == FR_OK)
+                {
+                    UINT _bw = 0;
+                    f_write(&_fp, (const void *)default_script, (UINT)strlen(default_script), &_bw);
+                    f_close(&_fp);
+                    printf("MAIN: created default Script.txt (%u bytes)\r\n", (unsigned)_bw);
+                }
+                else
+                {
+                    printf("MAIN: failed to create Script.txt (rc=%d)\r\n", _res);
+                }
+            }
+            else
+            {
+                // file exists; close handle opened for read
+                f_close(&_fp);
+            }
+            f_unmount("/");
+        }
+        else
+        {
+            printf("MAIN: f_mount failed when checking Script.txt (rc=%d)\r\n", _res);
+        }
+    }
+    // Start in USB MSC mode on boot
+    printf("MAIN: starting in MSC mode\r\n");
+    g_usb_mode = USB_MODE_MSC;
+    tud_init(BOARD_TUD_RHPORT);
 
-    // while (a_sent < 10)
-    // {
-    //     tud_task();
-    //     if (to_ms_since_boot(last_send) > 20)
-    //     {
-    //         Keyboard.write('a');
-    //         tud_task();
-    //         a_sent++;
-    //         last_send = get_absolute_time();
-    //     }
-    //     sleep_ms(1);
-    // }
+    // indicate MSC mode with green LED
     ledStrip1->fill(WS2812::RGB(0, 255, 0));
     ledStrip1->show();
     // debug marker: initialization complete
@@ -268,9 +303,9 @@ int main()
     while (true)
     {
         write_mode_flag = bb_get_bootsel_button();
-        printf("MAIN: loop start, boot button=%d\r\n", write_mode_flag ? 1 : 0);
-        // tud_task();
-        printf("MAIN: loop iter\n");
+        // printf("MAIN: loop start, boot button=%d\r\n", write_mode_flag ? 1 : 0);
+        tud_task();
+        // printf("MAIN: loop iter\n");
 
         if (write_mode_flag)
         {
@@ -284,7 +319,7 @@ int main()
             while (bb_get_bootsel_button())
             {
                 // 押している間は待つ（tud_task を回して USB スタックを維持）
-                // tud_task();
+                tud_task();
                 sleep_ms(1);
             }
             // 押し終わった時刻を取得して差分を計算
@@ -299,30 +334,36 @@ int main()
             const uint64_t LONG_PRESS_MS = 1000; // 長押し閾値: 1000ms
             if (held_ms >= LONG_PRESS_MS)
             {
-                // 長押し：USB MSC モードに切り替え、ファイル書き込み待機ループへ
-                printf("MAIN: long press detected -> entering MSC mode\r\n");
-                // tud_task();
-                // tud_deinit(BOARD_TUD_RHPORT);
-                g_usb_mode = USB_MODE_MSC;
-                tud_init(BOARD_TUD_RHPORT);
-                ledStrip1->fill(WS2812::RGB(0, 255, 0));
-                ledStrip1->show();
-                while (true)
-                {
-                    read_write_task();
-                    tud_task();
-                }
+                // 長押し動作は自動MSCモードのため無視
+                printf("MAIN: long press detected -> ignored (auto MSC active)\r\n");
             }
             else
             {
                 // 短押し：スクリプト実行
-                printf("MAIN: short press detected -> ExecuteScript(\"Script.txt\")\r\n");
-                // tud_task();
+                printf("MAIN: short press detected -> execute Script.txt\r\n");
+                printf("MAIN: preparing USB for HID/script execution\r\n");
+                // Switch from MSC -> HID so script can use HID APIs reliably
+                tud_deinit(BOARD_TUD_RHPORT);
+                sleep_ms(100);
+                // indicate script execution with yellow LED
+                ledStrip1->fill(WS2812::RGB(255, 255, 0));
+                ledStrip1->show();
+
                 printf("MAIN: about to call ExecuteScript\n");
                 ExecuteScript("Script.txt");
                 printf("MAIN: ExecuteScript returned\r\n");
-                // tud_task();
-                printf("MAIN: ExecuteScript returned\n");
+
+                // After script ends, return to MSC mode
+                printf("MAIN: returning to MSC mode\r\n");
+                tud_deinit(BOARD_TUD_RHPORT);
+                sleep_ms(100);
+                g_usb_mode = USB_MODE_MSC;
+                tud_init(BOARD_TUD_RHPORT);
+                // indicate MSC mode with green LED
+                ledStrip1->fill(WS2812::RGB(0, 255, 0));
+                ledStrip1->show();
+
+                printf("MAIN: returned to MSC mode\n");
             }
         }
         // tud_task();

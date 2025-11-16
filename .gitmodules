@@ -4,3 +4,6 @@
 [submodule "tinyexpr-plusplus"]
 	path = tinyexpr-plusplus
 	url = https://github.com/akaharaimori/tinyexpr-plusplus.git
+[submodule "pico-littlefs-usb"]
+	path = pico-littlefs-usb
+	url = https://github.com/oyama/pico-littlefs-usb.git
