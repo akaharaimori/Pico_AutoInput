@@ -13,11 +13,10 @@
 #include <bsp/board.h>
 #include <tusb.h>
 #include "usb_descriptors.h"
-#include <ff.h>
+#include "pico-littlefs-usb/vendor/littlefs/lfs.h"
 #include "WS2812.hpp"
 #include "PNGdec/src/PNGdec.h"
 #include "bootsel_button.h"
-#include "flash.h"
 #include "TinyUSB_Mouse_and_Keyboard/TinyUSB_Mouse_and_Keyboard.h"
 #include "SwitchControllerPico/src/SwitchControllerPico.h"
 #include "SwitchControllerPico/src/NintendoSwitchControllPico.h"
@@ -26,7 +25,9 @@
 
 // allow controlling stdio drivers (USB stdio is disabled via CMake for this target)
 extern bool ExecuteScript(const char *filename);
-#include "flash.h"
+
+// littlefs configuration provided by pico-littlefs-usb
+extern const struct lfs_config lfs_pico_flash_config;
 
 #define WS2812_PIN1 16
 #define NUM_LEDS1 1
@@ -43,9 +44,8 @@ extern bool ExecuteScript(const char *filename);
 #define UART_TX_PIN 4
 #define UART_RX_PIN 5
 
-// fatfs driver
-FATFS filesystem; /* single shared instance for the program (remove internal linkage) */
-static FIL txt_file;
+// littlefs driver
+lfs_t fs;                 /* single shared instance for the program (remove internal linkage) */
 WS2812 *ledStrip1 = NULL; // グローバルLEDストリップポインタ (外部から参照可能)
 
 // LED色定義
@@ -80,74 +80,107 @@ void ApplyStripColor(int r, int g, int b)
  * `fatfs_flash_driver.c:disk_initialize()` is called to test the file
  * system and initialize it if necessary.
  */
-static void test_and_init_filesystem(void)
+static void test_filesystem_and_format_if_necessary(bool force_format)
 {
-    f_mount(&filesystem, "/", 1);
-    f_unmount("/");
+    // If forced or mount fails, format and initialize littlefs
+    if (force_format || (lfs_mount(&fs, &lfs_pico_flash_config) != 0))
+    {
+        printf("Format the onboard flash memory with littlefs\n");
+        int ferr = lfs_format(&fs, &lfs_pico_flash_config);
+        if (ferr != 0)
+        {
+            printf("test_filesystem_and_format_if_necessary: lfs_format failed (rc=%d)\n", ferr);
+            return;
+        }
+        int merr = lfs_mount(&fs, &lfs_pico_flash_config);
+        if (merr != 0)
+        {
+            printf("test_filesystem_and_format_if_necessary: lfs_mount failed after format (rc=%d)\n", merr);
+            return;
+        }
+
+        lfs_file_t f;
+        if (lfs_file_open(&fs, &f, "README.TXT", LFS_O_RDWR | LFS_O_CREAT) == 0)
+        {
+            const char *init = "count=0\n";
+            lfs_file_write(&fs, &f, init, strlen(init));
+            lfs_file_close(&fs, &f);
+        }
+
+        // leave unmounted so callers can mount when needed
+        lfs_unmount(&fs);
+    }
+    else
+    {
+        // filesystem ok; unmount to keep consistent behavior with previous code
+        lfs_unmount(&fs);
+    }
 }
 
 static bool task_read_file_content(int *count)
 {
-
-    FRESULT res = f_mount(&filesystem, "/", 1);
-    if (res != FR_OK)
+    printf("read README.TXT\n");
+    if (lfs_mount(&fs, &lfs_pico_flash_config) != 0)
     {
+        printf("lfs_mount fail\n");
         return false;
     }
 
     bool result = false;
-    FIL fp;
-    res = f_open(&fp, "README.TXT", FA_READ);
-    if (res == FR_OK)
+    lfs_file_t fp;
+    if (lfs_file_open(&fs, &fp, "README.TXT", LFS_O_RDONLY) == 0)
     {
-        char buffer[512];
-        UINT length;
-        // memset(buffer, 0, sizeof(buffer));
-        f_read(&fp, (uint8_t *)buffer, sizeof(buffer), &length);
-        if (sscanf(buffer, "count=%d", count) != 1)
+        char buffer[512] = {0};
+        lfs_ssize_t s = lfs_file_read(&fs, &fp, buffer, sizeof(buffer) - 1);
+        if (s >= 0)
         {
-            // invalid file format, reset.
-            *count = 0;
+            printf("%s", buffer);
+            if (sscanf(buffer, "count=%d", count) != 1)
+            {
+                *count = 0;
+            }
+            result = true;
         }
-        f_close(&fp);
-        result = true;
+        lfs_file_close(&fs, &fp);
     }
     else
     {
-        count = 0;
+        printf("can't open README.txt\n");
+        *count = 0;
         result = false;
     }
-    f_unmount("/");
+    lfs_unmount(&fs);
     return result;
 }
 
 static bool task_write_file_content(int count)
 {
-
-    FRESULT res = f_mount(&filesystem, "/", 1);
-    if (res != FR_OK)
+    printf("update README.txt\n");
+    if (lfs_mount(&fs, &lfs_pico_flash_config) != 0)
     {
+        printf("lfs_mount fail\n");
         return false;
     }
 
     bool result = false;
-    FIL fp;
-    res = f_open(&fp, "README.TXT", FA_WRITE | FA_CREATE_ALWAYS);
-    if (res == FR_OK)
+    lfs_file_t fp;
+    if (lfs_file_open(&fs, &fp, "README.TXT", LFS_O_WRONLY | LFS_O_CREAT | LFS_O_TRUNC) == 0)
     {
         count++;
-        char buffer[512];
+        char buffer[128];
         int size = snprintf(buffer, sizeof(buffer), "count=%d\n", count);
-        UINT writed = 0;
-        res = f_write(&fp, (uint8_t *)buffer, size, &writed);
-        f_close(&fp);
-        result = true;
+        if (lfs_file_write(&fs, &fp, buffer, (lfs_size_t)size) == size)
+        {
+            result = true;
+        }
+        lfs_file_close(&fs, &fp);
     }
     else
     {
+        printf("can't update README.txt\n");
         result = false;
     }
-    f_unmount("/");
+    lfs_unmount(&fs);
     return result;
 }
 
@@ -178,7 +211,8 @@ static void read_write_task(void)
     }
     if (long_push > 125000)
     { // Long-push BOOTSEL button
-        flash_fat_initialize();
+        printf("Format littlefs on flash memory\n");
+        lfs_format(&fs, &lfs_pico_flash_config);
         count = 0;
         long_push = 0;
     }
@@ -237,15 +271,15 @@ int main()
     sleep_ms(500);
 
     bool write_mode_flag = false;
-    test_and_init_filesystem();
+    test_filesystem_and_format_if_necessary(false);
     // If Script.txt does not exist on startup, create it with default rainbow loop
     {
-        FRESULT _res = f_mount(&filesystem, "/", 1);
-        if (_res == FR_OK)
+        int err = lfs_mount(&fs, &lfs_pico_flash_config);
+        if (err == 0)
         {
-            FIL _fp;
-            _res = f_open(&_fp, "Script.txt", FA_READ);
-            if (_res != FR_OK)
+            lfs_file_t _fp;
+            int rc = lfs_file_open(&fs, &_fp, "Script.txt", LFS_O_RDONLY);
+            if (rc < 0)
             {
                 // create and write default script
                 const char *default_script =
@@ -261,29 +295,28 @@ int main()
                     "SetLED((sin(t * 2) + 1.0) * 127.5,(sin(t * 2 + 2.09439510239) + 1.0) * 127.5,(sin(t * 2 + 4.18879020479) + 1.0) * 127.5)\n"
                     "WAIT 0.001\n"
                     "GOTO LOOP\n";
-                _res = f_open(&_fp, "Script.txt", FA_WRITE | FA_CREATE_ALWAYS);
-                if (_res == FR_OK)
+                rc = lfs_file_open(&fs, &_fp, "Script.txt", LFS_O_WRONLY | LFS_O_CREAT);
+                if (rc >= 0)
                 {
-                    UINT _bw = 0;
-                    f_write(&_fp, (const void *)default_script, (UINT)strlen(default_script), &_bw);
-                    f_close(&_fp);
-                    printf("MAIN: created default Script.txt (%u bytes)\r\n", (unsigned)_bw);
+                    lfs_ssize_t _bw = lfs_file_write(&fs, &_fp, default_script, strlen(default_script));
+                    lfs_file_close(&fs, &_fp);
+                    printf("MAIN: created default Script.txt (%d bytes)\r\n", (int)(_bw >= 0 ? _bw : 0));
                 }
                 else
                 {
-                    printf("MAIN: failed to create Script.txt (rc=%d)\r\n", _res);
+                    printf("MAIN: failed to create Script.txt (rc=%d)\r\n", rc);
                 }
             }
             else
             {
                 // file exists; close handle opened for read
-                f_close(&_fp);
+                lfs_file_close(&fs, &_fp);
             }
-            f_unmount("/");
+            lfs_unmount(&fs);
         }
         else
         {
-            printf("MAIN: f_mount failed when checking Script.txt (rc=%d)\r\n", _res);
+            printf("MAIN: lfs_mount failed when checking Script.txt (rc=%d)\r\n", err);
         }
     }
     // Start in USB MSC mode on boot

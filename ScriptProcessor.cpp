@@ -27,7 +27,7 @@ static void dbg_printf(const char *fmt, ...)
 #define printf(...) dbg_printf(__VA_ARGS__)
 
 #include "pico/stdlib.h"
-#include "ff.h"
+#include "lfs.h"
 #include "tusb.h"
 #include "usb_descriptors.h"
 
@@ -56,7 +56,8 @@ extern void ApplyStripColor(int r, int g, int b);
 // - 式の評価には tinyexpr-plusplus を使用します。
 // - スクリプト読み込みは FATFS (FF) を利用します。
 
-static FATFS filesystem;
+extern const struct lfs_config lfs_pico_flash_config;
+static lfs_t g_lfs;
 
 // tud_task wrapper: call underlying tud_task() only when forced or at least 5ms elapsed since last call.
 // This reduces excessive invocations while allowing HID operations to request immediate processing.
@@ -523,32 +524,35 @@ static void do_mouserun(const std::string &filename, double time_scale, double a
 {
     printf("do_mouserun: start '%s' time_scale=%.3f angle=%.3f scale=%.3f\r\n", filename.c_str(), time_scale, angle_rad, scale);
     tud_task();
-    FRESULT res = f_mount(&filesystem, "/", 1);
-    if (res != FR_OK)
+
+    int err = lfs_mount(&g_lfs, &lfs_pico_flash_config);
+    if (err < 0)
     {
-        printf("do_mouserun: f_mount failed %d\r\n", res);
+        printf("do_mouserun: lfs_mount failed %d\r\n", err);
         tud_task();
         return;
     }
-    FIL fp;
-    res = f_open(&fp, filename.c_str(), FA_READ);
-    if (res != FR_OK)
+
+    lfs_file_t fp;
+    int rc = lfs_file_open(&g_lfs, &fp, filename.c_str(), LFS_O_RDONLY);
+    if (rc < 0)
     {
-        printf("do_mouserun: f_open failed %d for '%s'\r\n", res, filename.c_str());
+        printf("do_mouserun: lfs_file_open failed %d for '%s'\r\n", rc, filename.c_str());
         tud_task();
-        f_unmount("/");
+        lfs_unmount(&g_lfs);
         return;
     }
+
     // read file in chunks and split into lines to avoid dependency on f_gets
     char chunk[256];
     std::string accum;
-    UINT br = 0;
+    int br = 0;
     while (true)
     {
-        res = f_read(&fp, chunk, sizeof(chunk), &br);
-        if (res != FR_OK || br == 0)
+        br = (int)lfs_file_read(&g_lfs, &fp, chunk, sizeof(chunk));
+        if (br <= 0)
             break;
-        for (UINT i = 0; i < br; ++i)
+        for (int i = 0; i < br; ++i)
         {
             char c = chunk[i];
             if (c == '\r')
@@ -755,8 +759,8 @@ static void do_mouserun(const std::string &filename, double time_scale, double a
             }
         }
     }
-    f_close(&fp);
-    f_unmount("/");
+    lfs_file_close(&g_lfs, &fp);
+    lfs_unmount(&g_lfs);
 }
 
 // 現在の行インデックスで単一コマンドを実行する。返り値は次に実行する行インデックス。
@@ -1584,28 +1588,31 @@ static bool load_script_file(const char *filename, ScriptState &st)
     st.lines.clear();
     printf("load_script_file: opening '%s'\r\n", filename);
     tud_task();
-    FRESULT res = f_mount(&filesystem, "/", 1);
-    if (res != FR_OK)
+
+    int err = lfs_mount(&g_lfs, &lfs_pico_flash_config);
+    if (err < 0)
         return false;
-    FIL fp;
-    res = f_open(&fp, filename, FA_READ);
-    if (res != FR_OK)
+
+    lfs_file_t fp;
+    int rc = lfs_file_open(&g_lfs, &fp, filename, LFS_O_RDONLY);
+    if (rc < 0)
     {
-        f_unmount("/");
-        printf("load_script_file: failed to open '%s' (rc=%d)\r\n", filename, res);
+        lfs_unmount(&g_lfs);
+        printf("load_script_file: failed to open '%s' (rc=%d)\r\n", filename, rc);
         tud_task();
         return false;
     }
+
     // read entire file into lines without using f_gets
     char buf[256];
     std::string accum;
-    UINT br = 0;
+    int br = 0;
     while (true)
     {
-        res = f_read(&fp, buf, sizeof(buf), &br);
-        if (res != FR_OK || br == 0)
+        br = (int)lfs_file_read(&g_lfs, &fp, buf, sizeof(buf));
+        if (br <= 0)
             break;
-        for (UINT i = 0; i < br; ++i)
+        for (int i = 0; i < br; ++i)
         {
             char c = buf[i];
             if (c == '\r')
@@ -1628,8 +1635,8 @@ static bool load_script_file(const char *filename, ScriptState &st)
     }
     printf("load_script_file: loaded %zu lines from '%s'\r\n", st.lines.size(), filename);
     tud_task();
-    f_close(&fp);
-    f_unmount("/");
+    lfs_file_close(&g_lfs, &fp);
+    lfs_unmount(&g_lfs);
     return true;
 }
 
