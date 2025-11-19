@@ -661,6 +661,75 @@ static void read_write_task(void)
         long_push = 0;
     }
 }
+// ---------------------------------------------------------
+// ランタイムエラー通知 & ログ保存 (拡張版)
+// ---------------------------------------------------------
+// 引数 expanded_content を追加
+extern "C" void SignalRuntimeError(const char *msg, int line_num, const char *line_content, const char *expanded_content)
+{
+    // 1. 標準出力に表示
+    printf("\n"
+           "!!! RUNTIME ERROR !!!"
+           "\n");
+    printf("Line : %d\n", line_num);
+    printf("Cmd  : %s\n", line_content);
+    if (expanded_content && strlen(expanded_content) > 0)
+    {
+        printf("Vals : %s\n", expanded_content);
+    }
+    printf("Msg  : %s\n", msg);
+
+    // 2. ログファイルへの保存 (LittleFS)
+    if (lfs_mount(&fs, &lfs_pico_flash_config) == 0)
+    {
+        lfs_file_t f;
+        // 追記モード(APPEND)で開く。ファイルがなければ作成(CREAT)
+        int err = lfs_file_open(&fs, &f, "errorlog.txt", LFS_O_WRONLY | LFS_O_CREAT | LFS_O_APPEND);
+        if (err == 0)
+        {
+            char buf[1024]; // バッファサイズを拡張
+            uint32_t now = to_ms_since_boot(get_absolute_time());
+
+            // フォーマット: [時刻] Line 行番号: エラー内容
+            int len = snprintf(buf, sizeof(buf),
+                               "[%lu ms] Line %d: %s\n    Command: %s\n",
+                               now, line_num, msg, line_content);
+
+            if (len > 0)
+                lfs_file_write(&fs, &f, buf, len);
+
+            // 展開後の値があれば追記
+            if (expanded_content && strlen(expanded_content) > 0)
+            {
+                len = snprintf(buf, sizeof(buf), "    Expanded: %s\n", expanded_content);
+                if (len > 0)
+                    lfs_file_write(&fs, &f, buf, len);
+            }
+
+            lfs_file_close(&fs, &f);
+        }
+        else
+        {
+            printf("Failed to open errorlog.txt (err=%d)\n", err);
+        }
+        lfs_unmount(&fs);
+    }
+
+    // 3. LED通知 (紫色点滅)
+    if (ledStrip1)
+    {
+        // 停止して無限ループ
+        while (true)
+        {
+            ledStrip1->fill(WS2812::RGB(255, 0, 255)); // Purple
+            ledStrip1->show();
+            sleep_ms(300);
+            ledStrip1->fill(WS2812::RGB(0, 0, 0)); // OFF
+            ledStrip1->show();
+            sleep_ms(300);
+        }
+    }
+}
 
 int main()
 {
@@ -822,6 +891,13 @@ int main()
                 // indicate script execution with yellow LED
                 ledStrip1->fill(WS2812::RGB(255, 255, 0));
                 ledStrip1->show();
+                // ■ 追加: 前回のエラーログを削除してリセットする
+                if (lfs_mount(&fs, &lfs_pico_flash_config) == 0)
+                {
+                    lfs_remove(&fs, "errorlog.txt");
+                    lfs_unmount(&fs);
+                    printf("MAIN: errorlog.txt cleared\n");
+                }
 
                 printf("MAIN: about to call ExecuteScript\n");
                 ExecuteScript("Script.txt");

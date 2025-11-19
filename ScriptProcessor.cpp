@@ -9,6 +9,41 @@
 #include <cmath>
 #include <random>
 #include <cstdarg>
+#include <malloc.h> // mallinfo用
+#include <unistd.h> // sbrk用
+#include <new>      // std::bad_alloc用
+// 外部関数宣言の更新
+extern "C" void SignalRuntimeError(const char *msg, int line_num, const char *line_content, const char *expanded_content);
+
+// スタックポインタを取得するインラインアセンブラ
+static inline uint32_t get_stack_pointer()
+{
+    uint32_t sp;
+    __asm__ volatile("mov %0, sp" : "=r"(sp));
+    return sp;
+}
+
+// メモリ監視用定数 (3KB)
+static const uint32_t MIN_FREE_MEMORY_BYTES = 3072;
+
+// ■ 追加: GOSUBの最大深度（事前確保サイズ）
+// 4096回 * 4byte = 16KB。PicoのRAM(264KB)に対して十分に安全かつ十分な量。
+static const size_t MAX_STACK_DEPTH = 4096;
+
+// 空きメモリ計算
+static uint32_t get_free_memory()
+{
+    char *heap_end = (char *)sbrk(0);  // 現在のヒープ末尾
+    uint32_t sp = get_stack_pointer(); // 現在のスタック位置
+    struct mallinfo m = mallinfo();
+
+    // スタックとヒープの隙間 + ヒープ内の空きブロック
+    if ((uintptr_t)sp > (uintptr_t)heap_end)
+    {
+        return (uint32_t)((uintptr_t)sp - (uintptr_t)heap_end) + m.fordblks;
+    }
+    return m.fordblks;
+}
 
 static bool g_script_debug = false;
 
@@ -123,21 +158,52 @@ static te_type te_GetTime()
     return static_cast<te_type>(ms);
 }
 
-// ---- スクリプト実行時の状態 ----
+// ScriptState 定義 (current_line_indexを追加)
 struct ScriptState
 {
     std::vector<std::string> lines;
-    std::map<std::string, int> label_to_index; // label -> index of next line
+    std::map<std::string, int> label_to_index;
     std::vector<int> gosub_stack;
-    std::map<std::string, double> vars; // Var dictionary
+    std::map<std::string, double> vars;
     bool end_flag = false;
     bool use_led = false;
-    // when true, log EXECUTE[...] lines; controllable via DEBUG(expr)
     bool debug_exec = false;
-    // track currently pressed keys (HID codes or ASCII) so KeyPress/KeyRelease behave consistently
     std::set<uint8_t> pressed_keys;
+
+    // ■ 追加: 現在実行中の行番号
+    int current_line_index = 0;
 };
 
+// 変数展開ヘルパー (ScriptState定義の後に配置)
+static std::string expand_line_variables(ScriptState &st, const std::string &line)
+{
+    std::string expanded = line;
+    for (auto const &kv : st.vars)
+    {
+        std::string name = kv.first;
+        double val = kv.second;
+        std::string valStr = std::to_string(val);
+
+        size_t pos = 0;
+        while ((pos = expanded.find(name, pos)) != std::string::npos)
+        {
+            // 簡易境界チェック
+            bool boundaryPre = (pos == 0) || (!isalnum(expanded[pos - 1]) && expanded[pos - 1] != '_');
+            bool boundaryPost = (pos + name.length() == expanded.length()) || (!isalnum(expanded[pos + name.length()]) && expanded[pos + name.length()] != '_');
+
+            if (boundaryPre && boundaryPost)
+            {
+                expanded.replace(pos, name.length(), valStr);
+                pos += valStr.length();
+            }
+            else
+            {
+                pos += name.length();
+            }
+        }
+    }
+    return expanded;
+}
 // ヘルパー：文字列の前後の空白を取り除く
 static inline std::string trim(const std::string &s)
 {
@@ -372,51 +438,45 @@ static uint8_t key_name_to_hid(const std::string &name)
     return 0;
 }
 
-// tinyexpr を用いて式を評価する。成功フラグと値を返す。
 static std::pair<bool, double> eval_expression(ScriptState &st, const std::string &expr)
 {
+    // エラー時の行内容取得用
+    const char *current_line_str = (st.current_line_index >= 0 && st.current_line_index < (int)st.lines.size())
+                                       ? st.lines[st.current_line_index].c_str()
+                                       : "Unknown";
+
     try
     {
         te_parser p;
         auto vars = build_te_variables_and_funcs(st);
         p.set_variables_and_functions(vars);
-        // transform expression so script variables are referenced by their mangled names
         std::string transformed = mangle_expression_identifiers(st, expr);
 
-        // Debug: log original and transformed expression to help diagnose parse errors
         printf("eval_expression: original='%s'\r\n", expr.c_str());
-        printf("eval_expression: transformed='%s'\r\n", transformed.c_str());
         tud_task();
 
         p.compile(transformed);
         double r = static_cast<double>(p.evaluate());
-        if (std::isnan(r))
+        if (std::isnan(r) || std::isinf(r))
         {
-            printf("eval_expression: result is NaN for '%s'\r\n", transformed.c_str());
-            tud_task();
+            printf("eval_expression: result is NaN/Inf\r\n");
+            // 変数を展開してログに残す
+            std::string expanded = expand_line_variables(st, current_line_str);
+            SignalRuntimeError("Math Error (NaN/Inf)", st.current_line_index + 1, current_line_str, expanded.c_str());
+            st.end_flag = true;
             return {false, 0.0};
         }
         return {true, r};
     }
-    catch (...)
+    catch (const std::exception &e)
     {
-        // 出力を追加して何の式で失敗したか追跡する（transformed を出力）
-        printf("eval_expression: failed to evaluate '%s'\r\n", expr.c_str());
-        // Attempt to provide transformed version as well if possible
-        try
-        {
-            std::string transformed = mangle_expression_identifiers(st, expr);
-            printf("eval_expression: transformed (on error) = '%s'\r\n", transformed.c_str());
-        }
-        catch (...)
-        {
-            // ignore additional failures
-        }
-        tud_task();
+        printf("eval_expression: failed %s\r\n", e.what());
+        std::string expanded = expand_line_variables(st, current_line_str);
+        SignalRuntimeError("Math Error (Zero Div, etc)", st.current_line_index + 1, current_line_str, expanded.c_str());
+        st.end_flag = true;
         return {false, 0.0};
     }
 }
-
 // プリパス：行を走査してラベル辞書を作成する
 static void prepass_script(ScriptState &st)
 {
@@ -527,16 +587,15 @@ static std::vector<std::string> split_top_level_args(const std::string &s, size_
 }
 
 // Mouserun 実装：Flash から CSV を読み込み再生する
-static void do_mouserun(const std::string &filename, double time_scale, double angle_rad, double scale)
+static void do_mouserun(ScriptState &st, const std::string &filename, double time_scale, double angle_rad, double scale)
 {
-    printf("do_mouserun: start '%s' time_scale=%.3f angle=%.3f scale=%.3f\r\n", filename.c_str(), time_scale, angle_rad, scale);
+    printf("do_mouserun: start '%s'\r\n", filename.c_str());
     tud_task();
 
     int err = lfs_mount(&g_lfs, &lfs_pico_flash_config);
     if (err < 0)
     {
         printf("do_mouserun: lfs_mount failed %d\r\n", err);
-        tud_task();
         return;
     }
 
@@ -544,9 +603,13 @@ static void do_mouserun(const std::string &filename, double time_scale, double a
     int rc = lfs_file_open(&g_lfs, &fp, filename.c_str(), LFS_O_RDONLY);
     if (rc < 0)
     {
-        printf("do_mouserun: lfs_file_open failed %d for '%s'\r\n", rc, filename.c_str());
-        tud_task();
         lfs_unmount(&g_lfs);
+        const char *current_line_str = (st.current_line_index >= 0 && st.current_line_index < (int)st.lines.size())
+                                           ? st.lines[st.current_line_index].c_str()
+                                           : "Mouserun";
+
+        SignalRuntimeError("Mouserun: File not found", st.current_line_index + 1, current_line_str, "");
+        st.end_flag = true;
         return;
     }
 
@@ -773,19 +836,35 @@ static void do_mouserun(const std::string &filename, double time_scale, double a
 // 現在の行インデックスで単一コマンドを実行する。返り値は次に実行する行インデックス。
 static int execute_line(ScriptState &st, int current_index)
 {
+    // メモリ不足チェック (C++スタック自体の消費を監視)
+    if (get_free_memory() < MIN_FREE_MEMORY_BYTES)
+    {
+        const char *line_str = (current_index >= 0 && current_index < (int)st.lines.size())
+                                   ? st.lines[current_index].c_str()
+                                   : "Unknown";
+        SignalRuntimeError("Memory Low (<3KB) - Halting safely", current_index + 1, line_str, "N/A");
+        st.end_flag = true;
+        return current_index;
+    }
+
     if (current_index < 0 || current_index >= (int)st.lines.size())
         return current_index + 1;
+
+    // 現在の行番号を更新
+    st.current_line_index = current_index;
+
     std::string raw = st.lines[current_index];
     std::string line = trim(raw);
     if (line.empty())
         return current_index + 1;
-    // log every executed line for debug (controlled by DEBUG())
+
     if (st.debug_exec)
     {
         printf("EXECUTE[%d]: %s\r\n", current_index, line.c_str());
         tud_task();
     }
-    // comments
+
+    // コメント
     if (line[0] == '#' || starts_with_cmd(line, "REM"))
         return current_index + 1;
 
@@ -799,7 +878,7 @@ static int execute_line(ScriptState &st, int current_index)
     if (starts_with_cmd(line, "END"))
     {
         st.end_flag = true;
-        return current_index; // この戻り値は使用されない
+        return current_index;
     }
 
     // WAIT <expression>
@@ -810,7 +889,6 @@ static int execute_line(ScriptState &st, int current_index)
         if (!ok)
             val = 0.0;
         uint32_t ms = static_cast<uint32_t>(round(val * 1000.0));
-        // tud_task を呼びつつスリープ
         uint32_t remaining = ms;
         while (remaining)
         {
@@ -833,7 +911,6 @@ static int execute_line(ScriptState &st, int current_index)
         }
         else
         {
-            // USB シリアルにデバッグ出力
             printf("PRINT: %.10g\r\n", val);
         }
         tud_task();
@@ -843,16 +920,12 @@ static int execute_line(ScriptState &st, int current_index)
     // SET <var> = <expression>
     if (starts_with_cmd(line, "SET"))
     {
-        // find '='
         size_t eq = line.find('=');
         if (eq == std::string::npos)
-        {
             return current_index + 1;
-        }
-        // SET と = の間にある変数名
+
         std::string left = trim(line.substr(3, eq - 3));
         std::string right = trim(line.substr(eq + 1));
-        // left might contain spaces; extract token
         std::string varname = token_after(left, 0);
         auto [ok, val] = eval_expression(st, right);
         if (ok)
@@ -865,7 +938,6 @@ static int execute_line(ScriptState &st, int current_index)
     // IF <expr> GOTO <name>
     if (starts_with_cmd(line, "IF"))
     {
-        // find "GOTO" case-insensitive
         std::string upper = line;
         for (auto &c : upper)
             if (c >= 'a' && c <= 'z')
@@ -882,11 +954,6 @@ static int execute_line(ScriptState &st, int current_index)
                 if (it != st.label_to_index.end())
                 {
                     return it->second;
-                }
-                else
-                {
-                    // ラベルが見つからなければ無視する
-                    return current_index + 1;
                 }
             }
             return current_index + 1;
@@ -906,6 +973,14 @@ static int execute_line(ScriptState &st, int current_index)
     // GOSUB <name>
     if (starts_with_cmd(line, "GOSUB"))
     {
+        // ■ 修正: 事前確保した容量を超える場合はエラーにする (再確保によるPANIC防止)
+        if (st.gosub_stack.size() >= MAX_STACK_DEPTH)
+        {
+            SignalRuntimeError("Stack Overflow (Depth Limit)", current_index + 1, line.c_str(), "Recursion too deep (>4096)");
+            st.end_flag = true;
+            return current_index + 1;
+        }
+
         std::string label = token_after(line, 5);
         auto it = st.label_to_index.find(label);
         if (it != st.label_to_index.end())
@@ -925,13 +1000,14 @@ static int execute_line(ScriptState &st, int current_index)
             st.gosub_stack.pop_back();
             return ret;
         }
+        SignalRuntimeError("RETURN without GOSUB", current_index + 1, line.c_str(), "N/A");
+        st.end_flag = true;
         return current_index + 1;
     }
 
-    // Mode(KeyMouse) or Mode(ProController)
+    // Mode
     if (starts_with_cmd(line, "Mode"))
     {
-        // extract inside parentheses
         size_t p = line.find('(');
         size_t q = line.rfind(')');
         if (p != std::string::npos && q != std::string::npos && q > p)
@@ -942,11 +1018,8 @@ static int execute_line(ScriptState &st, int current_index)
                 tud_deinit(BOARD_TUD_RHPORT);
                 sleep_ms(100);
                 g_usb_mode = USB_MODE_HID;
-                // Mouse/Keyboard モード用に初期化
                 Keyboard.begin();
                 Mouse.begin();
-                // re-init if necessary
-                // nothing else here
             }
             else if (arg == "ProController")
             {
@@ -959,7 +1032,7 @@ static int execute_line(ScriptState &st, int current_index)
         return current_index + 1;
     }
 
-    // UseLED(expr)
+    // UseLED
     if (starts_with_cmd(line, "UseLED"))
     {
         size_t p = line.find('(');
@@ -973,7 +1046,7 @@ static int execute_line(ScriptState &st, int current_index)
         return current_index + 1;
     }
 
-    // DEBUG(expr) - enable/disable EXECUTE logging
+    // DEBUG
     if (starts_with_cmd(line, "DEBUG"))
     {
         size_t p = line.find('(');
@@ -983,7 +1056,6 @@ static int execute_line(ScriptState &st, int current_index)
             std::string arg = trim(line.substr(p + 1, q - p - 1));
             auto [ok, val] = eval_expression(st, arg);
             st.debug_exec = (ok && val != 0.0);
-            // ensure file-wide debug flag follows the per-script flag so dbg_printf prints consistently
             g_script_debug = st.debug_exec;
             printf("DEBUG: execute logs %s\r\n", st.debug_exec ? "ENABLED" : "DISABLED");
             tud_task();
@@ -991,23 +1063,15 @@ static int execute_line(ScriptState &st, int current_index)
         return current_index + 1;
     }
 
-    // SetLED(r,g,b)
+    // SetLED
     if (starts_with_cmd(line, "SetLED"))
     {
-        // parse three expressions separated by commas
         size_t p = line.find('(');
         size_t q = line.rfind(')');
         if (p != std::string::npos && q != std::string::npos && q > p)
         {
             std::string args = line.substr(p + 1, q - p - 1);
-            // split using top-level-aware helper
             auto parts = split_top_level_args(args);
-            // debug: print parts for diagnosis
-            printf("SetLED: args='%s' parts.count=%zu\r\n", args.c_str(), parts.size());
-            for (size_t _i = 0; _i < parts.size(); ++_i)
-            {
-                printf("SetLED: part[%zu] = '%s'\r\n", _i, parts[_i].c_str());
-            }
             tud_task();
             if (parts.size() >= 3)
             {
@@ -1016,15 +1080,6 @@ static int execute_line(ScriptState &st, int current_index)
                 auto b = eval_expression(st, parts[2]);
                 if (r.first && g.first && b.first)
                 {
-                    // debug output
-                    printf("SetLED: %.0f, %.0f, %.0f\r\n", r.second, g.second, b.second);
-                    tud_task();
-
-                    // report UseLED and pointer for diagnostics
-                    printf("SetLED: UseLED=%d, ledStrip1=%p\r\n", st.use_led ? 1 : 0, (void *)ledStrip1);
-                    tud_task();
-
-                    // request color change via helper to avoid pulling WS2812 API into this TU
                     if (st.use_led)
                     {
                         int ri = static_cast<int>(round(r.second));
@@ -1044,12 +1099,6 @@ static int execute_line(ScriptState &st, int current_index)
                             bi = 255;
 
                         ApplyStripColor(ri, gi, bi);
-                        printf("SetLED: ApplyStripColor requested (R=%d,G=%d,B=%d)\r\n", ri, gi, bi);
-                        tud_task();
-                    }
-                    else
-                    {
-                        printf("SetLED: not applied because UseLED is false\r\n");
                         tud_task();
                     }
                 }
@@ -1474,7 +1523,7 @@ static int execute_line(ScriptState &st, int current_index)
                     scale = s.second;
             }
             // angle given in radians per spec
-            do_mouserun(filename, time_scale, angle, scale);
+            do_mouserun(st, filename, time_scale, angle, scale);
         }
         return current_index + 1;
     }
@@ -1700,7 +1749,28 @@ static bool load_script_file(const char *filename, ScriptState &st)
     {
         lfs_unmount(&g_lfs);
         printf("load_script_file: failed to open '%s' (rc=%d)\r\n", filename, rc);
-        tud_task();
+
+        // ファイルオープンエラーも通知
+        SignalRuntimeError("File Not Found", 0, filename, "");
+        return false;
+    }
+
+    // ■ メモリ予測チェック
+    lfs_soff_t file_size = lfs_file_size(&g_lfs, &fp);
+    uint32_t free_mem = get_free_memory();
+
+    // 必要なメモリ概算: ファイル生データ + std::string/vectorのオーバーヘッド(約2倍と見積もる) + 安全マージン(4KB)
+    uint32_t estimated_req = (uint32_t)file_size * 2 + 4096;
+
+    if (free_mem < estimated_req)
+    {
+        printf("load_script_file: File too large (%ld bytes), Free: %lu, Req: %lu\r\n", file_size, free_mem, estimated_req);
+        lfs_file_close(&g_lfs, &fp);
+        lfs_unmount(&g_lfs);
+
+        char msg[64];
+        snprintf(msg, sizeof(msg), "Script too large (%ld bytes)", file_size);
+        SignalRuntimeError(msg, 0, filename, "Memory insufficient for load");
         return false;
     }
 
@@ -1708,6 +1778,8 @@ static bool load_script_file(const char *filename, ScriptState &st)
     char buf[256];
     std::string accum;
     int br = 0;
+
+    // 読み込み中のメモリ確保エラーも呼び出し元の try-catch で捕捉させる
     while (true)
     {
         br = (int)lfs_file_read(&g_lfs, &fp, buf, sizeof(buf));
@@ -1740,7 +1812,6 @@ static bool load_script_file(const char *filename, ScriptState &st)
     lfs_unmount(&g_lfs);
     return true;
 }
-
 // 公開エントリポイント
 // スクリプトが実行（END または EOF で終了）された場合に true、ファイルエラー時に false を返す。
 bool ExecuteScript(const char *filename)
@@ -1749,11 +1820,15 @@ bool ExecuteScript(const char *filename)
         return false;
     printf("ExecuteScript: starting '%s'\r\n", filename);
     tud_task();
+
     ScriptState st;
-    // default: EXECUTE logs disabled
     st.debug_exec = false;
-    // initialize global debug flag for this script
     g_script_debug = st.debug_exec;
+
+    // ■ 追加: スタックの事前予約 (16KB確保)
+    // これにより実行中の再確保(realloc)が発生しなくなり、PANICを防げる
+    st.gosub_stack.reserve(MAX_STACK_DEPTH);
+
     if (!load_script_file(filename, st))
     {
         printf("ExecuteScript: failed to open '%s'\r\n", filename);
@@ -1761,29 +1836,41 @@ bool ExecuteScript(const char *filename)
         return false;
     }
 
-    // set script start time
     g_script_start_time = get_absolute_time();
-    // also store high-resolution microsecond baseline for GetTime implementation
     g_script_start_us = time_us_64();
 
-    // prepass to collect labels
     prepass_script(st);
 
-    // main execution loop
     int pc = 0;
     st.end_flag = false;
-
-    // ensure tinyexpr rand engine seeded by time + address
     g_rand_engine.seed((uint64_t)to_ms_since_boot(g_script_start_time) ^ (uint64_t)(uintptr_t)filename);
 
-    while (!st.end_flag && pc >= 0 && pc < (int)st.lines.size())
+    try
     {
-        pc = execute_line(st, pc);
+        while (!st.end_flag && pc >= 0 && pc < (int)st.lines.size())
+        {
+            pc = execute_line(st, pc);
+        }
+    }
+    catch (const std::bad_alloc &e)
+    {
+        // メモリ確保失敗 (Out of memory) を捕捉
+        const char *line_str = (st.current_line_index >= 0 && st.current_line_index < (int)st.lines.size())
+                                   ? st.lines[st.current_line_index].c_str()
+                                   : "Unknown";
+        SignalRuntimeError("Out of Memory (std::bad_alloc)", st.current_line_index + 1, line_str, "System Halted");
+    }
+    catch (const std::exception &e)
+    {
+        // その他のC++例外
+        const char *line_str = (st.current_line_index >= 0 && st.current_line_index < (int)st.lines.size())
+                                   ? st.lines[st.current_line_index].c_str()
+                                   : "Unknown";
+        SignalRuntimeError("System Exception", st.current_line_index + 1, line_str, e.what());
     }
 
     printf("ExecuteScript: finished '%s'\r\n", filename);
     tud_task();
-    // clear global debug flag
     g_script_debug = false;
     return true;
 }
