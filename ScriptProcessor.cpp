@@ -1453,6 +1453,10 @@ static int execute_line(ScriptState &st, int current_index)
                     ++j;
                 filename = args.substr(idx, j - idx);
                 idx = j + 1;
+                // skip any whitespace and a following comma so split_top_level_args
+                // does not see an initial empty token (was causing empty first part)
+                while (idx < args.size() && (isspace((unsigned char)args[idx]) || args[idx] == ','))
+                    ++idx;
             }
             // remaining splits by commas (top-level aware)
             auto parts = split_top_level_args(args, idx, args.size());

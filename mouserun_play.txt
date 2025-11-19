@@ -1,0 +1,16 @@
+REM mouserun_play.txt
+REM ------------------------------------------------------------
+REM 目的:
+REM   mouserun_stream.txt を再生するための呼び出しスクリプトです。
+REM 使用上の注意:
+REM   - 同一ディレクトリに mouserun_stream.txt を配置してください。
+REM   - 実行前に描画対象のウィンドウを前面にしてください。
+REM ------------------------------------------------------------
+Mode(KeyMouse)
+UseLED(1)
+WAIT 0.5
+PRINT 1
+Mouserun("mouserun_stream.txt", 1.0, 0, 1.0)
+WAIT 0.5
+PRINT 2
+END

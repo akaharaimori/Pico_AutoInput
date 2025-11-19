@@ -1,0 +1,18 @@
+REM mouserun_play_fix.txt
+REM ------------------------------------------------------------
+REM 目的:
+REM   mouserun_stream.txt を引数なしで再生して、先頭引数の空トークンによる解析問題を回避します。
+REM 注意:
+REM   - ScriptProcessor の Mouserun パーサはファイル名直後のカンマ位置によって先頭が空文字列になる場合があり、
+REM     その結果 scale が 0 になる等の不正なパラメータ解釈が発生します。
+REM   - 引数なし呼び出しではデフォルト (time_scale=1.0, angle=0.0, scale=1.0) が使われます。
+REM ------------------------------------------------------------
+debug(1)
+Mode(KeyMouse)
+UseLED(1)
+WAIT 0.5
+PRINT 1
+Mouserun("mouserun_stream.txt")
+WAIT 0.5
+PRINT 2
+END

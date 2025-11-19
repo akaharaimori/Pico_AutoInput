@@ -1,0 +1,32 @@
+REM ispressed_click_mixedcase.txt
+REM ------------------------------------------------------------
+REM 目的:
+REM   IsPressed() の関数名大文字小文字のロバスト性を検証するためのスクリプトです。
+REM   関数/コマンド名にランダムな大文字小文字を混ぜています。
+REM ------------------------------------------------------------
+
+DeBuG(1)
+mOdE(KeyMouse)
+uSeLeD(1)
+wAiT 0.5
+
+lAbEl MAIN_LOOP
+iF iSpReSsEd() gOtO PRESSED
+SetLED(255,0,0)popp
+gOtO MAIN_LOOP
+
+lAbEl PRESSED
+SetLED(0,0,255)
+wAiT 0.02
+
+lAbEl PRESSED_LOOP
+iF iSpReSsEd() gOtO DO_CLICK
+REM ボタンが離された -> メインループへ戻る
+gOtO MAIN_LOOP
+
+lAbEl DO_CLICK
+mOuSePrEsS(LEFT)
+wAiT 0.02
+mOuSeReLeAsE(LEFT)
+wAiT 0.02
+gOtO PRESSED_LOOP
