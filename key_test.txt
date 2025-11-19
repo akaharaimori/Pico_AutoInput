@@ -1,15 +1,31 @@
+REM key_test.txt
+REM ------------------------------------------------------------
+REM 目的:
+REM   キーボード入力に関するコマンド (KeyType / KeyPress / KeyRelease) の動作確認用スクリプトです。
+REM   各セクションは区切りごとに PRINT を出力するため、実行ログで進行を追いやすくなっています。
+REM 使い方:
+REM   1) デバイスをPCに接続し、スクリプトを実行してください。
+REM   2) デバッグ出力（PRINT）を見ながら、各セクションで期待するキー入力が送られているか確認します。
+REM 注意:
+REM   - Mode(KeyMouse) を最初に設定します（本スクリプト内で自動設定）。
+REM   - KeyType の引数中のエスケープや特殊文字を変更する場合は文字列リテラルのエスケープに注意してください。
+REM ------------------------------------------------------------
+
 Mode(KeyMouse)
 UseLED(0)
+
 PRINT 1
-# Letters A-Z
+REM --- 英大文字 A-Z をタイプ (短い押下/離しで高速に送信) ---
 KeyType("ABCDEFGHIJKLMNOPQRSTUVWXYZ", 0.01, 0.01)
 WAIT 0.2
+
 PRINT 2
-# Digits 0-9
+REM --- 数字 0-9 をタイプ ---
 KeyType("0123456789", 0.01, 0.01)
 WAIT 0.2
+
 PRINT 3
-# Function keys F1..F12
+REM --- ファンクションキー F1..F12 を個別に押下/解放でテスト ---
 KeyPress(F1)
 WAIT 0.05
 KeyRelease(F1)
@@ -58,8 +74,9 @@ KeyPress(F12)
 WAIT 0.05
 KeyRelease(F12)
 WAIT 0.05
+
 PRINT 4
-# Common symbol keys
+REM --- 記号キー (ホストでの表示が期待通りか確認) ---
 KeyPress(MINUS)
 WAIT 0.05
 KeyRelease(MINUS)
@@ -104,8 +121,9 @@ KeyPress(SLASH)
 WAIT 0.05
 KeyRelease(SLASH)
 WAIT 0.05
+
 PRINT 5
-# Arrow keys
+REM --- カーソル/矢印キーのテスト ---
 KeyPress(LEFT)
 WAIT 0.05
 KeyRelease(LEFT)
@@ -122,8 +140,9 @@ KeyPress(DOWN)
 WAIT 0.05
 KeyRelease(DOWN)
 WAIT 0.05
+
 PRINT 6
-# Control keys
+REM --- 制御系キー（Enter/Esc/Backspace/Tab/Space/CapsLock）---
 KeyPress(ENTER)
 WAIT 0.05
 KeyRelease(ENTER)
@@ -148,9 +167,11 @@ KeyPress(CAPSLOCK)
 WAIT 0.05
 KeyRelease(CAPSLOCK)
 WAIT 0.05
+
 PRINT 7
-# Final typed check of typical punctuation and text
-KeyType("!@#$%^&*()-_=+[]\\;:'\",.<>/?", 0.01, 0.01)
+REM --- 最後に代表的な記号列をタイプして総合確認 ---
+KeyType("!@#$%^&*()-_=+[]\\;:'\,.<>/?", 0.01, 0.01)
 WAIT 0.2
+
 PRINT 8
 END

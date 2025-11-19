@@ -104,6 +104,9 @@ public:
   void sendReportOnly(USB_JoystickReport_Input_t t_joystickInputData);
   void setStickTiltRatio(int16_t lx_per, int16_t ly_per,
                          int16_t rx_per, int16_t ry_per);
+  // Send HID report only if controller state changed since last report.
+  // Returns true if a report was sent.
+  bool sendReportIfChanged(void);
 
   // 追加: 内部状態のみ更新（USB送信しない）バージョン
   void setButtonState(Button button_num, bool pressed);

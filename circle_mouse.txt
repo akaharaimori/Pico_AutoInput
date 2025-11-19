@@ -1,27 +1,55 @@
+REM circle_mouse.txt
+REM ------------------------------------------------------------
+REM 目的:
+REM   マウス相対移動で円を描くテストスクリプト。MouseMove/MousePress/MouseRelease とスクリプトのタイミング確認用。
+REM 使用上の注意:
+REM   - Mode(KeyMouse) をスクリプト内で設定します。
+REM   - 描画対象のウィンドウ（例: ペイント）を前面に置いてから実行してください。
+REM   - 半径 radius と step を調整してサイズと滑らかさを変えてください。
+REM ------------------------------------------------------------
+
 UseLED(0)
 Mode(KeyMouse)
-REM Draw a circle while holding left mouse button, then release
+
+REM --- Start: press left button and prepare circle parameters ---
 LABEL START
+REM Press and hold left button to start drawing
 MousePress(LEFT)
+
+REM Initialize circle parameters
 SET angle = 0
 SET radius = 300
 SET step = 0.1
-// initialize prev position to current circle point to avoid jump
+
+REM Compute initial point to avoid an initial jump
 SET x = round(radius * cos(angle))
 SET y = round(radius * sin(angle))
 SET prevx = x
 SET prevy = y
 SET angle = angle + step
+
+REM --- Main loop: step through angles and move mouse by deltas ---
 LABEL CIRCLE_LOOP
+REM compute next point on the circle
 SET x = round(radius * cos(angle))
 SET y = round(radius * sin(angle))
+
+REM delta = next - previous (relative move)
 SET dx = x - prevx
 SET dy = y - prevy
+
+REM send relative mouse move; rel parameter set to 1 per convention in this script
 MouseMove(dx, dy, 1)
 WAIT 0.02
+
+REM update previous point and advance angle
 SET prevx = x
 SET prevy = y
 SET angle = angle + step
+
+REM loop until a full revolution (2*pi)
 IF angle < 6.28318530718 GOTO CIRCLE_LOOP
+
+REM release the held button and finish
 MouseRelease(LEFT)
 END

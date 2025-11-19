@@ -1,16 +1,26 @@
+REM spirograph.txt
+REM ------------------------------------------------------------
+REM 目的:
+REM   Spirograph（ヒポトロコイド）をマウスで描画するスクリプト。MouseMoveは相対移動を使用します。
+REM 使用上の注意:
+REM   - Mode(KeyMouse) をスクリプト内で設定します。
+REM   - 描画対象のウィンドウを前面にしてから実行してください。
+REM   - パラメータ R_big, r_small, d を調整して形状を変更できます。
+REM ------------------------------------------------------------
+
 UseLED(0)
 Mode(KeyMouse)
-REM Spirograph (hypotrochoid) drawing script. MouseMove uses speed (delta).
+REM スパイログラフ描画の初期設定
 MousePress(LEFT)
 SET R_big = 100
 SET r_small = 35
 SET d = 60
 SET step = 0.05
-SET scale = 300
+SET scale = 3
 SET steps = 4000
 SET i = 0
 SET t = 0
-// initialize prev scaled position to first point to avoid jumps and amplify deltas correctly
+REM 初期点を計算してジャンプを防止
 SET x = (R_big - r_small) * cos(t) + d * cos(((R_big - r_small) / r_small) * t)
 SET y = (R_big - r_small) * sin(t) - d * sin(((R_big - r_small) / r_small) * t)
 SET prevx = round(x * scale)
@@ -19,7 +29,7 @@ LABEL LOOP
 SET t = i * step
 SET x = (R_big - r_small) * cos(t) + d * cos(((R_big - r_small) / r_small) * t)
 SET y = (R_big - r_small) * sin(t) - d * sin(((R_big - r_small) / r_small) * t)
-// debug: expose intermediate trig values to diagnose constant results
+REM デバッグ用の中間値（必要に応じて表示）
 SET sin_t = sin(t)
 SET cos_t = cos(t)
 SET k = (R_big - r_small) / r_small
@@ -27,12 +37,12 @@ SET cos_k_t = cos(k * t)
 SET sin_k_t = sin(k * t)
 SET term1 = (R_big - r_small) * cos_t
 SET term2 = d * cos_k_t
-// use integer scaled positions to ensure measurable deltas
+REM 整数スケール位置を使って相対移動を計算
 SET xs = round(x * scale)
 SET ys = round(y * scale)
 SET dx = xs - prevx
 SET dy = ys - prevy
-// debug prints for spirograph movement and intermediates
+REM デバッグ出力（必要に応じて有効化）
 PRINT t
 PRINT i
 PRINT sin_t

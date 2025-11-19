@@ -1,22 +1,24 @@
+REM rainbow.txt
+REM ------------------------------------------------------------
+REM 目的:
+REM   LED を虹色に変化させるデモスクリプトです。シリアルへ時間やループ回数を出力して挙動を確認できます。
+REM 使用上の注意:
+REM   - Mode(KeyMouse) を設定します（HID モードの影響で LED 表示のみ行うスクリプト）。
+REM   - 実行中は常にループするため、停止はデバイスのリセット等で行ってください。
+REM ------------------------------------------------------------
+
 UseLED(1)
 Mode(KeyMouse)
-// loop counter to observe iterations
+// ループカウンタ（デバッグ確認用）
 SET loopc = 0
 LABEL LOOP
 SET loopc = loopc + 1
 SET t = GetTime() / 1000.0
-// slower cycle: reduce angular velocity
-//SET r = (sin(t * 2) + 1.0) * 127.5
-//SET g = (sin(t * 2 + 2.09439510239) + 1.0) * 127.5
-//SET b = (sin(t * 2 + 4.18879020479) + 1.0) * 127.5
-//SetLED(r, g, b)
+// RGB を 3 相の正弦波で生成して虹色サイクルを作る
 SetLED((sin(t * 2) + 1.0) * 127.5,(sin(t * 2 + 2.09439510239) + 1.0) * 127.5,(sin(t * 2 + 4.18879020479) + 1.0) * 127.5)
-// print time and RGB intensities to serial for debugging
+// 時刻とループ回数をシリアルへ出力（デバッグ）
 PRINT t
 PRINT loopc
-//PRINT r
-//PRINT g
-//PRINT b
-// slower frame rate to avoid white blending
+// フレームレートを下げて白飛びを抑える
 WAIT 0.08
 GOTO LOOP

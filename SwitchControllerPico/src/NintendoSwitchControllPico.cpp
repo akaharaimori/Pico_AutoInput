@@ -1,5 +1,8 @@
 #include "NintendoSwitchControllPico.h"
 
+// cached last-sent HID state for sendReportIfChanged()
+static USB_JoystickReport_Input_t g_last_sent;
+
 NintendoSwitchControllPico_::NintendoSwitchControllPico_(void)
 {
   memset(&_joystickInputData, 0, sizeof(USB_JoystickReport_Input_t));
@@ -10,6 +13,8 @@ bool NintendoSwitchControllPico_::sendReport(void)
   while (!tud_hid_ready())
     tud_task();
   tud_hid_report(0, &_joystickInputData, sizeof(USB_JoystickReport_Input_t));
+  // update cached last-sent state
+  memcpy(&g_last_sent, &_joystickInputData, sizeof(USB_JoystickReport_Input_t));
   return true;
 }
 
@@ -57,6 +62,21 @@ void NintendoSwitchControllPico_::setStickTiltRatio(int16_t lx_per, int16_t ly_p
   _joystickInputData.RX = (uint8_t)(rx_per * 0xFF / 200 + 0x80);
   _joystickInputData.RY = (uint8_t)(ry_per * 0xFF / 200 + 0x80);
   sendReport();
+}
+
+// Send a HID report only when the internal controller state changed since last sent.
+// Returns true if a report was sent.
+bool NintendoSwitchControllPico_::sendReportIfChanged(void)
+{
+  if (memcmp(&_joystickInputData, &g_last_sent, sizeof(USB_JoystickReport_Input_t)) != 0)
+  {
+    while (!tud_hid_ready())
+      tud_task();
+    tud_hid_report(0, &_joystickInputData, sizeof(USB_JoystickReport_Input_t));
+    memcpy(&g_last_sent, &_joystickInputData, sizeof(USB_JoystickReport_Input_t));
+    return true;
+  }
+  return false;
 }
 
 NintendoSwitchControllPico_ &SwitchController(void)

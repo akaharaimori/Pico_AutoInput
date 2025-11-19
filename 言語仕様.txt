@@ -119,11 +119,13 @@
 ### ProコントローラーIO (ProControllerモード)
 
   * **`ProConPress(key)`**
-      * ボタン（`A`, `B`, `L`, `R`, `UP`, `DOWN` など）を押し下げます。
-  * **`ProConRelease(Key)`**
-      * ボタンを離します。
+      * ボタンを押し下げます。利用可能なボタン名は次のとおりです: `A`, `B`, `X`, `Y`, `L`, `R`, `ZL`, `ZR`, `MINUS`, `PLUS`, `LCLICK`, `RCLICK`, `HOME`, `CAPTURE`。また D-pad を個別に指定する場合は `UP`, `DOWN`, `LEFT`, `RIGHT` を使用できます。
+  * **`ProConRelease(key)`**
+      * 指定したボタンを離します（`ProConPress` で押したボタンと同じ名前を使用します）。
   * **`ProConPushFor(key, <expression>)`**
-      * ボタンを `<expression>` 秒間だけ押します。
+      * 指定したボタンを `<expression>` 秒間だけ押します。
+  * **`ProConHat(direction)`**
+      * D-pad（ハットスイッチ）を指定の方向にセットします。`direction` は次のいずれかを指定します: `UP`, `UP_RIGHT`, `RIGHT`, `RIGHT_DOWN`, `DOWN`, `DOWN_LEFT`, `LEFT`, `LEFT_UP`, `CENTER`（`NEUTRAL` と同義）。このコマンドは内部的にハット状態を設定して HID レポートを送信します。
   * **`ProConJoy(<lx_expr>, <ly_expr>, <rx_expr>, <ry_expr>)`**
       * 左右のジョイスティックの位置を `(lx, ly)` と `(rx, ry)` に設定します（通常 -128.0 ～ 127.0 の範囲）。
 

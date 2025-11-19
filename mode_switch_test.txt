@@ -1,0 +1,59 @@
+REM mode_switch_test.txt
+REM ------------------------------------------------------------
+REM 目的:
+REM   Mode(KeyMouse) と Mode(ProController) の切替および各モードでの入力送信を確認するスクリプトです。
+REM 使用上の注意:
+REM   - スクリプトはループして継続検証します。実行中に停止する場合はデバイスをリセットしてください。
+REM ------------------------------------------------------------
+
+DEBUG(1)
+WAIT 0.5
+LABEL START
+REM --- KeyMouse: タイプとマウス操作 ---
+Mode(KeyMouse)
+WAIT 0.5
+REM タイプ "Hello"
+KeyType("Hello", 0.05, 0.05)
+WAIT 1
+REM マウスを相対移動して左クリック
+MouseMove(20, 0, 1)
+WAIT 0.2
+MousePress(LEFT)
+WAIT 0.5
+MouseRelease(LEFT)
+WAIT 1
+
+REM --- 切替: ProController ---
+Mode(ProController)
+WAIT 0.5
+REM Proコントローラー基本操作
+ProConPress(A)
+WAIT 1
+ProConRelease(A)
+WAIT 0.5
+ProConPushFor(B, 1)
+WAIT 1
+ProConHat(UP)
+WAIT 1
+ProConHat(CENTER)
+WAIT 0.5
+
+REM --- 追加の ProCon 操作 ---
+ProConPress(X)
+WAIT 1
+ProConRelease(X)
+WAIT 0.5
+ProConPushFor(ZL, 1)
+WAIT 1
+
+REM --- 戻す: KeyMouse ---
+Mode(KeyMouse)
+WAIT 0.5
+REM Enter 押下でユーザ確認用に短いアクション
+KeyPress(ENTER)
+WAIT 0.2
+KeyRelease(ENTER)
+WAIT 1
+
+REM ループして継続確認
+GOTO START

@@ -1,0 +1,36 @@
+REM ispressed_click.txt
+REM ------------------------------------------------------------
+REM 目的:
+REM   IsPressed() の状態で LED を切り替え、押されている間は左クリックを高速に連打するテストスクリプトです。
+REM 使用上の注意:
+REM   - Mode(KeyMouse) を使用します。
+REM   - 連打は短い間隔で行うため、周辺アプリでの意図しない動作に注意してください。
+REM ------------------------------------------------------------
+
+DEBUG(1)
+Mode(KeyMouse)
+UseLED(1)
+WAIT 0.5
+
+LABEL MAIN_LOOP
+REM --- 押されていない場合: 赤にしてポーリング ---
+IF IsPressed() GOTO PRESSED
+SetLED(255,0,0)
+GOTO MAIN_LOOP
+
+LABEL PRESSED
+REM --- 押されている場合: 青にして連打ループへ ---
+SetLED(0,0,255)
+WAIT 0.02
+
+LABEL PRESSED_LOOP
+IF IsPressed() GOTO DO_CLICK
+REM ボタンが離された -> メインループへ戻る
+GOTO MAIN_LOOP
+
+LABEL DO_CLICK
+MousePress(LEFT)
+WAIT 0.02
+MouseRelease(LEFT)
+WAIT 0.02
+GOTO PRESSED_LOOP

@@ -1,47 +1,69 @@
-REM 無限ループテスト: IF / GOTO / GOSUB / RETURN の動作確認用
+REM led_test.txt
+REM ------------------------------------------------------------
+REM 目的:
+REM   キーボード / マウス関連コマンドの総合動作確認スクリプトです。
+REM   セクションごとに色やタイミングを変えており、実行ログや表示を見て動作を追いやすくしています。
+REM 使用上の注意:
+REM   - Mode(KeyMouse) をスクリプト内で設定します。
+REM   - 実行前にテキスト入力可能なウィンドウや適切な環境を用意してください（KeyType の出力先など）。
+REM   - 一部のキーは内部コード（10進）で指定しています。ホスト側のキーマップに依存します。
+REM ------------------------------------------------------------
+
 UseLED(1)
 Mode(KeyMouse)
+
 LABEL LOOP
+REM --- 目立つ色でループ開始を視認 ---
 SetLED(255,0,0)
 WAIT 0.5
 GOTO KEY_SECTION
 
 LABEL KEY_SECTION
+REM 緑でキーボードテストセクションを表示
 SetLED(0,255,0)
 WAIT 0.1
-// type printable characters and special symbols (include tab)
+
+REM --- printable characters のタイプ（タブ含む） ---
 KeyType("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789=-~^|\\{[`@+;*:}]_?/>.\t", 0.02, 0.02)
 WAIT 0.1
-// test modifier keys and special keys that KeyType can't produce
-KeyPress(128) // KEY_LEFT_CTRL
+
+REM --- モディファイアや特殊キーを個別に押下/解放で確認 ---
+REM KEY_LEFT_CTRL 等は内部のキーバリューを直接指定（変えるときは注意）
+KeyPress(128)
 WAIT 0.05
 KeyRelease(128)
 WAIT 0.02
-KeyPress(129) // KEY_LEFT_SHIFT
+
+KeyPress(129)
 WAIT 0.05
 KeyRelease(129)
 WAIT 0.02
-KeyPress(130) // KEY_LEFT_ALT
+
+KeyPress(130)
 WAIT 0.05
 KeyRelease(130)
 WAIT 0.02
+
+REM 少し間を置いてから右側修飾キー群をテスト
 WAIT 0.05
 WAIT 0.02
-KeyPress(132) // KEY_RIGHT_CTRL
+
+KeyPress(132)
 WAIT 0.05
 KeyRelease(132)
 WAIT 0.02
-KeyPress(133) // KEY_RIGHT_SHIFT
+
+KeyPress(133)
 WAIT 0.05
 KeyRelease(133)
 WAIT 0.02
-KeyPress(134) // KEY_RIGHT_ALT
+
+KeyPress(134)
 WAIT 0.05
 KeyRelease(134)
 WAIT 0.02
-WAIT 0.05
-WAIT 0.05
-// function keys F1..F12 (decimal 194..205)
+
+REM --- ファンクションキー F1..F12 を順次テスト（内部値: 194..205） ---
 KeyPress(194)
 WAIT 0.05
 KeyRelease(194)
@@ -90,79 +112,99 @@ KeyPress(205)
 WAIT 0.05
 KeyRelease(205)
 WAIT 0.05
-// navigation and control keys
-KeyPress(176) // KEY_RETURN
+
+REM --- ナビゲーション系 / 制御系キーの確認 ---
+KeyPress(176) REM KEY_RETURN
 WAIT 0.05
 KeyRelease(176)
 WAIT 0.02
-KeyPress(177) // KEY_ESC
+
+KeyPress(177) REM KEY_ESC
 WAIT 0.05
 KeyRelease(177)
 WAIT 0.02
-KeyPress(178) // KEY_BACKSPACE
+
+KeyPress(178) REM KEY_BACKSPACE
 WAIT 0.05
 KeyRelease(178)
 WAIT 0.02
-KeyPress(179) // KEY_TAB
+
+KeyPress(179) REM KEY_TAB
 WAIT 0.05
 KeyRelease(179)
 WAIT 0.02
-KeyPress(193) // KEY_CAPS_LOCK
+
+KeyPress(193) REM KEY_CAPS_LOCK
 WAIT 0.25
 KeyRelease(193)
 WAIT 0.05
-KeyPress(209) // KEY_INSERT
+
+KeyPress(209) REM KEY_INSERT
 WAIT 0.05
 KeyRelease(209)
 WAIT 0.02
-KeyPress(210) // KEY_HOME
+
+KeyPress(210) REM KEY_HOME
 WAIT 0.05
 KeyRelease(210)
 WAIT 0.02
-KeyPress(211) // KEY_PAGE_UP
+
+KeyPress(211) REM KEY_PAGE_UP
 WAIT 0.05
 KeyRelease(211)
 WAIT 0.02
-KeyPress(212) // KEY_DELETE
+
+KeyPress(212) REM KEY_DELETE
 WAIT 0.05
 KeyRelease(212)
 WAIT 0.02
-KeyPress(213) // KEY_END
+
+KeyPress(213) REM KEY_END
 WAIT 0.05
 KeyRelease(213)
 WAIT 0.02
-KeyPress(214) // KEY_PAGE_DOWN
+
+KeyPress(214) REM KEY_PAGE_DOWN
 WAIT 0.05
 KeyRelease(214)
+WAIT 0.02
+
 WAIT 0.05
-// arrow keys (decimal 218..215 order per header)
-KeyPress(218) // KEY_UP_ARROW
+
+REM --- 矢印キーの確認（順序: UP, DOWN, LEFT, RIGHT） ---
+KeyPress(218) REM KEY_UP_ARROW
 WAIT 0.05
 KeyRelease(218)
 WAIT 0.02
-KeyPress(217) // KEY_DOWN_ARROW
+
+KeyPress(217) REM KEY_DOWN_ARROW
 WAIT 0.05
 KeyRelease(217)
 WAIT 0.02
-KeyPress(216) // KEY_LEFT_ARROW
+
+KeyPress(216) REM KEY_LEFT_ARROW
 WAIT 0.05
 KeyRelease(216)
 WAIT 0.02
-KeyPress(215) // KEY_RIGHT_ARROW
+
+KeyPress(215) REM KEY_RIGHT_ARROW
 WAIT 0.05
 KeyRelease(215)
 WAIT 0.1
+
 GOTO AFTER
 
 LABEL MOUSE_SECTION
+REM --- マウス操作セクション: 青で識別 ---
 SetLED(0,0,255)
+REM 相対移動と短時間押下をテスト
 MouseMove(20,0,1)
 MousePushFor(LEFT, 0.2)
 WAIT 0.1
 GOTO AFTER
 
-
 LABEL AFTER
+REM セクション終了: LEDを消して短い待機の後ループへ戻る
 SetLED(0,0,0)
 WAIT 0.3
 GOTO LOOP

@@ -1,0 +1,22 @@
+REM ispressed_led.txt
+REM ------------------------------------------------------------
+REM 目的:
+REM   IsPressed() の状態に応じて LED 色を切り替えるテストスクリプトです。
+REM   押されていないときは赤、押されているときは青を点灯します。
+REM 使用上の注意:
+REM   - UseLED(1) により内蔵LEDを使用します。
+REM   - ループは常に継続するため、停止はリセット等で行ってください。
+REM ------------------------------------------------------------
+
+DEBUG(1)
+UseLED(1)
+WAIT 0.5
+LABEL LOOP
+IF IsPressed() GOTO PRESSED
+SetLED(255,0,0)
+WAIT 0.2
+GOTO LOOP
+LABEL PRESSED
+SetLED(0,0,255)
+WAIT 0.2
+GOTO LOOP

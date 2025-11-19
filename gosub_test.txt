@@ -1,0 +1,59 @@
+REM gosub_test.txt
+REM ------------------------------------------------------------
+REM 目的:
+REM   GOSUB / RETURN の動作確認用スクリプト。サブルーチンで LED を点滅させたり、
+REM   押されたらクリックする待ち処理を GOSUB で呼び出して挙動を確認します。
+REM 使用上の注意:
+REM   - UseLED(1) を利用します。
+REM   - count と interval を調整して点滅回数や速度を変更できます。
+REM ------------------------------------------------------------
+
+DEBUG(1)
+UseLED(1)
+SET count = 3
+SET interval = 0.3
+LABEL MAIN
+GOSUB BLINK_RED
+WAIT 0.5
+GOSUB BLINK_BLUE
+WAIT 0.5
+GOSUB WAIT_PRESS_AND_CLICK
+WAIT 0.5
+GOTO MAIN
+
+LABEL BLINK_RED
+SET i = 0
+LABEL BR_LOOP
+IF i >= count GOTO BR_DONE
+SetLED(255,0,0)
+WAIT interval
+SetLED(0,0,0)
+WAIT interval
+SET i = i + 1
+GOTO BR_LOOP
+LABEL BR_DONE
+RETURN
+
+LABEL BLINK_BLUE
+SET i = 0
+LABEL BB_LOOP
+IF i >= count GOTO BB_DONE
+SetLED(0,0,255)
+WAIT interval
+SetLED(0,0,0)
+WAIT interval
+SET i = i + 1
+GOTO BB_LOOP
+LABEL BB_DONE
+RETURN
+
+LABEL WAIT_PRESS_AND_CLICK
+LABEL WPC_WAIT
+IF IsPressed() GOTO WPC_PRESSED
+SetLED(0,0,0)
+WAIT 0.1
+GOTO WPC_WAIT
+LABEL WPC_PRESSED
+SetLED(0,0,255)
+WAIT 0.05
+RETURN

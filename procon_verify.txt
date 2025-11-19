@@ -1,0 +1,80 @@
+REM procon_verify.txt
+REM ------------------------------------------------------------
+REM 目的:
+REM   ProController のボタンとハット（D-pad）動作確認用スクリプト。
+REM   各方向とボタンを順次送信して実機でマッピング確認を行います。
+REM 注意:
+REM   - スクリプトは Mode(ProController) を設定します。
+REM   - Hat の CENTER は中立（NEUTRAL）を意味します。
+REM ------------------------------------------------------------
+
+DEBUG(1)
+Mode(ProController)
+WAIT 0.5
+LABEL LOOP
+REM --- Hat (D-pad) シーケンス: 各方向を順番に送信 ---
+ProConHat(UP)
+WAIT 1
+ProConHat(RIGHT)
+WAIT 1
+ProConHat(DOWN)
+WAIT 1
+ProConHat(LEFT)
+WAIT 1
+ProConHat(UP_RIGHT)
+WAIT 1
+ProConHat(RIGHT_DOWN)
+WAIT 1
+ProConHat(DOWN_LEFT)
+WAIT 1
+ProConHat(LEFT_UP)
+WAIT 1
+ProConHat(CENTER)
+WAIT 1
+
+REM --- ボタン押下シーケンス ---
+ProConPress(X)
+WAIT 1
+ProConRelease(X)
+WAIT 0.5
+
+ProConPress(Y)
+WAIT 1
+ProConRelease(Y)
+WAIT 0.5
+
+ProConPushFor(A, 1)
+WAIT 0.5
+ProConPushFor(B, 1)
+WAIT 0.5
+
+REM --- ZL / ZR (トリガー) ---
+ProConPushFor(ZL, 1)
+WAIT 0.5
+ProConPushFor(ZR, 1)
+WAIT 0.5
+
+REM --- MINUS / PLUS (マイナス / プラス) ---
+ProConPress(MINUS)
+WAIT 1
+ProConRelease(MINUS)
+WAIT 0.5
+
+ProConPress(PLUS)
+WAIT 1
+ProConRelease(PLUS)
+WAIT 0.5
+
+REM --- スティック押し込み / システムボタン ---
+ProConPushFor(LCLICK, 1)
+WAIT 0.5
+ProConPushFor(RCLICK, 1)
+WAIT 0.5
+ProConPushFor(HOME, 1)
+WAIT 0.5
+ProConPushFor(CAPTURE, 1)
+WAIT 0.5
+
+PRINT 1
+WAIT 1
+GOTO LOOP

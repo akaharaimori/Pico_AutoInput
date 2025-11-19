@@ -75,6 +75,13 @@ static inline void maybe_tud_task(bool force)
         // call the real tinyusb task function
         ::tud_task();
         g_last_tud_task_us = now;
+        // If running in ProController mode, send a HID report only when controller state changed.
+        // This ensures periodic (5ms) report of any state changes without spamming identical reports.
+        if (g_usb_mode == USB_MODE_HID_Switch)
+        {
+            // sendReportIfChanged returns true if a report was sent; ignore return value here.
+            SwitchController().sendReportIfChanged();
+        }
     }
 }
 
@@ -1470,7 +1477,7 @@ static int execute_line(ScriptState &st, int current_index)
 
     // ProController functions
     if (starts_with_cmd(line, "ProConPress") || starts_with_cmd(line, "ProConRelease") ||
-        starts_with_cmd(line, "ProConPushFor") || starts_with_cmd(line, "ProConJoy"))
+        starts_with_cmd(line, "ProConPushFor") || starts_with_cmd(line, "ProConJoy") || starts_with_cmd(line, "ProConHat"))
     {
         if (starts_with_cmd(line, "ProConPress"))
         {
@@ -1485,13 +1492,32 @@ static int execute_line(ScriptState &st, int current_index)
                 b = Button::A;
             else if (arg == "B")
                 b = Button::B;
+            else if (arg == "X")
+                b = Button::X;
+            else if (arg == "Y")
+                b = Button::Y;
             else if (arg == "L")
                 b = Button::L;
             else if (arg == "R")
                 b = Button::R;
+            else if (arg == "ZL")
+                b = Button::ZL;
+            else if (arg == "ZR")
+                b = Button::ZR;
+            else if (arg == "MINUS")
+                b = Button::MINUS;
+            else if (arg == "PLUS")
+                b = Button::PLUS;
+            else if (arg == "LCLICK")
+                b = Button::LCLICK;
+            else if (arg == "RCLICK")
+                b = Button::RCLICK;
+            else if (arg == "HOME")
+                b = Button::HOME;
+            else if (arg == "CAPTURE")
+                b = Button::CAPTURE;
             // call SwitchController
             SwitchController().pressButton(b);
-            SwitchController().sendReport();
             maybe_tud_task(true);
         }
         else if (starts_with_cmd(line, "ProConRelease"))
@@ -1506,12 +1532,31 @@ static int execute_line(ScriptState &st, int current_index)
                 b = Button::A;
             else if (arg == "B")
                 b = Button::B;
+            else if (arg == "X")
+                b = Button::X;
+            else if (arg == "Y")
+                b = Button::Y;
             else if (arg == "L")
                 b = Button::L;
             else if (arg == "R")
                 b = Button::R;
+            else if (arg == "ZL")
+                b = Button::ZL;
+            else if (arg == "ZR")
+                b = Button::ZR;
+            else if (arg == "MINUS")
+                b = Button::MINUS;
+            else if (arg == "PLUS")
+                b = Button::PLUS;
+            else if (arg == "LCLICK")
+                b = Button::LCLICK;
+            else if (arg == "RCLICK")
+                b = Button::RCLICK;
+            else if (arg == "HOME")
+                b = Button::HOME;
+            else if (arg == "CAPTURE")
+                b = Button::CAPTURE;
             SwitchController().releaseButton(b);
-            SwitchController().sendReport();
             maybe_tud_task(true);
         }
         else if (starts_with_cmd(line, "ProConPushFor"))
@@ -1532,10 +1577,33 @@ static int execute_line(ScriptState &st, int current_index)
                     b = Button::A;
                 else if (bname == "B")
                     b = Button::B;
+                else if (bname == "X")
+                    b = Button::X;
+                else if (bname == "Y")
+                    b = Button::Y;
+                else if (bname == "L")
+                    b = Button::L;
+                else if (bname == "R")
+                    b = Button::R;
+                else if (bname == "ZL")
+                    b = Button::ZL;
+                else if (bname == "ZR")
+                    b = Button::ZR;
+                else if (bname == "MINUS")
+                    b = Button::MINUS;
+                else if (bname == "PLUS")
+                    b = Button::PLUS;
+                else if (bname == "LCLICK")
+                    b = Button::LCLICK;
+                else if (bname == "RCLICK")
+                    b = Button::RCLICK;
+                else if (bname == "HOME")
+                    b = Button::HOME;
+                else if (bname == "CAPTURE")
+                    b = Button::CAPTURE;
                 auto [ok, val] = eval_expression(st, expr);
                 uint32_t ms = ok ? static_cast<uint32_t>(round(val * 1000.0)) : 0;
                 SwitchController().pressButton(b);
-                SwitchController().sendReport();
                 maybe_tud_task(true);
                 uint32_t rem = ms;
                 while (rem)
@@ -1546,9 +1614,38 @@ static int execute_line(ScriptState &st, int current_index)
                     rem -= step;
                 }
                 SwitchController().releaseButton(b);
-                SwitchController().sendReport();
                 maybe_tud_task(true);
             }
+        }
+        else if (starts_with_cmd(line, "ProConHat"))
+        {
+            size_t p = line.find('(');
+            size_t q = line.rfind(')');
+            if (p == std::string::npos || q == std::string::npos || q <= p)
+                return current_index + 1;
+            std::string arg = trim(line.substr(p + 1, q - p - 1));
+            Hat h = Hat::CENTER;
+            if (arg == "UP")
+                h = Hat::UP;
+            else if (arg == "UP_RIGHT")
+                h = Hat::UP_RIGHT;
+            else if (arg == "RIGHT")
+                h = Hat::RIGHT;
+            else if (arg == "RIGHT_DOWN")
+                h = Hat::RIGHT_DOWN;
+            else if (arg == "DOWN")
+                h = Hat::DOWN;
+            else if (arg == "DOWN_LEFT")
+                h = Hat::DOWN_LEFT;
+            else if (arg == "LEFT")
+                h = Hat::LEFT;
+            else if (arg == "LEFT_UP")
+                h = Hat::LEFT_UP;
+            else if (arg == "CENTER" || arg == "NEUTRAL")
+                h = Hat::CENTER;
+            // call SwitchController to set hat (reporting is handled by maybe_tud_task)
+            SwitchController().pressHatButton(h);
+            maybe_tud_task(true);
         }
         else if (starts_with_cmd(line, "ProConJoy"))
         {
@@ -1569,8 +1666,8 @@ static int execute_line(ScriptState &st, int current_index)
                 {
                     SwitchController().setStickState((int16_t)lx.second, (int16_t)ly.second, (int16_t)rx.second,
                                                      (int16_t)ry.second);
-                    // 1回送信する
-                    SwitchController().sendReport();
+                    // reporting is managed by maybe_tud_task
+                    maybe_tud_task(true);
                 }
             }
             tud_task();
