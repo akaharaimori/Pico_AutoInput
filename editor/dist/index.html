@@ -6,19 +6,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pico AutoInput Editor v6</title>
     <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
-  <script type="module" crossorigin>(function(){const o=document.createElement("link").relList;if(o&&o.supports&&o.supports("modulepreload"))return;for(const n of document.querySelectorAll('link[rel="modulepreload"]'))e(n);new MutationObserver(n=>{for(const r of n)if(r.type==="childList")for(const a of r.addedNodes)a.tagName==="LINK"&&a.rel==="modulepreload"&&e(a)}).observe(document,{childList:!0,subtree:!0});function t(n){const r={};return n.integrity&&(r.integrity=n.integrity),n.referrerPolicy&&(r.referrerPolicy=n.referrerPolicy),n.crossOrigin==="use-credentials"?r.credentials="include":n.crossOrigin==="anonymous"?r.credentials="omit":r.credentials="same-origin",r}function e(n){if(n.ep)return;n.ep=!0;const r=t(n);fetch(n.href,r)}})();const $=["LABEL","GOTO","IF","GOSUB","RETURN","WAIT","END","SET","PRINT","DEBUG","REM","Mode","UseLED","SetLED","KeyPress","KeyRelease","KeyPushFor","KeyType","MouseMove","MousePress","MouseRelease","MousePushFor","Mouserun","ProConPress","ProConRelease","ProConPushFor","ProConHat","ProConJoy"],w=new Set(["ispressed","rand","gettime","abs","acos","asin","atan","atan2","ceil","clamp","cos","cosh","cot","deg2rad","e","exp","floor","ln","log10","max","min","mod","pi","pow","power","rad2deg","round","sign","sin","sinh","sqr","sqrt","sum","tan","tanh","trunc","fac","fact","ncr","npr","permut","combin","if","ifs","not","and","or","true","false","nan","even","odd","iseven","isodd","isnan","iserr","effect","nominal"]),b={MousePress:["LEFT","RIGHT","MIDDLE"],MouseRelease:["LEFT","RIGHT","MIDDLE"],MousePushFor:["LEFT","RIGHT","MIDDLE"],Mode:["KeyMouse","ProController"],ProConPress:["A","B","X","Y","L","R","ZL","ZR","MINUS","PLUS","HOME","CAPTURE","LCLICK","RCLICK","UP","DOWN","LEFT","RIGHT"],ProConRelease:["A","B","X","Y","L","R","ZL","ZR","MINUS","PLUS","HOME","CAPTURE","LCLICK","RCLICK"],ProConPushFor:["A","B","X","Y","L","R","ZL","ZR","MINUS","PLUS","HOME","CAPTURE","LCLICK","RCLICK"],ProConHat:["UP","UP_RIGHT","RIGHT","RIGHT_DOWN","DOWN","DOWN_LEFT","LEFT","LEFT_UP","CENTER"],KeyPress:["F1","F2","F3","F4","F5","F6","F7","F8","F9","F10","F11","F12","ENTER","RETURN","ESC","ESCAPE","BACKSPACE","BKSP","TAB","SPACE","SPACEBAR","CAPSLOCK","CAPS","MINUS","EQUAL","LEFTBRACE","RIGHTBRACE","BACKSLASH","SEMICOLON","APOSTROPHE","GRAVE","COMMA","DOT","PERIOD","SLASH","UP","DOWN","LEFT","RIGHT","ARROWUP","ARROWDOWN","ARROWLEFT","ARROWRIGHT"],KeyRelease:["F1","F2","F3","F4","F5","F6","F7","F8","F9","F10","F11","F12","ENTER","RETURN","ESC","ESCAPE","BACKSPACE","BKSP","TAB","SPACE","SPACEBAR","CAPSLOCK","CAPS","MINUS","EQUAL","LEFTBRACE","RIGHTBRACE","BACKSLASH","SEMICOLON","APOSTROPHE","GRAVE","COMMA","DOT","PERIOD","SLASH","UP","DOWN","LEFT","RIGHT","ARROWUP","ARROWDOWN","ARROWLEFT","ARROWRIGHT"],KeyPushFor:["F1","F2","F3","F4","F5","F6","F7","F8","F9","F10","F11","F12","ENTER","RETURN","ESC","ESCAPE","BACKSPACE","BKSP","TAB","SPACE","SPACEBAR","CAPSLOCK","CAPS","MINUS","EQUAL","LEFTBRACE","RIGHTBRACE","BACKSLASH","SEMICOLON","APOSTROPHE","GRAVE","COMMA","DOT","PERIOD","SLASH","UP","DOWN","LEFT","RIGHT","ARROWUP","ARROWDOWN","ARROWLEFT","ARROWRIGHT"]},H=new Set(Object.values(b).flat().map(s=>s.toUpperCase())),U={Mode:["constant"],MousePress:["constant"],MouseRelease:["constant"],MousePushFor:["constant","expr"],ProConPress:["constant"],ProConRelease:["constant"],ProConPushFor:["constant","expr"],ProConHat:["constant"],KeyPress:["constant"],KeyRelease:["constant"],KeyPushFor:["constant","expr"],KeyType:["string","expr","expr"]},u={definedLabels:new Map,definedVars:new Map,scriptLines:[],matchedParenIndices:new Set};function M(s){u.scriptLines=s.split(/\r?\n/),u.definedLabels.clear(),u.definedVars.clear();let o=0,t=0;u.scriptLines.forEach((r,a)=>{const l=r.trim();if(!(!l||l.startsWith("#")||l.toUpperCase().startsWith("REM"))){if(l.toUpperCase().startsWith("LABEL")){const c=l.split(/\s+/);c[1]&&u.definedLabels.set(c[1],a+1)}if(l.toUpperCase().startsWith("SET")){const c=l.indexOf("=");if(c>3){const f=l.substring(3,c).trim().split(/\s+/)[0];u.definedVars.has(f)||u.definedVars.set(f,a+1)}}}});let e="",n=0;return u.scriptLines.forEach((r,a)=>{const l=L(r);let c=l,p="",f="";const g=r.trim();if(g.length>0&&!g.startsWith("#")&&!g.toUpperCase().startsWith("REM")){const i=g.indexOf(" "),C=(i===-1?g:g.substring(0,i)).toUpperCase(),d=C.indexOf("("),E=d!==-1?C.substring(0,d):C;if($.some(m=>m.toUpperCase()===E)){const m=_(r,E,n);c=m.html,m.error?(p="error-bg",f=`<span class="msg-text err-text">${m.error}</span>`,o++):m.warning&&(p="warning-bg",f=`<span class="msg-text warn-text">${m.warning}</span>`,t++)}else c=`<span class="other">${l}</span>`}else g.length>0&&(c=`<span class="other">${l}</span>`);e+=`<div class="line ${p}">${c}${f}</div>`,n+=r.length+1}),s.endsWith(`
-`)&&(e+='<div class="line"><br></div>'),{html:e,errorCount:o,warningCount:t}}function _(s,o,t){let e="",n=null,r=null;const a=i=>u.matchedParenIndices.has(t+i),l=s.match(new RegExp(`^(\\s*)(${o})`,"i"));if(!l)return{html:L(s)};const c=L(l[1]),p=L(l[2]),f=s.substring(l[0].length),g=l[0].length;if(f.startsWith("(")){e+=`<span class="other">${c}</span><span class="func">${p}</span>`;const i=j(f,0);if(i!==-1){const d=a(g)?"func paren-match":"func";e+=`<span class="${d}">(</span>`;const E=f.substring(1,i);e+=R(E,t+g+1);const m=g+i,T=a(m)?"func paren-match":"func";e+=`<span class="${T}">)</span>`;const A=f.substring(i+1);if(A.trim().length>0){const F=A.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");e+=`<span class="other">${F}</span>`,r="閉じ括弧の後ろの文字は無視されます"}else e+=L(A);const y=z(o,E);y&&(n=y)}else{const d=a(g)?"func paren-match":"func";e+=`<span class="${d}">(</span>`+R(f.substring(1),t+g+1),n="閉じ括弧 ) がありません"}}else{e+=`<span class="other">${c}</span><span class="func">${p}</span>`;let i=f,C=t+g;if(o==="SET"){const d=i.indexOf("=");if(d!==-1){const E=i.substring(0,d),m=E.match(/([a-zA-Z_][a-zA-Z0-9_]*)/);if(m){const y=E.substring(0,m.index),F=E.substring(m.index+m[0].length);e+=`<span class="other">${L(y)}</span><span class="var">${m[0]}</span><span class="other">${L(F)}</span>`}else e+=`<span class="other">${L(E)}</span>`;e+='<span class="func">=</span>';const T=i.substring(d+1);e+=R(T,C+d+1);const A=O(T);A&&(n=A)}else e+=`<span class="other">${L(i)}</span>`,n="= が必要です"}else if(o==="GOTO"||o==="GOSUB"){const d=i.trim();e+=`<span class="label-ref">${L(i)}</span>`,u.definedLabels.has(d)||(n="未定義ラベル")}else if(o==="IF"){const d=i.toUpperCase().indexOf("GOTO");if(d!==-1){const E=i.substring(0,d),m=i.substring(d+4);e+=R(E,C),e+='<span class="func">GOTO</span>',e+=`<span class="label-ref">${L(m)}</span>`;const T=O(E);T&&(n=T),u.definedLabels.has(m.trim())||(n=(n?n+" ":"")+"未定義ラベル")}else e+=R(i,C),n="GOTO が必要です"}else if(o==="LABEL")e+=`<span class="label-def">${L(i)}</span>`;else if(e+=R(i,C),o==="WAIT"){const d=O(i);d&&(n=d)}}if(!n){const i=Z(f);i&&(n=i)}return{html:e,error:n,warning:r}}function Z(s){const o=s.replace(/"[^"]*"/g,"");let t=0;for(const e of o)if(e==="(")t++;else if(e===")"&&(t--,t<0))return"括弧の対応が取れていません";return t!==0?"括弧の対応が取れていません":null}function R(s,o){let t="";const e=/([a-zA-Z_][a-zA-Z0-9_]*)|([(),])|([^a-zA-Z_(),]+)/g;let n;for(;(n=e.exec(s))!==null;){const r=n[0],a=L(r),l=o+n.index;if(n[1]){const c=r.toLowerCase();w.has(c)?t+=`<span class="func">${a}</span>`:u.definedVars.has(r)?t+=`<span class="var">${a}</span>`:H.has(r.toUpperCase())?t+=`<span class="arg">${a}</span>`:t+=`<span class="arg">${a}</span>`}else if(n[2])if(r==="("||r===")"){const c=V(l)?"func paren-match":"func";t+=`<span class="${c}">${a}</span>`}else t+=`<span class="func">${a}</span>`;else t+=`<span class="arg">${a}</span>`}return t}function V(s){return u.matchedParenIndices.has(s)}function z(s,o){if(U[s]){const t=U[s],e=q(o);for(let n=0;n<e.length;n++){const r=e[n].trim(),a=t[n]||"expr";if(a==="constant"){const l=b[s]?b[s].map(p=>p.toUpperCase()):[],c=r.toUpperCase();if(!l.includes(c))return`${s}の引数${n+1}は定数(${b[s].join(", ")})のみ使用できます`}else if(a==="string"){if(!r.match(/^"[^"]*"$/))return`${s}の引数${n+1}は文字列リテラル("...")のみ使用できます`}else if(a==="expr"){const l=O(r);if(l)return l}}return null}return O(o)}function q(s){const o=[];let t="",e=0,n=!1;for(let r=0;r<s.length;r++){const a=s[r];a==='"'&&(r===0||s[r-1]!=="\\")?(n=!n,t+=a):n?t+=a:a==="("?(e++,t+=a):a===")"?(e--,t+=a):a===","&&e===0?(o.push(t),t=""):t+=a}return t.trim()&&o.push(t),o}function O(s){const t=s.replace(/"[^"]*"/g,"0").match(/[a-zA-Z_][a-zA-Z0-9_]*/g);if(!t)return null;for(const e of t){const n=e.toLowerCase();if(!w.has(n)&&!H.has(e.toUpperCase())&&!u.definedVars.has(e)&&!$.some(r=>r.toUpperCase()===n.toUpperCase()))return`未定義: ${e}`}return null}function j(s,o){let t=0;for(let e=o;e<s.length;e++)if(s[e]==="(")t++;else if(s[e]===")"&&(t--,t===0))return e;return-1}function L(s){return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")}function Y(s,o){u.matchedParenIndices.clear();let t=0,e=-1;for(let n=o-1;n>=0;n--){const r=s[n];if(r===")")t++;else if(r==="(")if(t>0)t--;else{e=n;break}}if(e!==-1){const n=Q(s,e,1);n!==-1&&n>=o&&(u.matchedParenIndices.add(e),u.matchedParenIndices.add(n))}}function Q(s,o,t){const e="(",n=")",r=s[o],a=r===e?n:e;let l=0,c=o;for(;c>=0&&c<s.length;){const p=s[c];if(p===r?l++:p===a&&l--,l===0)return c;c+=t}return-1}function N(s,o){const t=s.value,e=s.selectionStart;let n=e-1;for(;n>=0&&/[a-zA-Z0-9_]/.test(t[n]);)n--;n++;const r=t.substring(n,e);let a=n-1;for(;a>=0&&/\s/.test(t[a]);)a--;let l=null;if(a>=0&&t[a]==="("){let p=a-1;for(;p>=0&&/\s/.test(t[p]);)p--;let f=p+1;for(;p>=0&&/[a-zA-Z0-9_]/.test(t[p]);)p--;l=t.substring(p+1,f)}else a>=0&&(t[a]===","||t[a]);let c=[];if(l&&b[l])c=b[l].filter(p=>p.startsWith(r.toUpperCase()));else{let p=t.lastIndexOf(`
-`,n-1)+1,f=t.substring(p,n).trim().toUpperCase();(f.endsWith("GOTO")||f.endsWith("GOSUB")||f.includes("GOTO "))&&(c=Array.from(u.definedLabels.keys()).filter(g=>g.toUpperCase().startsWith(r.toUpperCase())))}c.length>0?X(c,s,o,n,e):o.style.display="none"}function X(s,o,t,e,n){let r="";s.forEach((i,C)=>{const d=n-e,E=i.substring(0,d),m=i.substring(d);r+=`<div class="ac-item ${C===0?"selected":""}" data-val="${i}">
-            <span class="ac-match">${E}</span>${m}
-        </div>`}),t.innerHTML=r;const a=21,c=o.value.substring(0,e).split(`
-`),p=c.length*a-o.scrollTop,g=c[c.length-1].length*8.4+10;t.style.left=g+"px",t.style.top=p+20+"px",t.style.display="block",Array.from(t.children).forEach(i=>{i.addEventListener("click",C=>{v(i.dataset.val,o,t,e,n)}),i.onmousedown=C=>{v(i.dataset.val,o,t,e,n)}})}function v(s,o,t,e,n){const r=o.value,a=r.substring(0,e),l=r.substring(n);o.value=a+s+l,o.selectionStart=o.selectionEnd=e+s.length,t.style.display="none",o.focus(),o.dispatchEvent(new Event("input"))}function J(s,o,t,e){if(t.style.display==="block")if(s.key==="Enter"||s.key==="Tab"){if(s.preventDefault(),t.firstElementChild){const n=t.firstElementChild;n.onmousedown&&n.onmousedown({preventDefault:()=>{}})}}else s.key==="Escape"&&(t.style.display="none");else s.key==="Tab"&&(s.preventDefault(),e&&e("    "))}function x(s,o){const t=o.selectionStart,e=o.selectionEnd;o.value=o.value.substring(0,t)+s+o.value.substring(e),o.selectionStart=o.selectionEnd=t+s.length,o.focus();const n=M(o.value);document.getElementById("code-highlight").innerHTML=n.html}function ee(s){const o=new Blob([s.value],{type:"text/plain"}),t=document.createElement("a");t.href=URL.createObjectURL(o),t.download="script.txt",t.click()}function te(){document.body.classList.toggle("show-errors",document.getElementById("chk-errors").checked)}function se(s){document.querySelectorAll(".tab").forEach(e=>e.classList.remove("active")),document.querySelectorAll(".tab-content").forEach(e=>e.classList.remove("active"));const o=document.querySelector(`.tab[data-tab="${s}"]`);o&&o.classList.add("active");const t=document.getElementById(s);t&&t.classList.add("active"),s==="flowchart"&&G()}function W(s){const o=document.getElementById("label-list"),t=document.getElementById("var-list");!o||!t||(o.innerHTML="",t.innerHTML="",u.definedLabels.forEach((e,n)=>{const r=document.createElement("div");r.className="struct-item",r.innerHTML=`<span class="struct-name">${n}</span><span>L${e}</span>`,r.onclick=()=>B(e,s),o.appendChild(r)}),u.definedVars.forEach((e,n)=>{const r=document.createElement("div");r.className="struct-item",r.innerHTML=`<span class="struct-name">${n}</span><span>Def: L${e}</span>`,r.onclick=()=>B(e,s),t.appendChild(r)}))}function B(s,o){o.scrollTop=(s-5)*21}function G(){const s=document.getElementById("mermaid-container");if(!s)return;s.innerHTML="Loading...";let o=`graph TD;
-`,t="START",e="START",n=[];u.scriptLines.forEach((r,a)=>{const l=r.trim();if(!(!l||l.startsWith("#")||l.toUpperCase().startsWith("REM"))){if(l.toUpperCase().startsWith("LABEL")){const c=l.split(/\s+/)[1];e&&n.push({id:t,lbl:e,next:c}),t=c,e=c+`
-`;return}if(l.toUpperCase().startsWith("GOTO")){n.push({id:t,lbl:e+"GOTO "+l.split(/\s+/)[1],jump:l.split(/\s+/)[1]}),t="N"+a,e="";return}if(l.toUpperCase().startsWith("IF")){const c=l.toUpperCase().indexOf("GOTO");if(c!==-1){n.push({id:t,lbl:e+"IF "+l.substring(2,c).trim(),jump:l.substring(c+4).trim(),next:"N"+a}),t="N"+a,e="";return}}if(l.toUpperCase()=="END"||l.toUpperCase()=="RETURN"){n.push({id:t,lbl:e+l}),t="N"+a,e="";return}e+=l.replace(/[()\"]/g,"")+`
-`}}),e&&n.push({id:t,lbl:e}),n.forEach(r=>{if(!r.lbl.trim())return;let a=r.lbl.trim().replace(/\n/g,"<br>");o+=`    ${r.id}["${a}"]
+  <script type="module" crossorigin>(function(){const o=document.createElement("link").relList;if(o&&o.supports&&o.supports("modulepreload"))return;for(const s of document.querySelectorAll('link[rel="modulepreload"]'))e(s);new MutationObserver(s=>{for(const r of s)if(r.type==="childList")for(const a of r.addedNodes)a.tagName==="LINK"&&a.rel==="modulepreload"&&e(a)}).observe(document,{childList:!0,subtree:!0});function t(s){const r={};return s.integrity&&(r.integrity=s.integrity),s.referrerPolicy&&(r.referrerPolicy=s.referrerPolicy),s.crossOrigin==="use-credentials"?r.credentials="include":s.crossOrigin==="anonymous"?r.credentials="omit":r.credentials="same-origin",r}function e(s){if(s.ep)return;s.ep=!0;const r=t(s);fetch(s.href,r)}})();const M=["LABEL","GOTO","IF","GOSUB","RETURN","WAIT","END","SET","PRINT","DEBUG","REM","Mode","UseLED","SetLED","KeyPress","KeyRelease","KeyPushFor","KeyType","MouseMove","MousePress","MouseRelease","MousePushFor","Mouserun","ProConPress","ProConRelease","ProConPushFor","ProConHat","ProConJoy"],w=new Set(["ispressed","rand","gettime","abs","acos","asin","atan","atan2","ceil","clamp","cos","cosh","cot","deg2rad","e","exp","floor","ln","log10","max","min","mod","pi","pow","power","rad2deg","round","sign","sin","sinh","sqr","sqrt","sum","tan","tanh","trunc","fac","fact","ncr","npr","permut","combin","if","ifs","not","and","or","true","false","nan","even","odd","iseven","isodd","isnan","iserr","effect","nominal"]),P={MousePress:["LEFT","RIGHT","MIDDLE"],MouseRelease:["LEFT","RIGHT","MIDDLE"],MousePushFor:["LEFT","RIGHT","MIDDLE"],Mode:["KeyMouse","ProController"],ProConPress:["A","B","X","Y","L","R","ZL","ZR","MINUS","PLUS","HOME","CAPTURE","LCLICK","RCLICK","UP","DOWN","LEFT","RIGHT"],ProConRelease:["A","B","X","Y","L","R","ZL","ZR","MINUS","PLUS","HOME","CAPTURE","LCLICK","RCLICK"],ProConPushFor:["A","B","X","Y","L","R","ZL","ZR","MINUS","PLUS","HOME","CAPTURE","LCLICK","RCLICK"],ProConHat:["UP","UP_RIGHT","RIGHT","RIGHT_DOWN","DOWN","DOWN_LEFT","LEFT","LEFT_UP","CENTER"],KeyPress:["F1","F2","F3","F4","F5","F6","F7","F8","F9","F10","F11","F12","ENTER","RETURN","ESC","ESCAPE","BACKSPACE","BKSP","TAB","SPACE","SPACEBAR","CAPSLOCK","CAPS","MINUS","EQUAL","LEFTBRACE","RIGHTBRACE","BACKSLASH","SEMICOLON","APOSTROPHE","GRAVE","COMMA","DOT","PERIOD","SLASH","UP","DOWN","LEFT","RIGHT","ARROWUP","ARROWDOWN","ARROWLEFT","ARROWRIGHT"],KeyRelease:["F1","F2","F3","F4","F5","F6","F7","F8","F9","F10","F11","F12","ENTER","RETURN","ESC","ESCAPE","BACKSPACE","BKSP","TAB","SPACE","SPACEBAR","CAPSLOCK","CAPS","MINUS","EQUAL","LEFTBRACE","RIGHTBRACE","BACKSLASH","SEMICOLON","APOSTROPHE","GRAVE","COMMA","DOT","PERIOD","SLASH","UP","DOWN","LEFT","RIGHT","ARROWUP","ARROWDOWN","ARROWLEFT","ARROWRIGHT"],KeyPushFor:["F1","F2","F3","F4","F5","F6","F7","F8","F9","F10","F11","F12","ENTER","RETURN","ESC","ESCAPE","BACKSPACE","BKSP","TAB","SPACE","SPACEBAR","CAPSLOCK","CAPS","MINUS","EQUAL","LEFTBRACE","RIGHTBRACE","BACKSLASH","SEMICOLON","APOSTROPHE","GRAVE","COMMA","DOT","PERIOD","SLASH","UP","DOWN","LEFT","RIGHT","ARROWUP","ARROWDOWN","ARROWLEFT","ARROWRIGHT"]},x=new Set(Object.values(P).flat().map(n=>n.toUpperCase())),v={Mode:["constant"],MousePress:["constant"],MouseRelease:["constant"],MousePushFor:["constant","expr"],ProConPress:["constant"],ProConRelease:["constant"],ProConPushFor:["constant","expr"],ProConHat:["constant"],KeyPress:["constant"],KeyRelease:["constant"],KeyPushFor:["constant","expr"],KeyType:["string","expr","expr"]},u={definedLabels:new Map,definedVars:new Map,scriptLines:[],matchedParenIndices:new Set};function U(n){u.scriptLines=n.split(/\r?\n/),u.definedLabels.clear(),u.definedVars.clear();let o=0,t=0;u.scriptLines.forEach((r,a)=>{const c=r.trim();if(!(!c||c.startsWith("#")||c.toUpperCase().startsWith("REM"))){if(c.toUpperCase().startsWith("LABEL")){const l=c.split(/\s+/);l[1]&&u.definedLabels.set(l[1],a+1)}if(c.toUpperCase().startsWith("SET")){const l=c.indexOf("=");if(l>3){const m=c.substring(3,l).trim().split(/\s+/)[0];u.definedVars.has(m)||u.definedVars.set(m,a+1)}}}});let e="",s=0;return u.scriptLines.forEach((r,a)=>{const c=C(r);let l=c,d="",m="";const f=r.trim();if(f.length>0&&!f.startsWith("#")&&!f.toUpperCase().startsWith("REM")){const g=f.indexOf(" "),i=(g===-1?f:f.substring(0,g)).toUpperCase(),L=i.indexOf("("),p=L!==-1?i.substring(0,L):i;if(M.some(h=>h.toUpperCase()===p)){const h=Z(r,p,s);l=h.html,h.error?(d="error-bg",m=`<span class="msg-text err-text">${h.error}</span>`,o++):h.warning&&(d="warning-bg",m=`<span class="msg-text warn-text">${h.warning}</span>`,t++)}else l=`<span class="other">${c}</span>`}else f.length>0&&(l=`<span class="other">${c}</span>`);e+=`<div class="line ${d}">${l}${m}</div>`,s+=r.length+1}),n.endsWith(`
+`)&&(e+='<div class="line"><br></div>'),{html:e,errorCount:o,warningCount:t}}function Z(n,o,t){let e="",s=null,r=null;n.replace(/"[^"]*"/g,"").includes("　")&&(s="全角スペース(U+3000)が含まれています。半角スペースを使用してください");const c=i=>u.matchedParenIndices.has(t+i),l=n.match(new RegExp(`^(\\s*)(${o})`,"i"));if(!l)return{html:C(n),error:s};const d=C(l[1]),m=C(l[2]),f=n.substring(l[0].length),g=l[0].length;if(f.startsWith("(")){e+=`<span class="other">${d}</span><span class="func">${m}</span>`;const i=Y(f,0);if(i!==-1){const p=c(g)?"func paren-match":"func";e+=`<span class="${p}">(</span>`;const h=f.substring(1,i);e+=y(h,t+g+1);const A=g+i,T=c(A)?"func paren-match":"func";e+=`<span class="${T}">)</span>`;const R=f.substring(i+1);if(R.trim().length>0){const F=R.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");e+=`<span class="other">${F}</span>`,r="閉じ括弧の後ろの文字は無視されます"}else e+=C(R);const O=z(o,h);O&&!s&&(s=O)}else{const p=c(g)?"func paren-match":"func";e+=`<span class="${p}">(</span>`+y(f.substring(1),t+g+1),s||(s="閉じ括弧 ) がありません")}}else{e+=`<span class="other">${d}</span><span class="func">${m}</span>`;let i=f,L=t+g;if(o==="SET"){const p=i.indexOf("=");if(p!==-1){const h=i.substring(0,p),A=h.match(/([a-zA-Z_][a-zA-Z0-9_]*)/);if(A){const O=h.substring(0,A.index),F=h.substring(A.index+A[0].length);e+=`<span class="other">${C(O)}</span><span class="var">${A[0]}</span><span class="other">${C(F)}</span>`}else e+=`<span class="other">${C(h)}</span>`;e+='<span class="func">=</span>';const T=i.substring(p+1);e+=y(T,L+p+1);const R=b(T);R&&!s&&(s=R)}else e+=`<span class="other">${C(i)}</span>`,s||(s="= が必要です")}else if(o==="GOTO"||o==="GOSUB"){const p=i.trim();e+=`<span class="label-ref">${C(i)}</span>`,!u.definedLabels.has(p)&&!s&&(s="未定義ラベル")}else if(o==="IF"){const p=i.toUpperCase().indexOf("GOTO");if(p!==-1){const h=i.substring(0,p),A=i.substring(p+4);e+=y(h,L),e+='<span class="func">GOTO</span>',e+=`<span class="label-ref">${C(A)}</span>`;const T=b(h);T&&!s&&(s=T),!u.definedLabels.has(A.trim())&&!s&&(s="未定義ラベル")}else e+=y(i,L),s||(s="GOTO が必要です")}else if(o==="LABEL")e+=`<span class="label-def">${C(i)}</span>`;else if(e+=y(i,L),o==="WAIT"){const p=b(i);p&&!s&&(s=p)}}if(!s){const i=V(f);i&&(s=i)}return{html:e,error:s,warning:r}}function V(n){const o=n.replace(/"[^"]*"/g,"");let t=0;for(const e of o)if(e==="(")t++;else if(e===")"&&(t--,t<0))return"括弧の対応が取れていません";return t!==0?"括弧の対応が取れていません":null}function y(n,o){let t="";const e=/([a-zA-Z_][a-zA-Z0-9_]*)|([(),])|([^a-zA-Z_(),]+)/g;let s;for(;(s=e.exec(n))!==null;){const r=s[0],a=C(r),c=o+s.index;if(s[1]){const l=r.toLowerCase();w.has(l)?t+=`<span class="func">${a}</span>`:u.definedVars.has(r)?t+=`<span class="var">${a}</span>`:x.has(r.toUpperCase())?t+=`<span class="arg">${a}</span>`:t+=`<span class="arg">${a}</span>`}else if(s[2])if(r==="("||r===")"){const l=q(c)?"func paren-match":"func";t+=`<span class="${l}">${a}</span>`}else t+=`<span class="func">${a}</span>`;else t+=`<span class="arg">${a}</span>`}return t}function q(n){return u.matchedParenIndices.has(n)}function z(n,o){const e=M.find(s=>s.toUpperCase()===n)||n;if(v[e]){const s=v[e],r=j(o);if(r.length===0)return"引数が不足しています";for(let a=0;a<r.length;a++){const c=r[a].trim(),l=s[a]||"expr";if(l==="constant"){const d=P[e]?P[e].map(f=>f.toUpperCase()):[],m=c.toUpperCase();if(!d.includes(m))return`${e}の引数${a+1}は定数(${P[e].join(", ")})のみ使用できます`}else if(l==="string"){if(!c.match(/^"[^"]*"$/))return`${e}の引数${a+1}は文字列リテラル("...")のみ使用できます`}else if(l==="expr"){const d=b(c);if(d)return d}}return null}return b(o)}function j(n){const o=[];let t="",e=0,s=!1;for(let r=0;r<n.length;r++){const a=n[r];a==='"'&&(r===0||n[r-1]!=="\\")?(s=!s,t+=a):s?t+=a:a==="("?(e++,t+=a):a===")"?(e--,t+=a):a===","&&e===0?(o.push(t),t=""):t+=a}return t.trim()&&o.push(t),o}function b(n){const t=n.replace(/"[^"]*"/g,"0").match(/[a-zA-Z_][a-zA-Z0-9_]*/g);if(!t)return null;for(const e of t){const s=e.toLowerCase();if(!w.has(s)&&!x.has(e.toUpperCase())&&!u.definedVars.has(e)&&!M.some(r=>r.toUpperCase()===s.toUpperCase()))return`未定義: ${e}`}return null}function Y(n,o){let t=0;for(let e=o;e<n.length;e++)if(n[e]==="(")t++;else if(n[e]===")"&&(t--,t===0))return e;return-1}function C(n){return n.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")}function Q(n,o){u.matchedParenIndices.clear();let t=0,e=-1;for(let s=o-1;s>=0;s--){const r=n[s];if(r===")")t++;else if(r==="(")if(t>0)t--;else{e=s;break}}if(e!==-1){const s=X(n,e,1);s!==-1&&s>=o&&(u.matchedParenIndices.add(e),u.matchedParenIndices.add(s))}}function X(n,o,t){const e="(",s=")",r=n[o],a=r===e?s:e;let c=0,l=o;for(;l>=0&&l<n.length;){const d=n[l];if(d===r?c++:d===a&&c--,c===0)return l;l+=t}return-1}function H(n,o){const t=n.value,e=n.selectionStart;let s=e-1;for(;s>=0&&/[a-zA-Z0-9_]/.test(t[s]);)s--;s++;const r=t.substring(s,e);let a=s-1;for(;a>=0&&/\s/.test(t[a]);)a--;let c=null;if(a>=0&&t[a]==="("){let d=a-1;for(;d>=0&&/\s/.test(t[d]);)d--;let m=d+1;for(;d>=0&&/[a-zA-Z0-9_]/.test(t[d]);)d--;c=t.substring(d+1,m)}else a>=0&&(t[a]===","||t[a]);let l=[];if(c&&P[c])l=P[c].filter(d=>d.startsWith(r.toUpperCase()));else{let d=t.lastIndexOf(`
+`,s-1)+1,m=t.substring(d,s).trim().toUpperCase();(m.endsWith("GOTO")||m.endsWith("GOSUB")||m.includes("GOTO "))&&(l=Array.from(u.definedLabels.keys()).filter(f=>f.toUpperCase().startsWith(r.toUpperCase())))}l.length>0?J(l,n,o,s,e):o.style.display="none"}function J(n,o,t,e,s){let r="";n.forEach((g,i)=>{const L=s-e,p=g.substring(0,L),h=g.substring(L);r+=`<div class="ac-item ${i===0?"selected":""}" data-val="${g}">
+            <span class="ac-match">${p}</span>${h}
+        </div>`}),t.innerHTML=r;const a=21,l=o.value.substring(0,e).split(`
+`),d=l.length*a-o.scrollTop,f=l[l.length-1].length*8.4+10;t.style.left=f+"px",t.style.top=d+20+"px",t.style.display="block",Array.from(t.children).forEach(g=>{g.addEventListener("click",i=>{B(g.dataset.val,o,t,e,s)}),g.onmousedown=i=>{B(g.dataset.val,o,t,e,s)}})}function B(n,o,t,e,s){const r=o.value,a=r.substring(0,e),c=r.substring(s);o.value=a+n+c,o.selectionStart=o.selectionEnd=e+n.length,t.style.display="none",o.focus(),o.dispatchEvent(new Event("input"))}function ee(n,o,t,e){if(t.style.display==="block")if(n.key==="Enter"||n.key==="Tab"){if(n.preventDefault(),t.firstElementChild){const s=t.firstElementChild;s.onmousedown&&s.onmousedown({preventDefault:()=>{}})}}else n.key==="Escape"&&(t.style.display="none");else n.key==="Tab"&&(n.preventDefault(),e&&e("    "))}function N(n,o){const t=o.selectionStart,e=o.selectionEnd;o.value=o.value.substring(0,t)+n+o.value.substring(e),o.selectionStart=o.selectionEnd=t+n.length,o.focus();const s=U(o.value);document.getElementById("code-highlight").innerHTML=s.html}function te(n){const o=new Blob([n.value],{type:"text/plain"}),t=document.createElement("a");t.href=URL.createObjectURL(o),t.download="script.txt",t.click()}function se(){document.body.classList.toggle("show-errors",document.getElementById("chk-errors").checked)}function ne(n){document.querySelectorAll(".tab").forEach(e=>e.classList.remove("active")),document.querySelectorAll(".tab-content").forEach(e=>e.classList.remove("active"));const o=document.querySelector(`.tab[data-tab="${n}"]`);o&&o.classList.add("active");const t=document.getElementById(n);t&&t.classList.add("active"),n==="flowchart"&&G()}function W(n){const o=document.getElementById("label-list"),t=document.getElementById("var-list");!o||!t||(o.innerHTML="",t.innerHTML="",u.definedLabels.forEach((e,s)=>{const r=document.createElement("div");r.className="struct-item",r.innerHTML=`<span class="struct-name">${s}</span><span>L${e}</span>`,r.onclick=()=>$(e,n),o.appendChild(r)}),u.definedVars.forEach((e,s)=>{const r=document.createElement("div");r.className="struct-item",r.innerHTML=`<span class="struct-name">${s}</span><span>Def: L${e}</span>`,r.onclick=()=>$(e,n),t.appendChild(r)}))}function $(n,o){o.scrollTop=(n-5)*21}function G(){const n=document.getElementById("mermaid-container");if(!n)return;n.innerHTML="Loading...";let o=`graph TD;
+`,t="START",e="START",s=[];u.scriptLines.forEach((r,a)=>{const c=r.trim();if(!(!c||c.startsWith("#")||c.toUpperCase().startsWith("REM"))){if(c.toUpperCase().startsWith("LABEL")){const l=c.split(/\s+/)[1];e&&s.push({id:t,lbl:e,next:l}),t=l,e=l+`
+`;return}if(c.toUpperCase().startsWith("GOTO")){s.push({id:t,lbl:e+"GOTO "+c.split(/\s+/)[1],jump:c.split(/\s+/)[1]}),t="N"+a,e="";return}if(c.toUpperCase().startsWith("IF")){const l=c.toUpperCase().indexOf("GOTO");if(l!==-1){s.push({id:t,lbl:e+"IF "+c.substring(2,l).trim(),jump:c.substring(l+4).trim(),next:"N"+a}),t="N"+a,e="";return}}if(c.toUpperCase()=="END"||c.toUpperCase()=="RETURN"){s.push({id:t,lbl:e+c}),t="N"+a,e="";return}e+=c.replace(/[()\"]/g,"")+`
+`}}),e&&s.push({id:t,lbl:e}),s.forEach(r=>{if(!r.lbl.trim())return;let a=r.lbl.trim().replace(/\n/g,"<br>");o+=`    ${r.id}["${a}"]
 `,r.jump&&(o+=`    ${r.id} --> ${r.jump}
 `),r.next&&(o+=`    ${r.id} --> ${r.next}
-`)});try{window.mermaid?window.mermaid.render("graphDiv",o).then(r=>s.innerHTML=r.svg):s.innerHTML="Mermaid library not loaded."}catch(r){s.innerHTML="Error: "+r.message}}function D(s,o){const t=document.getElementById("status-area");if(t)if(s>0||o>0){let e="";s>0&&(e+=`<span style="color: #ff6b6b;">エラー: ${s}件</span>`),o>0&&(e&&(e+=", "),e+=`<span style="color: #ffa500;">警告: ${o}件</span>`),t.innerHTML=e}else t.innerHTML='<span style="color: #51cf66;">準備完了</span>'}function K(){document.getElementById("help-modal").style.display="block"}function k(){document.getElementById("help-modal").style.display="none"}const h=document.getElementById("code-input"),S=document.getElementById("code-highlight"),P=document.getElementById("autocomplete-list");window.onload=()=>{I(),W(h),K()};function I(){Y(h.value,h.selectionStart);const s=M(h.value);S.innerHTML=s.html,D(s.errorCount,s.warningCount)}h.addEventListener("input",()=>{I(),N(h,P)});h.addEventListener("scroll",()=>{S.scrollTop=h.scrollTop,S.scrollLeft=h.scrollLeft});h.addEventListener("keydown",s=>{J(s,h,P,o=>x(o,h))});h.addEventListener("click",()=>{I(),N(h,P)});h.addEventListener("keyup",()=>{I()});h.addEventListener("blur",()=>{setTimeout(()=>P.style.display="none",200)});document.getElementById("btn-open").onclick=()=>document.getElementById("file-input").click();document.getElementById("file-input").onchange=s=>{if(s.target.files[0]){const o=new FileReader;o.onload=t=>{h.value=t.target.result;const e=M(h.value);S.innerHTML=e.html,W(h),D(e.errorCount,e.warningCount)},o.readAsText(s.target.files[0])}};document.getElementById("btn-save").onclick=()=>ee(h);document.getElementById("btn-help").onclick=()=>K();document.getElementById("chk-errors").onchange=()=>te();document.getElementById("close-help-btn").onclick=()=>k();window.onclick=s=>{s.target===document.getElementById("help-modal")&&k()};document.querySelectorAll(".tab").forEach(s=>{s.onclick=()=>se(s.dataset.tab)});document.querySelectorAll(".doc-item").forEach(s=>{s.onclick=()=>x(s.dataset.insert,h)});document.getElementById("btn-update-flowchart").onclick=()=>G();</script>
-  <style rel="stylesheet" crossorigin>html,body{margin:0;padding:0;width:100%;height:100%;font-family:Meiryo,sans-serif;background-color:#f0f0f0;overflow:hidden}#container{display:flex;width:100%;height:100%;box-sizing:border-box}#editor-pane{width:55%;height:100%;display:flex;flex-direction:column;background-color:#fff;border-right:1px solid #ccc}#toolbar{padding:8px;background:#eee;border-bottom:1px solid #ccc;display:flex;align-items:center;gap:10px;flex-shrink:0}.tool-btn{padding:5px 12px;cursor:pointer;border:1px solid #999;background:#fff;border-radius:3px;font-size:.9rem;transition:background .1s}.tool-btn:hover{background:#e6f7ff;border-color:#1890ff}.toggle-label{font-size:.9rem;-webkit-user-select:none;user-select:none;display:flex;align-items:center;gap:5px;cursor:pointer}#status-area{padding:4px 8px;font-size:.85rem;color:#333;background:#fafafa;border-bottom:1px solid #ddd;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#editor-wrapper{position:relative;flex-grow:1;width:100%;height:0;background-color:#fafafa;overflow:hidden}.editor-layer{position:absolute;top:0;left:0;width:100%;height:100%;padding:10px;box-sizing:border-box;font-family:Consolas,Monaco,monospace;font-size:14px;line-height:1.5;white-space:pre;overflow:auto;border:none;margin:0}#code-highlight{z-index:1;color:transparent;pointer-events:none}#code-input{z-index:2;color:transparent;background:transparent;caret-color:#000;outline:none;resize:none}#code-input::selection{background:#0078d74d;color:transparent}.line{display:block;min-height:1.5em}.func{color:green;font-weight:700}.var{color:brown;font-weight:700}.arg{color:#d4a017}.other{color:#00f}.label-def,.label-ref{color:brown;font-weight:700;text-decoration:underline}.paren-match{border-bottom:2px solid #008000;background-color:#00ff001a}body.show-errors .error-bg{background-color:#fcc}body.show-errors .warning-bg{background-color:#fff8c4}.msg-text{font-size:.8em;font-weight:700;margin-left:10px;padding:0 4px;border-radius:2px;background:#ffffffe6;vertical-align:middle}.err-text{color:red;display:none}.warn-text{color:#e6a800;display:none}body.show-errors .err-text,body.show-errors .warn-text{display:inline}#autocomplete-list{position:absolute;border:1px solid #ccc;background:#fff;z-index:100;max-height:200px;overflow-y:auto;box-shadow:3px 3px 5px #0003;display:none;font-size:12px;font-family:Meiryo,sans-serif}.ac-item{padding:6px 10px;cursor:pointer;border-bottom:1px solid #eee}.ac-item:hover,.ac-item.selected{background-color:#e6f7ff;color:#1890ff}.ac-match{font-weight:700;color:green}.ac-type{float:right;color:#888;font-size:.8em;margin-left:10px}#info-pane{width:45%;height:100%;display:flex;flex-direction:column;background-color:#f9f9f9;border-left:1px solid #ddd}.tab-bar{display:flex;background:#eee;border-bottom:1px solid #ccc;flex-shrink:0}.tab{padding:10px 15px;cursor:pointer;border-right:1px solid #ccc;background:#eee;font-size:.9rem}.tab:hover{background:#ddd}.tab.active{background:#fff;font-weight:700;border-bottom:1px solid #fff;margin-bottom:-1px}.tab-content{display:none;flex-grow:1;overflow-y:auto;padding:15px}.tab-content.active{display:block}.doc-section{margin-bottom:20px}.doc-item{margin-bottom:6px;padding:6px;border-bottom:1px solid #eee;cursor:pointer;background:#fff;border-radius:4px}.doc-item:hover{background-color:#e6f7ff;border-left:4px solid #1890ff;padding-left:2px}.doc-syntax{font-family:monospace;font-weight:700;color:green;background-color:#e8f5e9;padding:2px 6px;border-radius:3px;display:inline-block;margin-bottom:2px}.doc-desc{margin-left:0;font-size:.85rem;color:#555;line-height:1.4}h2{font-size:1rem;background:#eef;padding:8px;border-left:5px solid #0078d7;margin-top:0;margin-bottom:10px;border-radius:2px}.struct-item{padding:5px 10px;border-bottom:1px solid #eee;cursor:pointer;display:flex;justify-content:space-between;font-size:.9rem;background:#fff}.struct-item:hover{background-color:#e0f7fa}.struct-name{font-weight:700;color:#001080}#mermaid-container{text-align:center;padding:10px}#help-modal{display:none;position:fixed;z-index:1000;left:0;top:0;width:100%;height:100%;overflow:auto;background-color:#00000080;-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px)}.modal-content{background-color:#fff;margin:5% auto;padding:0;border:1px solid #888;width:80%;max-width:800px;border-radius:8px;box-shadow:0 4px 8px #0003;position:relative;animation:slidein .3s}@keyframes slidein{0%{transform:translateY(-50px);opacity:0}to{transform:translateY(0);opacity:1}}.modal-header{padding:15px 20px;background:#f5f5f5;border-bottom:1px solid #ddd;border-radius:8px 8px 0 0;display:flex;justify-content:space-between;align-items:center}.modal-body{padding:20px;max-height:70vh;overflow-y:auto;line-height:1.6;color:#333}.close-btn{color:#aaa;font-size:28px;font-weight:700;cursor:pointer}.close-btn:hover{color:#000}.help-h3{border-left:4px solid #1890ff;margin-top:20px;background:#e6f7ff;padding:5px 10px;font-size:1.1em;font-weight:700}.help-key{background:#eee;padding:2px 6px;border-radius:4px;border:1px solid #ccc;font-family:monospace;font-weight:700;font-size:.9em}.help-link{color:#1890ff;text-decoration:none;font-weight:700}.help-link:hover{text-decoration:underline}.legend-box{display:inline-block;width:12px;height:12px;margin-right:5px;border-radius:2px;vertical-align:middle}.legend-func{background-color:green}.legend-var{background-color:brown}.legend-arg{background-color:#d4a017}.legend-other{background-color:#00f}</style>
+`)});try{window.mermaid?window.mermaid.render("graphDiv",o).then(r=>n.innerHTML=r.svg):n.innerHTML="Mermaid library not loaded."}catch(r){n.innerHTML="Error: "+r.message}}function D(n,o){const t=document.getElementById("status-area");if(t)if(n>0||o>0){let e="";n>0&&(e+=`<span style="color: #ff6b6b;">エラー: ${n}件</span>`),o>0&&(e&&(e+=", "),e+=`<span style="color: #ffa500;">警告: ${o}件</span>`),t.innerHTML=e}else t.innerHTML='<span style="color: #51cf66;">準備完了</span>'}function K(){document.getElementById("help-modal").style.display="block"}function k(){document.getElementById("help-modal").style.display="none"}function oe(){document.querySelectorAll(".doc-toggle").forEach(n=>{n.onclick=o=>{o.stopPropagation();const t=n.closest(".doc-entry");t.classList.toggle("expanded"),n.textContent=t.classList.contains("expanded")?"▲":"▼"}})}const E=document.getElementById("code-input"),_=document.getElementById("code-highlight"),I=document.getElementById("autocomplete-list");window.onload=()=>{S(),W(E),K(),oe()};function S(){Q(E.value,E.selectionStart);const n=U(E.value);_.innerHTML=n.html,D(n.errorCount,n.warningCount)}E.addEventListener("input",()=>{S(),H(E,I)});E.addEventListener("keydown",n=>{ee(n,E,I,o=>N(o,E))});E.addEventListener("click",()=>{S(),H(E,I)});E.addEventListener("keyup",()=>{S()});E.addEventListener("blur",()=>{setTimeout(()=>I.style.display="none",200)});document.getElementById("btn-open").onclick=()=>document.getElementById("file-input").click();document.getElementById("file-input").onchange=n=>{if(n.target.files[0]){const o=new FileReader;o.onload=t=>{E.value=t.target.result;const e=U(E.value);_.innerHTML=e.html,W(E),D(e.errorCount,e.warningCount),S()},o.readAsText(n.target.files[0])}};document.getElementById("btn-save").onclick=()=>te(E);document.getElementById("btn-help").onclick=()=>K();document.getElementById("chk-errors").onchange=()=>se();document.getElementById("close-help-btn").onclick=()=>k();window.onclick=n=>{n.target===document.getElementById("help-modal")&&k()};document.querySelectorAll(".tab").forEach(n=>{n.onclick=()=>ne(n.dataset.tab)});document.querySelectorAll(".doc-item").forEach(n=>{n.onclick=()=>N(n.dataset.insert,E)});document.getElementById("btn-update-flowchart").onclick=()=>G();</script>
+  <style rel="stylesheet" crossorigin>html,body{margin:0;padding:0;width:100%;height:100%;font-family:Meiryo,sans-serif;background-color:#f0f0f0;overflow:hidden}#container{display:flex;width:100%;height:100%;box-sizing:border-box}#editor-pane{width:55%;height:100%;display:flex;flex-direction:column;background-color:#fff;border-right:1px solid #ccc}#toolbar{padding:8px;background:#eee;border-bottom:1px solid #ccc;display:flex;align-items:center;gap:10px;flex-shrink:0}.tool-btn{padding:5px 12px;cursor:pointer;border:1px solid #999;background:#fff;border-radius:3px;font-size:.9rem;transition:background .1s}.tool-btn:hover{background:#e6f7ff;border-color:#1890ff}.toggle-label{font-size:.9rem;-webkit-user-select:none;user-select:none;display:flex;align-items:center;gap:5px;cursor:pointer}#status-area{padding:4px 8px;font-size:.85rem;color:#333;background:#fafafa;border-bottom:1px solid #ddd;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#editor-wrapper{position:relative;flex-grow:1;width:100%;height:0;background-color:#fafafa;overflow:auto}.editor-layer{font-family:Consolas,Monaco,monospace;font-size:14px;line-height:1.5;white-space:pre;padding:10px;box-sizing:border-box;margin:0;border:none}#code-highlight{position:relative;top:0;left:0;min-width:100%;width:max-content;min-height:100%;height:max-content;z-index:1;pointer-events:none;overflow:hidden}#code-input{position:absolute;top:0;left:0;width:100%;height:100%;z-index:2;color:transparent;background:transparent;caret-color:#000;outline:none;resize:none;overflow:hidden}#code-input::selection{background:#0078d74d;color:transparent}.line{display:block;min-height:1.5em;width:max-content;min-width:100%;padding-right:20px}.func{color:green;font-weight:700}.var{color:brown;font-weight:700}.arg{color:#d4a017}.other{color:#00f}.label-def,.label-ref{color:brown;font-weight:700;text-decoration:underline}.paren-match{border-bottom:2px solid #008000;background-color:#00ff001a}body.show-errors .error-bg{background-color:#fcc}body.show-errors .warning-bg{background-color:#fff8c4}.msg-text{font-size:.8em;font-weight:700;margin-left:10px;padding:0 4px;border-radius:2px;background:#ffffffe6;vertical-align:middle}.err-text{color:red;display:none}.warn-text{color:#e6a800;display:none}body.show-errors .err-text,body.show-errors .warn-text{display:inline}#autocomplete-list{position:absolute;border:1px solid #ccc;background:#fff;z-index:100;max-height:200px;overflow-y:auto;box-shadow:3px 3px 5px #0003;display:none;font-size:12px;font-family:Meiryo,sans-serif}.ac-item{padding:6px 10px;cursor:pointer;border-bottom:1px solid #eee}.ac-item:hover,.ac-item.selected{background-color:#e6f7ff;color:#1890ff}.ac-match{font-weight:700;color:green}.ac-type{float:right;color:#888;font-size:.8em;margin-left:10px}#info-pane{width:45%;height:100%;display:flex;flex-direction:column;background-color:#f9f9f9;border-left:1px solid #ddd}.tab-bar{display:flex;background:#eee;border-bottom:1px solid #ccc;flex-shrink:0}.tab{padding:10px 15px;cursor:pointer;border-right:1px solid #ccc;background:#eee;font-size:.9rem}.tab:hover{background:#ddd}.tab.active{background:#fff;font-weight:700;border-bottom:1px solid #fff;margin-bottom:-1px}.tab-content{display:none;flex-grow:1;overflow-y:auto;padding:15px}.tab-content.active{display:block}.doc-section{margin-bottom:20px}.doc-entry{margin-bottom:6px;background:#fff;border:1px solid #eee;border-radius:4px}.doc-header{display:flex;justify-content:space-between;align-items:stretch;border-bottom:1px solid transparent;transition:background-color .1s}.doc-header:hover{background-color:#e6f7ff}.doc-item{flex-grow:1;padding:8px;cursor:pointer;display:flex;flex-direction:column;justify-content:center}.doc-toggle{background:#f5f5f5;border:none;border-left:1px solid #eee;cursor:pointer;padding:0 10px;font-size:.8rem;color:#666;width:40px;display:flex;align-items:center;justify-content:center;transition:background .2s;border-radius:0 4px 4px 0}.doc-toggle:hover{background:#ddd}.doc-syntax{font-family:monospace;font-weight:700;color:green;background-color:#e8f5e9;padding:2px 6px;border-radius:3px;display:inline-block;margin-bottom:2px;width:max-content}.doc-desc{margin-left:0;font-size:.85rem;color:#555;line-height:1.4}.doc-detail{display:none;padding:10px;background-color:#fafafa;border-top:1px solid #eee;font-size:.9rem;color:#333;line-height:1.6}.doc-entry.expanded .doc-header{border-bottom:1px solid #eee;background-color:#f0faff}.doc-entry.expanded .doc-detail{display:block}.detail-desc{margin-bottom:10px}.detail-sample{background:#2d2d2d;color:#ccc;padding:10px;border-radius:4px;position:relative;font-family:Consolas,monospace;font-size:.85rem;overflow-x:auto;white-space:pre}.detail-sample code{font-family:inherit}h2{font-size:1rem;background:#eef;padding:8px;border-left:5px solid #0078d7;margin-top:0;margin-bottom:10px;border-radius:2px}.struct-item{padding:5px 10px;border-bottom:1px solid #eee;cursor:pointer;display:flex;justify-content:space-between;font-size:.9rem;background:#fff}.struct-item:hover{background-color:#e0f7fa}.struct-name{font-weight:700;color:#001080}#mermaid-container{text-align:center;padding:10px}#help-modal{display:none;position:fixed;z-index:1000;left:0;top:0;width:100%;height:100%;overflow:auto;background-color:#00000080;-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px)}.modal-content{background-color:#fff;margin:5% auto;padding:0;border:1px solid #888;width:80%;max-width:800px;border-radius:8px;box-shadow:0 4px 8px #0003;position:relative;animation:slidein .3s}@keyframes slidein{0%{transform:translateY(-50px);opacity:0}to{transform:translateY(0);opacity:1}}.modal-header{padding:15px 20px;background:#f5f5f5;border-bottom:1px solid #ddd;border-radius:8px 8px 0 0;display:flex;justify-content:space-between;align-items:center}.modal-body{padding:20px;max-height:70vh;overflow-y:auto;line-height:1.6;color:#333}.close-btn{color:#aaa;font-size:28px;font-weight:700;cursor:pointer}.close-btn:hover{color:#000}.help-h3{border-left:4px solid #1890ff;margin-top:20px;background:#e6f7ff;padding:5px 10px;font-size:1.1em;font-weight:700}.help-key{background:#eee;padding:2px 6px;border-radius:4px;border:1px solid #ccc;font-family:monospace;font-weight:700;font-size:.9em}.help-link{color:#1890ff;text-decoration:none;font-weight:700}.help-link:hover{text-decoration:underline}.legend-box{display:inline-block;width:12px;height:12px;margin-right:5px;border-radius:2px;vertical-align:middle}.legend-func{background-color:green}.legend-var{background-color:brown}.legend-arg{background-color:#d4a017}.legend-other{background-color:#00f}</style>
 </head>
 
 <body class="show-errors">
@@ -52,7 +52,7 @@
                         等の引数入力中に候補を表示します。クリックで挿入でき、既存の文字は正しく置換されます。</li>
                     <li><b>ラベル補完:</b> <span class="help-key">GOTO</span> や <span class="help-key">IF...GOTO</span>
                         入力時、定義済みのラベルが候補に出ます。</li>
-                    <li><b>リファレンス:</b> 右パネルの項目をクリックすると、そのコマンドがカーソル位置に挿入されます。</li>
+                    <li><b>リファレンス:</b> 右パネルの項目をクリックすると、そのコマンドがカーソル位置に挿入されます。「▼」ボタンで詳細とサンプルを確認できます。</li>
                 </ul>
 
                 <h3 class="help-h3">サンプルの使い方</h3>
@@ -119,264 +119,1106 @@
             <div id="reference" class="tab-content active">
                 <p style="font-size:0.85rem; color:#666; margin:0 0 15px 0; background:#fff8c4; padding:5px;">
                     ※ クリックするとカーソル位置に挿入されます。<br>
+                    ※ 「▼」で詳細・サンプルを表示します。<br>
                     ※ <code>expr</code> は数式や数値を意味します。
                 </p>
 
                 <div class="doc-section">
                     <h2>基本コマンド</h2>
-                    <div class="doc-item" data-insert="WAIT 1.0"><span class="doc-syntax">WAIT expr</span>
-                        <div class="doc-desc">指定した秒数だけ待機します。<br>例: <code>WAIT 0.5</code> (0.5秒待つ)</div>
+                    
+                    <div class="doc-entry">
+                        <div class="doc-header">
+                            <div class="doc-item" data-insert="WAIT 1.0"><span class="doc-syntax">WAIT expr</span>
+                                <div class="doc-desc">指定秒数待機します。</div>
+                            </div>
+                            <button class="doc-toggle">▼</button>
+                        </div>
+                        <div class="doc-detail">
+                            <div class="detail-desc">
+                                指定した秒数（<code>double</code>型、実数）だけスクリプトの実行を一時停止します。<br>
+                                <b>動作:</b> 指定時間は何も操作を行わず待機します。直前のキー押しっぱなし状態などは維持されます。<br>
+                                <b>引数:</b> 待機する秒数（正の数）。0以下は待機しません。
+                            </div>
+                            <div class="detail-sample">
+REM 1.5秒間何もしない
+WAIT 1.5
+
+REM 変数を使った待機（0.1秒～0.5秒のランダム待機）
+WAIT Rand(0.1, 0.5)
+                            </div>
+                        </div>
                     </div>
-                    <div class="doc-item" data-insert="END"><span class="doc-syntax">END</span>
-                        <div class="doc-desc">スクリプトの実行を終了します。</div>
+
+                    <div class="doc-entry">
+                        <div class="doc-header">
+                            <div class="doc-item" data-insert="END"><span class="doc-syntax">END</span>
+                                <div class="doc-desc">実行を終了します。</div>
+                            </div>
+                            <button class="doc-toggle">▼</button>
+                        </div>
+                        <div class="doc-detail">
+                            <div class="detail-desc">
+                                スクリプトの実行を完全に終了させます。<br>
+                                <b>動作:</b> これ以降の行は実行されず、デバイスは待機状態になります。再実行するには本体ボタンを押す必要があります。
+                            </div>
+                            <div class="detail-sample">
+SET count = 0
+LABEL Loop
+SET count = count + 1
+PRINT count
+REM 5回ループしたら終了 (&gt; は大なり)
+IF count &gt; 5 GOTO Finish
+WAIT 1
+GOTO Loop
+
+LABEL Finish
+PRINT "完了"
+END
+                            </div>
+                        </div>
                     </div>
-                    <div class="doc-item" data-insert="PRINT expr"><span class="doc-syntax">PRINT expr</span>
-                        <div class="doc-desc">数式の結果をルートのlog.txtに出力します。</div>
+
+                    <div class="doc-entry">
+                        <div class="doc-header">
+                            <div class="doc-item" data-insert="PRINT expr"><span class="doc-syntax">PRINT expr</span>
+                                <div class="doc-desc">ログ出力します。</div>
+                            </div>
+                            <button class="doc-toggle">▼</button>
+                        </div>
+                        <div class="doc-detail">
+                            <div class="detail-desc">
+                                変数や計算結果の値をログファイル（log.txt）とシリアルモニタに出力します。<br>
+                                <b>動作:</b> <code>PRINT: 123.456</code> のような形式で記録されます。デバッグや変数の確認に使います。<br>
+                                <b>注意:</b> 出力できるのは数値のみです。文字列の出力には対応していません。
+                            </div>
+                            <div class="detail-sample">
+SET hp = 100
+SET damage = Rand(10, 20)
+SET hp = hp - damage
+
+REM 計算結果を確認（例: PRINT: 85.0）
+PRINT hp
+
+REM 押されていれば1.0、そうでなければ0.0が出る
+PRINT IsPressed()
+                            </div>
+                        </div>
                     </div>
                 </div>
 
                 <div class="doc-section">
                     <h2>制御フロー (分岐・ループ)</h2>
-                    <div class="doc-item" data-insert="LABEL Name"><span class="doc-syntax">LABEL Name</span>
-                        <div class="doc-desc">ジャンプ先の「目印」を作ります。名前は任意です。</div>
+                    
+                    <div class="doc-entry">
+                        <div class="doc-header">
+                            <div class="doc-item" data-insert="LABEL Name"><span class="doc-syntax">LABEL Name</span>
+                                <div class="doc-desc">ラベルを定義します。</div>
+                            </div>
+                            <button class="doc-toggle">▼</button>
+                        </div>
+                        <div class="doc-detail">
+                            <div class="detail-desc">
+                                ジャンプ先となる目印（ラベル）を作成します。<br>
+                                <b>動作:</b> 実行時は何もせず、次の行へ進みます。<code>GOTO</code> や <code>GOSUB</code> の行き先として使われます。<br>
+                                <b>引数:</b> 任意の名前（英数字推奨）。大文字小文字は区別されます。
+                            </div>
+                            <div class="detail-sample">
+LABEL LoopStart
+PRINT "ここはループの先頭です"
+WAIT 1
+GOTO LoopStart
+                            </div>
+                        </div>
                     </div>
-                    <div class="doc-item" data-insert="GOTO Name"><span class="doc-syntax">GOTO Name</span>
-                        <div class="doc-desc">指定したラベルの行へ移動します。</div>
+
+                    <div class="doc-entry">
+                        <div class="doc-header">
+                            <div class="doc-item" data-insert="GOTO Name"><span class="doc-syntax">GOTO Name</span>
+                                <div class="doc-desc">ラベルへジャンプします。</div>
+                            </div>
+                            <button class="doc-toggle">▼</button>
+                        </div>
+                        <div class="doc-detail">
+                            <div class="detail-desc">
+                                指定したラベルの行へ処理を移動させます。<br>
+                                <b>動作:</b> 無条件に移動します。無限ループを作る際などに使用します。
+                            </div>
+                            <div class="detail-sample">
+REM SkipTargetへ飛び、間の行を飛ばす
+GOTO SkipTarget
+
+PRINT "この行は実行されません"
+
+LABEL SkipTarget
+PRINT "ジャンプしました"
+                            </div>
+                        </div>
                     </div>
-                    <div class="doc-item" data-insert="IF expr GOTO Name"><span class="doc-syntax">IF expr GOTO
-                            Name</span>
-                        <div class="doc-desc">条件式 <code>expr</code> が真(0以外)なら、指定ラベルへ移動します。<br>例:
-                            <code>IF count &lt; 5 GOTO LOOP</code></div>
+
+                    <div class="doc-entry">
+                        <div class="doc-header">
+                            <div class="doc-item" data-insert="IF expr GOTO Name"><span class="doc-syntax">IF expr GOTO Name</span>
+                                <div class="doc-desc">条件分岐します。</div>
+                            </div>
+                            <button class="doc-toggle">▼</button>
+                        </div>
+                        <div class="doc-detail">
+                            <div class="detail-desc">
+                                条件式が満たされた場合のみジャンプします。<br>
+                                <b>動作:</b> <code>expr</code> の結果が 0.0 以外（真）なら指定ラベルへジャンプ。0.0（偽）なら次の行へ進みます。
+                            </div>
+                            <div class="detail-sample">
+SET count = 0
+LABEL Loop
+SET count = count + 1
+
+REM countが3未満(真)ならLoopへ戻る (&lt; は小なり)
+IF count &lt; 3 GOTO Loop
+
+PRINT "3回ループしました"
+                            </div>
+                        </div>
                     </div>
-                    <div class="doc-item" data-insert="GOSUB Name"><span class="doc-syntax">GOSUB Name</span>
-                        <div class="doc-desc">サブルーチン(部品化した処理)を呼び出します。</div>
+
+                    <div class="doc-entry">
+                        <div class="doc-header">
+                            <div class="doc-item" data-insert="GOSUB Name"><span class="doc-syntax">GOSUB Name</span>
+                                <div class="doc-desc">サブルーチンを呼びます。</div>
+                            </div>
+                            <button class="doc-toggle">▼</button>
+                        </div>
+                        <div class="doc-detail">
+                            <div class="detail-desc">
+                                現在の場所を記憶してラベルへジャンプし、処理を委譲します。<br>
+                                <b>動作:</b> <code>RETURN</code> コマンドに出会うと、この <code>GOSUB</code> の次の行に戻ってきます。共通処理の使い回しに便利です。
+                            </div>
+                            <div class="detail-sample">
+PRINT "メイン処理開始"
+GOSUB MyTask
+PRINT "メイン処理終了"
+END
+
+LABEL MyTask
+PRINT "  サブ処理実行中..."
+WAIT 0.5
+RETURN
+                            </div>
+                        </div>
                     </div>
-                    <div class="doc-item" data-insert="RETURN"><span class="doc-syntax">RETURN</span>
-                        <div class="doc-desc">サブルーチンから元の場所に戻ります。</div>
+
+                    <div class="doc-entry">
+                        <div class="doc-header">
+                            <div class="doc-item" data-insert="RETURN"><span class="doc-syntax">RETURN</span>
+                                <div class="doc-desc">サブルーチンから戻ります。</div>
+                            </div>
+                            <button class="doc-toggle">▼</button>
+                        </div>
+                        <div class="doc-detail">
+                            <div class="detail-desc">
+                                サブルーチンを終了し、呼び出し元に戻ります。<br>
+                                <b>動作:</b> 直前の <code>GOSUB</code> の次の行へジャンプします。<code>GOSUB</code> を経由せずに実行するとエラーになります。
+                            </div>
+                            <div class="detail-sample">
+REM (GOSUBのサンプルを参照)
+                            </div>
+                        </div>
                     </div>
                 </div>
 
                 <div class="doc-section">
-                    <h2>変数操作</h2>
-                    <div class="doc-item" data-insert="SET var = expr"><span class="doc-syntax">SET var = expr</span>
-                        <div class="doc-desc">変数 <code>var</code> に計算結果を代入します。<br>例: <code>SET i = i + 1</code></div>
+                    <h2>変数・設定</h2>
+                    
+                    <div class="doc-entry">
+                        <div class="doc-header">
+                            <div class="doc-item" data-insert="SET var = expr"><span class="doc-syntax">SET var = expr</span>
+                                <div class="doc-desc">変数に値を代入します。</div>
+                            </div>
+                            <button class="doc-toggle">▼</button>
+                        </div>
+                        <div class="doc-detail">
+                            <div class="detail-desc">
+                                計算結果を変数に保存します。<br>
+                                <b>動作:</b> 変数 <code>var</code> がなければ新規作成し、あれば値を上書きします。変数はすべて小数（double型）として扱われます。<br>
+                                <b>引数:</b> 変数名（英数字）、代入する式。
+                            </div>
+                            <div class="detail-sample">
+SET a = 10
+SET b = 20
+SET c = (a + b) * 2
+PRINT c
+REM 出力: 60.0
+
+REM フラグの反転 (0 -> 1, 1 -> 0)
+SET flag = not(flag)
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="doc-entry">
+                        <div class="doc-header">
+                            <div class="doc-item" data-insert="Mode(KeyMouse)"><span class="doc-syntax">Mode(ModeName)</span>
+                                <div class="doc-desc">USBモードを切り替えます。</div>
+                            </div>
+                            <button class="doc-toggle">▼</button>
+                        </div>
+                        <div class="doc-detail">
+                            <div class="detail-desc">
+                                デバイスのUSB動作モードを変更します。<br>
+                                <b>動作:</b> 実行するとUSB接続がリセットされ、PCに再認識されます。モードに応じたコマンドしか使えなくなります。<br>
+                                <b>引数:</b>
+                                <ul>
+                                    <li><code>KeyMouse</code>: キーボード・マウスモード（初期値）。</li>
+                                    <li><code>ProController</code>: Switch Proコンモード。</li>
+                                </ul>
+                            </div>
+                            <div class="detail-sample">
+REM Switchモードに切り替え
+Mode(ProController)
+WAIT 3.0
+REM Aボタンを押す
+ProConPushFor(A, 0.1)
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="doc-entry">
+                        <div class="doc-header">
+                            <div class="doc-item" data-insert="LogConfig(50, OVERWRITE)"><span class="doc-syntax">LogConfig(size, mode)</span>
+                                <div class="doc-desc">ログ設定を変更します。</div>
+                            </div>
+                            <button class="doc-toggle">▼</button>
+                        </div>
+                        <div class="doc-detail">
+                            <div class="detail-desc">
+                                ルートディレクトリの <code>log.txt</code> の挙動を設定します。<br>
+                                <b>動作:</b> ファイルサイズが指定値を超えた場合の処理を決定します。<br>
+                                <b>引数:</b>
+                                <ul>
+                                    <li><code>size</code>: 最大キロバイト数(KB)。0を指定するとログ停止。</li>
+                                    <li><code>mode</code>: <code>OVERWRITE</code>（古いログを.bakにして新規作成）、<code>STOP</code>（記録停止）。</li>
+                                </ul>
+                            </div>
+                            <div class="detail-sample">
+REM 100KBまで記録し、超えたらローテーション(上書き)
+LogConfig(100, OVERWRITE)
+
+REM ログ記録を停止（高速化・寿命延命）
+LogConfig(0, STOP)
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="doc-entry">
+                        <div class="doc-header">
+                            <div class="doc-item" data-insert="DEBUG(1)"><span class="doc-syntax">DEBUG(enable)</span>
+                                <div class="doc-desc">デバッグ出力を制御します。</div>
+                            </div>
+                            <button class="doc-toggle">▼</button>
+                        </div>
+                        <div class="doc-detail">
+                            <div class="detail-desc">
+                                詳細な実行ログの出力を切り替えます。<br>
+                                <b>動作:</b> 有効にすると、実行中の行内容が逐一ログに記録されます。開発中は便利ですが、動作が遅くなるため完成後は無効にしてください。<br>
+                                <b>引数:</b> <code>1</code> (有効), <code>0</code> (無効)
+                            </div>
+                            <div class="detail-sample">
+DEBUG(1)
+PRINT "ここから詳細ログが出ます"
+SET a = 1
+DEBUG(0)
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="doc-entry">
+                        <div class="doc-header">
+                            <div class="doc-item" data-insert="UseLED(1)"><span class="doc-syntax">UseLED(enable)</span>
+                                <div class="doc-desc">LED制御を有効化します。</div>
+                            </div>
+                            <button class="doc-toggle">▼</button>
+                        </div>
+                        <div class="doc-detail">
+                            <div class="detail-desc">
+                                内蔵フルカラーLEDの制御権を取得します。<br>
+                                <b>動作:</b> 有効にすると <code>SetLED</code> が反映されるようになります。<br>
+                                <b>引数:</b> <code>1</code> (有効), <code>0</code> (無効)
+                            </div>
+                            <div class="detail-sample">
+UseLED(1)
+SetLED(255, 0, 0)
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="doc-entry">
+                        <div class="doc-header">
+                            <div class="doc-item" data-insert="SetLED(255,0,0)"><span class="doc-syntax">SetLED(r, g, b)</span>
+                                <div class="doc-desc">LEDの色を設定します。</div>
+                            </div>
+                            <button class="doc-toggle">▼</button>
+                        </div>
+                        <div class="doc-detail">
+                            <div class="detail-desc">
+                                内蔵LEDを指定した色で点灯させます。<br>
+                                <b>動作:</b> 即座に色が変更されます。<code>UseLED(1)</code> が必要です。<br>
+                                <b>引数:</b> 赤(r), 緑(g), 青(b) の強さを 0～255 で指定。
+                            </div>
+                            <div class="detail-sample">
+UseLED(1)
+REM 赤点灯
+SetLED(255, 0, 0)
+WAIT 0.5
+REM 緑点灯
+SetLED(0, 255, 0)
+WAIT 0.5
+REM 消灯
+SetLED(0, 0, 0)
+                            </div>
+                        </div>
                     </div>
                 </div>
 
                 <div class="doc-section">
-                    <h2>設定・モード</h2>
-                    <div class="doc-item" data-insert="Mode(KeyMouse)"><span class="doc-syntax">Mode(KeyMouse)</span>
-                        <div class="doc-desc">「キーボード・マウス」モードに切り替えます。キーボード・マウス操作項の関数はこの関数を実行しないと使用できません。</div>
-                    </div>
-                    <div class="doc-item" data-insert="Mode(ProController)"><span
-                            class="doc-syntax">Mode(ProController)</span>
-                        <div class="doc-desc">「Switch Proコントローラー」モードに切り替えます。Proコントローラー操作の項の関数はこの関数を実行しないと使用できません。</div>
-                    </div>
-                    <div class="doc-item" data-insert="UseLED(1)"><span class="doc-syntax">UseLED(1)</span>
-                        <div class="doc-desc">LED制御機能を有効(1)または無効(0)にします。</div>
-                    </div>
-                    <div class="doc-item" data-insert="SetLED(255,0,0)"><span class="doc-syntax">SetLED(r, g, b)</span>
-                        <div class="doc-desc">LEDの色をRGB(0-255)で指定します。</div>
-                    </div>
-                    <div class="doc-item" data-insert="DEBUG(1)"><span class="doc-syntax">DEBUG(1)</span>
-                        <div class="doc-desc">詳細な実行ログ出力を有効にします。出力はルートディレクトリのlog.txtに記録されます。</div>
+                    <h2>キーボード・マウス (KeyMouseモード)</h2>
+                    
+                    <div class="doc-entry">
+                        <div class="doc-header">
+                            <div class="doc-item" data-insert="KeyPress(ENTER)"><span class="doc-syntax">KeyPress(key)</span>
+                                <div class="doc-desc">キーを押しっぱなしにします。</div>
+                            </div>
+                            <button class="doc-toggle">▼</button>
+                        </div>
+                        <div class="doc-detail">
+                            <div class="detail-desc">
+                                キーボードのキーを押した状態にします。<br>
+                                <b>動作:</b> <code>KeyRelease</code> が呼ばれるまで、PCには「キーが押され続けている」という信号が送られます。<br>
+                                <b>引数:</b> A-Z, 0-9, F1-F12, ENTER, SPACE, ESC, TAB, SHIFT, CTRL, ALT など。
+                            </div>
+                            <div class="detail-sample">
+REM SHIFTキーを押す
+KeyPress(SHIFT)
+REM SHIFTを押したままAを押す(大文字Aになる)
+KeyPress(A)
+WAIT 0.1
+REM 両方離す
+KeyRelease(A)
+KeyRelease(SHIFT)
+                            </div>
+                        </div>
                     </div>
 
+                    <div class="doc-entry">
+                        <div class="doc-header">
+                            <div class="doc-item" data-insert="KeyRelease(ENTER)"><span class="doc-syntax">KeyRelease(key)</span>
+                                <div class="doc-desc">キーを離します。</div>
+                            </div>
+                            <button class="doc-toggle">▼</button>
+                        </div>
+                        <div class="doc-detail">
+                            <div class="detail-desc">
+                                押されているキーを離した状態にします。<br>
+                                <b>動作:</b> PCへのキー入力が停止します。
+                            </div>
+                            <div class="detail-sample">
+REM (KeyPressのサンプルを参照)
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="doc-entry">
+                        <div class="doc-header">
+                            <div class="doc-item" data-insert="KeyPushFor(A, 0.1)"><span class="doc-syntax">KeyPushFor(key, sec)</span>
+                                <div class="doc-desc">指定時間キーを押します。</div>
+                            </div>
+                            <button class="doc-toggle">▼</button>
+                        </div>
+                        <div class="doc-detail">
+                            <div class="detail-desc">
+                                キーを一回ポンと押す動作を行います。<br>
+                                <b>動作:</b> <code>KeyPress</code> → 指定秒数待機 → <code>KeyRelease</code> を自動で行います。<br>
+                                <b>引数:</b> キー名, 押す時間(秒)。
+                            </div>
+                            <div class="detail-sample">
+REM スペースキーを0.1秒間押して離す
+KeyPushFor(SPACE, 0.1)
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="doc-entry">
+                        <div class="doc-header">
+                            <div class="doc-item" data-insert='KeyType("Hello", 0.05, 0.05)'><span class="doc-syntax">KeyType("str", p, r)</span>
+                                <div class="doc-desc">文字列をタイプします。</div>
+                            </div>
+                            <button class="doc-toggle">▼</button>
+                        </div>
+                        <div class="doc-detail">
+                            <div class="detail-desc">
+                                指定した文字列をキーボードで順番に入力します。<br>
+                                <b>動作:</b> 文字列を1文字ずつ分解し、押す・離すを繰り返します。<br>
+                                <b>引数:</b>
+                                <ul>
+                                    <li><code>"str"</code>: 入力したい文字列（ダブルクォート必須）。\n(改行)も使えます。</li>
+                                    <li><code>p</code>: キーを押している時間(秒)</li>
+                                    <li><code>r</code>: キーを離してから次を押すまでの間隔(秒)</li>
+                                </ul>
+                            </div>
+                            <div class="detail-sample">
+REM "Hello" と入力してEnter(改行)を押す
+REM 1文字あたり0.03秒押し、0.03秒空ける
+KeyType("Hello\n", 0.03, 0.03)
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="doc-entry">
+                        <div class="doc-header">
+                            <div class="doc-item" data-insert="MouseMove(100, 0, 0)"><span class="doc-syntax">MouseMove(x, y, rel)</span>
+                                <div class="doc-desc">マウスカーソルを移動します。</div>
+                            </div>
+                            <button class="doc-toggle">▼</button>
+                        </div>
+                        <div class="doc-detail">
+                            <div class="detail-desc">
+                                マウスを移動、またはホイールを回転させます。<br>
+                                <b>動作:</b> 現在位置からの相対移動として処理されます。<br>
+                                <b>引数:</b>
+                                <ul>
+                                    <li><code>x</code>: 左右移動量 (-127 ～ 127)。正で右、負で左。</li>
+                                    <li><code>y</code>: 上下移動量 (-127 ～ 127)。正で下、負で上。</li>
+                                    <li><code>rel</code>: ホイール回転量。0以外を指定するとX/Y移動は無視されホイール操作になります。正で上スクロール。</li>
+                                </ul>
+                            </div>
+                            <div class="detail-sample">
+REM 右に50ピクセル移動
+MouseMove(50, 0, 0)
+REM 下に20ピクセル移動
+MouseMove(0, 20, 0)
+REM 斜めに移動
+MouseMove(10, 10, 0)
+REM ホイールを上にスクロール
+MouseMove(0, 0, 1)
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="doc-entry">
+                        <div class="doc-header">
+                            <div class="doc-item" data-insert="MousePress(LEFT)"><span class="doc-syntax">MousePress(btn)</span>
+                                <div class="doc-desc">マウスボタンを押します。</div>
+                            </div>
+                            <button class="doc-toggle">▼</button>
+                        </div>
+                        <div class="doc-detail">
+                            <div class="detail-desc">
+                                マウスボタンを押しっぱなしにします。<br>
+                                <b>動作:</b> ドラッグ操作などに使用します。必ず <code>MouseRelease</code> で離してください。<br>
+                                <b>引数:</b> <code>LEFT</code>(左), <code>RIGHT</code>(右), <code>MIDDLE</code>(中/ホイール)。
+                            </div>
+                            <div class="detail-sample">
+REM 左クリック開始（ドラッグ開始）
+MousePress(LEFT)
+REM 押したまま移動
+MouseMove(100, 50, 0)
+REM 放す（ドラッグ終了）
+MouseRelease(LEFT)
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="doc-entry">
+                        <div class="doc-header">
+                            <div class="doc-item" data-insert="MouseRelease(LEFT)"><span class="doc-syntax">MouseRelease(btn)</span>
+                                <div class="doc-desc">マウスボタンを離します。</div>
+                            </div>
+                            <button class="doc-toggle">▼</button>
+                        </div>
+                        <div class="doc-detail">
+                            <div class="detail-desc">
+                                押されているマウスボタンを離します。<br>
+                                <b>引数:</b> <code>LEFT</code>, <code>RIGHT</code>, <code>MIDDLE</code>。
+                            </div>
+                            <div class="detail-sample">
+REM (MousePressのサンプルを参照)
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="doc-entry">
+                        <div class="doc-header">
+                            <div class="doc-item" data-insert="MousePushFor(LEFT, 0.1)"><span class="doc-syntax">MousePushFor(btn, sec)</span>
+                                <div class="doc-desc">指定時間クリックします。</div>
+                            </div>
+                            <button class="doc-toggle">▼</button>
+                        </div>
+                        <div class="doc-detail">
+                            <div class="detail-desc">
+                                マウスボタンを一回クリック（押して離す）します。<br>
+                                <b>動作:</b> <code>MousePress</code> → 待機 → <code>MouseRelease</code> を自動で行います。<br>
+                                <b>引数:</b> ボタン名, 押す時間(秒)。
+                            </div>
+                            <div class="detail-sample">
+REM 左クリック (0.05秒間押す)
+MousePushFor(LEFT, 0.05)
+REM 右クリック
+MousePushFor(RIGHT, 0.05)
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="doc-entry">
+                        <div class="doc-header">
+                            <div class="doc-item" data-insert='Mouserun("file.txt", 1, 0, 1)'><span class="doc-syntax">Mouserun("file", t, a, s)</span>
+                                <div class="doc-desc">操作記録を再生します。</div>
+                            </div>
+                            <button class="doc-toggle">▼</button>
+                        </div>
+                        <div class="doc-detail">
+                            <div class="detail-desc">
+                                事前にFlashに保存されたCSVファイル("x,y,wheel,L,R,M,ms")を読み込み、マウス操作を再現します。<br>
+                                <b>動作:</b> 指定ファイルを1行ずつ読み込み、移動とクリックを実行します。<br>
+                                <b>引数:</b>
+                                <ul>
+                                    <li><code>file</code>: ファイル名（ダブルクォート必須）。</li>
+                                    <li><code>t</code>: 再生速度倍率（1.0が等速、0.5なら倍速）。</li>
+                                    <li><code>a</code>: 回転角度（ラジアン）。3.14で180度反転。</li>
+                                    <li><code>s</code>: 移動距離の拡大縮小倍率（1.0が等倍）。</li>
+                                </ul>
+                            </div>
+                            <div class="detail-sample">
+REM "rec.txt" を等速、回転なし、等倍で再生
+Mouserun("rec.txt", 1.0, 0.0, 1.0)
+
+REM 2倍速(待機時間半分)、180度回転(上下左右反転)させて再生
+Mouserun("rec.txt", 0.5, 3.14159, 1.0)
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="doc-section">
-                    <h2>キーボード・マウス操作</h2>
-                    <div class="doc-item" data-insert="KeyPress(A)"><span class="doc-syntax">KeyPress(key)</span>
-                        <div class="doc-desc">キーを押しっぱなしにします。<br>例: <code>A</code>, <code>ENTER</code>,
-                            <code>SHIFT</code></div>
+                    <h2>Proコントローラー (ProControllerモード)</h2>
+                    
+                    <div class="doc-entry">
+                        <div class="doc-header">
+                            <div class="doc-item" data-insert="ProConPress(A)"><span class="doc-syntax">ProConPress(btn)</span>
+                                <div class="doc-desc">ボタンを押します。</div>
+                            </div>
+                            <button class="doc-toggle">▼</button>
+                        </div>
+                        <div class="doc-detail">
+                            <div class="detail-desc">
+                                コントローラーのボタンを押しっぱなしにします。<br>
+                                <b>動作:</b> Switch本体に「ボタンが押された」信号を送り続けます。<br>
+                                <b>引数:</b> A, B, X, Y, L, R, ZL, ZR, MINUS, PLUS, LCLICK, RCLICK, HOME, CAPTURE
+                            </div>
+                            <div class="detail-sample">
+REM Aボタンを押し続ける
+ProConPress(A)
+WAIT 0.1
+REM 離す
+ProConRelease(A)
+                            </div>
+                        </div>
                     </div>
-                    <div class="doc-item" data-insert="KeyRelease(A)"><span class="doc-syntax">KeyRelease(key)</span>
-                        <div class="doc-desc">押しているキーを離します。</div>
+
+                    <div class="doc-entry">
+                        <div class="doc-header">
+                            <div class="doc-item" data-insert="ProConRelease(A)"><span class="doc-syntax">ProConRelease(btn)</span>
+                                <div class="doc-desc">ボタンを離します。</div>
+                            </div>
+                            <button class="doc-toggle">▼</button>
+                        </div>
+                        <div class="doc-detail">
+                            <div class="detail-desc">
+                                押されているボタンを離します。
+                            </div>
+                            <div class="detail-sample">
+REM (ProConPressのサンプルを参照)
+                            </div>
+                        </div>
                     </div>
-                    <div class="doc-item" data-insert="KeyPushFor(A, 0.1)"><span class="doc-syntax">KeyPushFor(key,
-                            sec)</span>
-                        <div class="doc-desc">キーを指定秒数だけ押して離します。</div>
+
+                    <div class="doc-entry">
+                        <div class="doc-header">
+                            <div class="doc-item" data-insert="ProConPushFor(A, 0.1)"><span class="doc-syntax">ProConPushFor(btn, sec)</span>
+                                <div class="doc-desc">指定時間ボタンを押します。</div>
+                            </div>
+                            <button class="doc-toggle">▼</button>
+                        </div>
+                        <div class="doc-detail">
+                            <div class="detail-desc">
+                                ボタンを一回押して離します。<br>
+                                <b>動作:</b> 押す→待機→離す を自動で行います。<br>
+                                <b>引数:</b> ボタン名, 押す時間(秒)。
+                            </div>
+                            <div class="detail-sample">
+REM Aボタンを0.05秒だけ短く押す
+ProConPushFor(A, 0.05)
+                            </div>
+                        </div>
                     </div>
-                    <div class="doc-item" data-insert='KeyType("Hello", 0.05, 0.05)'><span
-                            class="doc-syntax">KeyType("text", p, r)</span>
-                        <div class="doc-desc">文字列をタイピングします。p=押下時間, r=間隔(秒)。</div>
+
+                    <div class="doc-entry">
+                        <div class="doc-header">
+                            <div class="doc-item" data-insert="ProConHat(UP)"><span class="doc-syntax">ProConHat(dir)</span>
+                                <div class="doc-desc">十字キーを操作します。</div>
+                            </div>
+                            <button class="doc-toggle">▼</button>
+                        </div>
+                        <div class="doc-detail">
+                            <div class="detail-desc">
+                                十字キー（ハットスイッチ）の入力を設定します。<br>
+                                <b>動作:</b> 指定した方向にキーが入った状態になります。解除するまで維持されます。<br>
+                                <b>引数:</b> UP, DOWN, LEFT, RIGHT, UP_RIGHT, DOWN_LEFT など。<br>
+                                解除するには <code>CENTER</code> を指定します。
+                            </div>
+                            <div class="detail-sample">
+REM 上に入力
+ProConHat(UP)
+WAIT 0.5
+REM 右下に入力
+ProConHat(RIGHT_DOWN)
+WAIT 0.5
+REM ニュートラル(離す)
+ProConHat(CENTER)
+                            </div>
+                        </div>
                     </div>
-                    <div class="doc-item" data-insert="MouseMove(100, 0, 1)"><span class="doc-syntax">MouseMove(x, y,
-                            rel)</span>
-                        <div class="doc-desc">マウスを移動します。xは横移動量、yは縦移動量、relはローラーの回転量です。</div>
-                    </div>
-                    <div class="doc-item" data-insert="MousePress(LEFT)"><span class="doc-syntax">MousePress(btn)</span>
-                        <div class="doc-desc">マウスボタンを押します(LEFT/RIGHT/MIDDLE)。</div>
-                    </div>
-                    <div class="doc-item" data-insert="MouseRelease(LEFT)"><span
-                            class="doc-syntax">MouseRelease(btn)</span>
-                        <div class="doc-desc">マウスボタンを離します。</div>
+
+                    <div class="doc-entry">
+                        <div class="doc-header">
+                            <div class="doc-item" data-insert="ProConJoy(0,0,0,0)"><span class="doc-syntax">ProConJoy(lx,ly,rx,ry)</span>
+                                <div class="doc-desc">スティックを操作します。</div>
+                            </div>
+                            <button class="doc-toggle">▼</button>
+                        </div>
+                        <div class="doc-detail">
+                            <div class="detail-desc">
+                                左右のアナログスティックの傾きを設定します。<br>
+                                <b>動作:</b> 指定した座標にスティックが固定されます。<br>
+                                <b>引数:</b> 左X, 左Y, 右X, 右Y の順。<br>
+                                値の範囲は -128 ～ 127 です。0が中心、負が左/上、正が右/下です。
+                            </div>
+                            <div class="detail-sample">
+REM 左スティックを右(127)へ、右スティックを上(-128)へ最大入力
+ProConJoy(127, 0, 0, -128)
+WAIT 1.0
+REM すべて中心に戻す
+ProConJoy(0, 0, 0, 0)
+                            </div>
+                        </div>
                     </div>
                 </div>
 
                 <div class="doc-section">
-                    <h2>Proコントローラー操作</h2>
-                    <div class="doc-item" data-insert="ProConPress(A)"><span class="doc-syntax">ProConPress(btn)</span>
-                        <div class="doc-desc">ボタンを押します。<br>A, B, X, Y, L, R, ZL, ZR, HOMEなど。</div>
+                    <h2>数式・組み込み関数</h2>
+                    
+                    <div class="doc-entry">
+                        <div class="doc-header">
+                            <div class="doc-item" data-insert="IsPressed()"><span class="doc-syntax">IsPressed()</span>
+                                <div class="doc-desc">本体ボタンの状態取得。</div>
+                            </div>
+                            <button class="doc-toggle">▼</button>
+                        </div>
+                        <div class="doc-detail">
+                            <div class="detail-desc">
+                                Pico本体のBOOTSELボタンが現在押されているかを確認します。<br>
+                                <b>戻り値:</b> 押されていれば 1.0、離れていれば 0.0。<br>
+                                <b>用途:</b> 外部スイッチとして使い、スクリプトの一時停止やモード切替に使えます。
+                            </div>
+                            <div class="detail-sample">
+LABEL WaitBtn
+WAIT 0.1
+REM ボタンが押される(1.0になる)までループ
+IF IsPressed() == 0 GOTO WaitBtn
+PRINT "ボタンが押されました！"
+                            </div>
+                        </div>
                     </div>
-                    <div class="doc-item" data-insert="ProConRelease(A)"><span
-                            class="doc-syntax">ProConRelease(btn)</span>
-                        <div class="doc-desc">ボタンを離します。</div>
-                    </div>
-                    <div class="doc-item" data-insert="ProConPushFor(A, 0.1)"><span
-                            class="doc-syntax">ProConPushFor(btn, sec)</span>
-                        <div class="doc-desc">ボタンを指定秒数だけ押して離します。</div>
-                    </div>
-                    <div class="doc-item" data-insert="ProConHat(UP)"><span class="doc-syntax">ProConHat(dir)</span>
-                        <div class="doc-desc">十字キーを押します。<br>UP, DOWN, LEFT, RIGHT,
-                            UP_RIGHTなど。CENTERを入れることで押していない状態に戻ります。</div>
-                    </div>
-                    <div class="doc-item" data-insert="ProConJoy(0, 0, 0, 0)"><span class="doc-syntax">ProConJoy(lx, ly,
-                            rx, ry)</span>
-                        <div class="doc-desc">スティックを倒します。範囲は -128 ～ 127。</div>
-                    </div>
-                </div>
 
-                <div class="doc-section">
-                    <h2>固有関数 (式の中で使用)</h2>
-                    <div class="doc-item" data-insert="IsPressed()"><span class="doc-syntax">IsPressed()</span>
-                        <div class="doc-desc">本体のボタンが押されていれば 1.0、離れていれば 0.0 を返します。</div>
-                    </div>
-                    <div class="doc-item" data-insert="Rand(0, 10)"><span class="doc-syntax">Rand(min, max)</span>
-                        <div class="doc-desc">min から max までのランダムな数値を返します。</div>
-                    </div>
-                    <div class="doc-item" data-insert="GetTime()"><span class="doc-syntax">GetTime()</span>
-                        <div class="doc-desc">スクリプト開始からの経過時間(ミリ秒)を返します。</div>
-                    </div>
-                </div>
+                    <div class="doc-entry">
+                        <div class="doc-header">
+                            <div class="doc-item" data-insert="Rand(0, 10)"><span class="doc-syntax">Rand(min, max)</span>
+                                <div class="doc-desc">乱数を生成します。</div>
+                            </div>
+                            <button class="doc-toggle">▼</button>
+                        </div>
+                        <div class="doc-detail">
+                            <div class="detail-desc">
+                                min から max までの範囲のランダムな実数（double）を返します。<br>
+                                <b>戻り値:</b> min以上 max以下のランダムな数値。
+                            </div>
+                            <div class="detail-sample">
+REM 1から100までの乱数を生成
+SET r = Rand(1, 100)
+PRINT r
 
-                <div class="doc-section">
-                    <h2>数学関数 (基本)</h2>
-                    <div class="doc-item" data-insert="abs(x)"><span class="doc-syntax">abs(x)</span>
-                        <div class="doc-desc">絶対値（正の値）を返します。</div>
+REM 0.5秒～1.5秒のランダム待機
+WAIT Rand(0.5, 1.5)
+                            </div>
+                        </div>
                     </div>
-                    <div class="doc-item" data-insert="round(x, 0)"><span class="doc-syntax">round(x, d)</span>
-                        <div class="doc-desc">x を小数点以下 d 桁で四捨五入します。</div>
-                    </div>
-                    <div class="doc-item" data-insert="floor(x)"><span class="doc-syntax">floor(x)</span>
-                        <div class="doc-desc">小数点以下を切り捨てます。</div>
-                    </div>
-                    <div class="doc-item" data-insert="ceil(x)"><span class="doc-syntax">ceil(x)</span>
-                        <div class="doc-desc">小数点以下を切り上げます。</div>
-                    </div>
-                    <div class="doc-item" data-insert="trunc(x)"><span class="doc-syntax">trunc(x)</span>
-                        <div class="doc-desc">整数部分のみを取り出します。</div>
-                    </div>
-                    <div class="doc-item" data-insert="min(a, b)"><span class="doc-syntax">min(a, b, ...)</span>
-                        <div class="doc-desc">引数の中で最小の値を返します。</div>
-                    </div>
-                    <div class="doc-item" data-insert="max(a, b)"><span class="doc-syntax">max(a, b, ...)</span>
-                        <div class="doc-desc">引数の中で最大の値を返します。</div>
-                    </div>
-                    <div class="doc-item" data-insert="clamp(x, min, max)"><span class="doc-syntax">clamp(x, min,
-                            max)</span>
-                        <div class="doc-desc">x を min～max の範囲内に収めます。</div>
-                    </div>
-                    <div class="doc-item" data-insert="mod(a, b)"><span class="doc-syntax">mod(a, b)</span>
-                        <div class="doc-desc">a を b で割った余りを返します。</div>
-                    </div>
-                    <div class="doc-item" data-insert="pow(x, y)"><span class="doc-syntax">pow(x, y)</span>
-                        <div class="doc-desc">x の y 乗を計算します。</div>
-                    </div>
-                    <div class="doc-item" data-insert="sqrt(x)"><span class="doc-syntax">sqrt(x)</span>
-                        <div class="doc-desc">x の平方根（ルート）を返します。</div>
-                    </div>
-                    <div class="doc-item" data-insert="pi()"><span class="doc-syntax">pi()</span>
-                        <div class="doc-desc">円周率 (約3.14159) を返します。</div>
-                    </div>
-                    <div class="doc-item" data-insert="e()"><span class="doc-syntax">e()</span>
-                        <div class="doc-desc">ネイピア数 (約2.71828) を返します。</div>
-                    </div>
-                </div>
 
-                <div class="doc-section">
-                    <h2>数学関数 (三角関数)</h2>
-                    <div class="doc-item" data-insert="sin(x)"><span class="doc-syntax">sin(x)</span>
-                        <div class="doc-desc">正弦(サイン)を返します。xはラジアン。</div>
+                    <div class="doc-entry">
+                        <div class="doc-header">
+                            <div class="doc-item" data-insert="GetTime()"><span class="doc-syntax">GetTime()</span>
+                                <div class="doc-desc">経過時間を取得します。</div>
+                            </div>
+                            <button class="doc-toggle">▼</button>
+                        </div>
+                        <div class="doc-detail">
+                            <div class="detail-desc">
+                                スクリプト開始からの経過時間をミリ秒(ms)単位で返します。<br>
+                                <b>戻り値:</b> 経過ミリ秒（1秒=1000）。
+                            </div>
+                            <div class="detail-sample">
+SET start = GetTime()
+WAIT 1.0
+SET now = GetTime()
+SET elapsed = now - start
+REM およそ1000.0に近い値が表示される
+PRINT elapsed
+                            </div>
+                        </div>
                     </div>
-                    <div class="doc-item" data-insert="cos(x)"><span class="doc-syntax">cos(x)</span>
-                        <div class="doc-desc">余弦(コサイン)を返します。xはラジアン。</div>
-                    </div>
-                    <div class="doc-item" data-insert="tan(x)"><span class="doc-syntax">tan(x)</span>
-                        <div class="doc-desc">正接(タンジェント)を返します。xはラジアン。</div>
-                    </div>
-                    <div class="doc-item" data-insert="asin(x)"><span class="doc-syntax">asin(x)</span>
-                        <div class="doc-desc">アークサイン（逆正弦）を返します。</div>
-                    </div>
-                    <div class="doc-item" data-insert="acos(x)"><span class="doc-syntax">acos(x)</span>
-                        <div class="doc-desc">アークコサイン（逆余弦）を返します。</div>
-                    </div>
-                    <div class="doc-item" data-insert="atan(x)"><span class="doc-syntax">atan(x)</span>
-                        <div class="doc-desc">アークタンジェント（逆正接）を返します。</div>
-                    </div>
-                    <div class="doc-item" data-insert="atan2(y, x)"><span class="doc-syntax">atan2(y, x)</span>
-                        <div class="doc-desc">座標(x,y)の角度をラジアンで返します。</div>
-                    </div>
-                    <div class="doc-item" data-insert="sinh(x)"><span class="doc-syntax">sinh / cosh / tanh</span>
-                        <div class="doc-desc">双曲線関数です。</div>
-                    </div>
-                    <div class="doc-item" data-insert="rad2deg(x)"><span class="doc-syntax">rad2deg(x)</span>
-                        <div class="doc-desc">ラジアンを度数法(0-360)に変換します。</div>
-                    </div>
-                    <div class="doc-item" data-insert="deg2rad(x)"><span class="doc-syntax">deg2rad(x)</span>
-                        <div class="doc-desc">度数法をラジアンに変換します。</div>
-                    </div>
-                </div>
 
-                <div class="doc-section">
-                    <h2>数学関数 (その他・対数・組合せ)</h2>
-                    <div class="doc-item" data-insert="ln(x)"><span class="doc-syntax">ln(x)</span>
-                        <div class="doc-desc">自然対数（底がe）を返します。</div>
+                    <div class="doc-entry">
+                        <div class="doc-header">
+                            <div class="doc-item" data-insert="round(3.14, 0)"><span class="doc-syntax">算術・丸め (abs, round, floor...)</span>
+                                <div class="doc-desc">四捨五入、切り捨て、絶対値など。</div>
+                            </div>
+                            <button class="doc-toggle">▼</button>
+                        </div>
+                        <div class="doc-detail">
+                            <div class="detail-desc">
+                                基本的な数値操作を行います。<br>
+                                <ul>
+                                    <li><code>abs(x)</code>: 絶対値を返します。</li>
+                                    <li><code>sign(x)</code>: 符号を返します（正:1, 負:-1, 0:0）。</li>
+                                    <li><code>round(x, d)</code>: xを小数点以下d桁で四捨五入します。</li>
+                                    <li><code>floor(x)</code>: 切り捨て（床関数）。x以下の最大の整数。</li>
+                                    <li><code>ceil(x)</code>: 切り上げ（天井関数）。x以上の最小の整数。</li>
+                                    <li><code>trunc(x)</code>: 0に近い方向へ整数化（小数点以下削除）。</li>
+                                    <li><code>mod(a, b)</code>: a を b で割った余り (a % b)。</li>
+                                </ul>
+                            </div>
+                            <div class="detail-sample">
+SET v = -3.7
+PRINT abs(v)      REM 3.7
+PRINT sign(v)     REM -1.0
+PRINT round(v, 0) REM -4.0 (四捨五入)
+PRINT floor(v)    REM -4.0 (より小さい整数へ)
+PRINT ceil(v)     REM -3.0 (より大きい整数へ)
+PRINT trunc(v)    REM -3.0 (小数カット)
+PRINT mod(10, 3)  REM 1.0
+                            </div>
+                        </div>
                     </div>
-                    <div class="doc-item" data-insert="log10(x)"><span class="doc-syntax">log10(x)</span>
-                        <div class="doc-desc">常用対数（底が10）を返します。</div>
-                    </div>
-                    <div class="doc-item" data-insert="fact(n)"><span class="doc-syntax">fact(n)</span>
-                        <div class="doc-desc">nの階乗 (n!) を計算します。</div>
-                    </div>
-                    <div class="doc-item" data-insert="ncr(n, r)"><span class="doc-syntax">ncr(n, r)</span>
-                        <div class="doc-desc">組合せ (nCr) の数を計算します。</div>
-                    </div>
-                    <div class="doc-item" data-insert="npr(n, r)"><span class="doc-syntax">npr(n, r)</span>
-                        <div class="doc-desc">順列 (nPr) の数を計算します。</div>
-                    </div>
-                    <div class="doc-item" data-insert="sign(x)"><span class="doc-syntax">sign(x)</span>
-                        <div class="doc-desc">正なら1、負なら-1、0なら0を返します。</div>
-                    </div>
-                </div>
 
-                <div class="doc-section">
-                    <h2>論理・条件関数</h2>
-                    <div class="doc-item" data-insert="if(c, t, f)"><span class="doc-syntax">if(cond, true,
-                            false)</span>
-                        <div class="doc-desc">条件式 cond が真なら true、偽なら false を返します。</div>
+                    <div class="doc-entry">
+                        <div class="doc-header">
+                            <div class="doc-item" data-insert="sqrt(2)"><span class="doc-syntax">指数・対数 (pow, sqrt, log...)</span>
+                                <div class="doc-desc">べき乗、平方根、対数など。</div>
+                            </div>
+                            <button class="doc-toggle">▼</button>
+                        </div>
+                        <div class="doc-detail">
+                            <div class="detail-desc">
+                                <ul>
+                                    <li><code>pow(b, e)</code>: bのe乗を返します。</li>
+                                    <li><code>sqr(x)</code>: xの2乗を返します (x * x)。</li>
+                                    <li><code>sqrt(x)</code>: xの平方根（ルート）を返します。</li>
+                                    <li><code>exp(x)</code>: 指数関数 e^x を返します。</li>
+                                    <li><code>ln(x)</code>: xの自然対数（底がe）を返します。</li>
+                                    <li><code>log10(x)</code>: xの常用対数（底が10）を返します。</li>
+                                </ul>
+                            </div>
+                            <div class="detail-sample">
+PRINT pow(2, 3)   REM 8.0
+PRINT sqr(3)      REM 9.0
+PRINT sqrt(2)     REM 1.4142...
+PRINT exp(1)      REM 2.7182... (e)
+PRINT ln(2.71828) REM 1.0
+PRINT log10(100)  REM 2.0
+                            </div>
+                        </div>
                     </div>
-                    <div class="doc-item" data-insert="not(x)"><span class="doc-syntax">not(x)</span>
-                        <div class="doc-desc">xが0なら1、それ以外なら0を返します(否定)。</div>
+
+                    <div class="doc-entry">
+                        <div class="doc-header">
+                            <div class="doc-item" data-insert="sin(0)"><span class="doc-syntax">三角関数 (sin, cos, tan, cot)</span>
+                                <div class="doc-desc">基本的な三角関数。</div>
+                            </div>
+                            <button class="doc-toggle">▼</button>
+                        </div>
+                        <div class="doc-detail">
+                            <div class="detail-desc">
+                                角度の単位はすべて<b>ラジアン</b>です。度数法を使う場合は<code>deg2rad</code>と組み合わせてください。<br>
+                                <ul>
+                                    <li><code>sin(r)</code>: 正弦（サイン）。</li>
+                                    <li><code>cos(r)</code>: 余弦（コサイン）。</li>
+                                    <li><code>tan(r)</code>: 正接（タンジェント）。</li>
+                                    <li><code>cot(r)</code>: 余接（コタンジェント, 1/tan）。</li>
+                                </ul>
+                            </div>
+                            <div class="detail-sample">
+SET pi = 3.1415926
+PRINT sin(pi / 2) REM 1.0
+PRINT cos(pi)     REM -1.0
+PRINT tan(pi / 4) REM 1.0
+PRINT cot(pi / 4) REM 1.0
+                            </div>
+                        </div>
                     </div>
-                    <div class="doc-item" data-insert="and(a, b)"><span class="doc-syntax">and(a, b)</span>
-                        <div class="doc-desc">両方が真(0以外)のときのみ1を返します(論理積)。</div>
+
+                    <div class="doc-entry">
+                        <div class="doc-header">
+                            <div class="doc-item" data-insert="atan2(1, 1)"><span class="doc-syntax">逆三角関数 (asin, acos, atan...)</span>
+                                <div class="doc-desc">角度を求める関数。</div>
+                            </div>
+                            <button class="doc-toggle">▼</button>
+                        </div>
+                        <div class="doc-detail">
+                            <div class="detail-desc">
+                                値から角度（ラジアン）を求めます。<br>
+                                <ul>
+                                    <li><code>asin(x)</code>: アークサイン。-1～1の値を受け取り、-π/2～π/2を返します。</li>
+                                    <li><code>acos(x)</code>: アークコサイン。-1～1の値を受け取り、0～πを返します。</li>
+                                    <li><code>atan(x)</code>: アークタンジェント。-π/2～π/2を返します。</li>
+                                    <li><code>atan2(y, x)</code>: 座標(x, y)の角度を -π～π で返します。</li>
+                                </ul>
+                            </div>
+                            <div class="detail-sample">
+REM sinが1になる角度は PI/2 (1.5707...)
+PRINT asin(1)
+
+REM cosが-1になる角度は PI (3.1415...)
+PRINT acos(-1)
+
+REM tanが1になる角度は PI/4 (0.7853...)
+PRINT atan(1)
+
+REM 座標(1, 1)の角度は45度(PI/4)
+PRINT atan2(1, 1)
+                            </div>
+                        </div>
                     </div>
-                    <div class="doc-item" data-insert="or(a, b)"><span class="doc-syntax">or(a, b)</span>
-                        <div class="doc-desc">どちらかが真(0以外)なら1を返します(論理和)。</div>
+
+                    <div class="doc-entry">
+                        <div class="doc-header">
+                            <div class="doc-item" data-insert="tanh(1)"><span class="doc-syntax">双曲線関数 (sinh, cosh, tanh)</span>
+                                <div class="doc-desc">ハイパボリック関数。</div>
+                            </div>
+                            <button class="doc-toggle">▼</button>
+                        </div>
+                        <div class="doc-detail">
+                            <div class="detail-desc">
+                                双曲線関数です。<br>
+                                <ul>
+                                    <li><code>sinh(x)</code>: 双曲線正弦。</li>
+                                    <li><code>cosh(x)</code>: 双曲線余弦。</li>
+                                    <li><code>tanh(x)</code>: 双曲線正接。</li>
+                                </ul>
+                            </div>
+                            <div class="detail-sample">
+PRINT sinh(0)  REM 0.0
+PRINT cosh(0)  REM 1.0
+PRINT tanh(0)  REM 0.0
+                            </div>
+                        </div>
                     </div>
-                    <div class="doc-item" data-insert="even(x)"><span class="doc-syntax">even(x)</span>
-                        <div class="doc-desc">xを最も近い偶数に丸めます。</div>
+
+                    <div class="doc-entry">
+                        <div class="doc-header">
+                            <div class="doc-item" data-insert="deg2rad(90)"><span class="doc-syntax">角度変換 (deg2rad, rad2deg)</span>
+                                <div class="doc-desc">度数法と弧度法の変換。</div>
+                            </div>
+                            <button class="doc-toggle">▼</button>
+                        </div>
+                        <div class="doc-detail">
+                            <div class="detail-desc">
+                                <ul>
+                                    <li><code>deg2rad(d)</code>: 度数(deg)をラジアン(rad)に変換します。<br>(例: 180 -> 3.14...)</li>
+                                    <li><code>rad2deg(r)</code>: ラジアン(rad)を度数(deg)に変換します。<br>(例: 3.14... -> 180)</li>
+                                </ul>
+                            </div>
+                            <div class="detail-sample">
+REM 30度のサインを計算
+SET deg = 30
+SET rad = deg2rad(deg)
+PRINT sin(rad)    REM 0.5
+
+REM ラジアンを度数に戻す
+PRINT rad2deg(rad) REM 30.0
+                            </div>
+                        </div>
                     </div>
-                    <div class="doc-item" data-insert="odd(x)"><span class="doc-syntax">odd(x)</span>
-                        <div class="doc-desc">xを最も近い奇数に丸めます。</div>
+
+                    <div class="doc-entry">
+                        <div class="doc-header">
+                            <div class="doc-item" data-insert="max(1, 2)"><span class="doc-syntax">集計・比較 (min, max, clamp...)</span>
+                                <div class="doc-desc">最大・最小・範囲制限など。</div>
+                            </div>
+                            <button class="doc-toggle">▼</button>
+                        </div>
+                        <div class="doc-detail">
+                            <div class="detail-desc">
+                                <ul>
+                                    <li><code>min(a, b, ...)</code>: 引数の中で最小の値を返します（引数は多数可）。</li>
+                                    <li><code>max(a, b, ...)</code>: 引数の中で最大の値を返します。</li>
+                                    <li><code>clamp(x, low, high)</code>: x を low～high の範囲に収めます。</li>
+                                    <li><code>sum(a, b, ...)</code>: 引数の合計値を返します。</li>
+                                    <li><code>average(a, b, ...)</code>: 引数の平均値を返します。</li>
+                                </ul>
+                            </div>
+                            <div class="detail-sample">
+PRINT min(10, 5, 8)      REM 5.0
+PRINT max(10, 5, 8)      REM 10.0
+REM 150を0-100の範囲に収める -> 100
+PRINT clamp(150, 0, 100) 
+PRINT sum(1, 2, 3)       REM 6.0
+PRINT average(10, 20)    REM 15.0
+                            </div>
+                        </div>
                     </div>
-                    <div class="doc-item" data-insert="iseven(x)"><span class="doc-syntax">iseven(x)</span>
-                        <div class="doc-desc">xが偶数なら1、奇数なら0を返します。</div>
+
+                    <div class="doc-entry">
+                        <div class="doc-header">
+                            <div class="doc-item" data-insert="fact(5)"><span class="doc-syntax">順列・組合せ (fact, ncr, npr)</span>
+                                <div class="doc-desc">階乗や組み合わせの計算。</div>
+                            </div>
+                            <button class="doc-toggle">▼</button>
+                        </div>
+                        <div class="doc-detail">
+                            <div class="detail-desc">
+                                <ul>
+                                    <li><code>fact(n)</code>: nの階乗 (n!) を返します。</li>
+                                    <li><code>ncr(n, r)</code>: n個からr個を選ぶ組み合わせの数 (${}_nC_r$)。</li>
+                                    <li><code>npr(n, r)</code>: n個からr個を選んで並べる順列の数 (${}_nP_r$)。</li>
+                                </ul>
+                            </div>
+                            <div class="detail-sample">
+PRINT fact(5)    REM 120.0 (5*4*3*2*1)
+PRINT ncr(5, 2)  REM 10.0  (5C2)
+PRINT npr(5, 2)  REM 20.0  (5P2)
+                            </div>
+                        </div>
                     </div>
-                    <div class="doc-item" data-insert="isodd(x)"><span class="doc-syntax">isodd(x)</span>
-                        <div class="doc-desc">xが奇数なら1、偶数なら0を返します。</div>
+
+                    <div class="doc-entry">
+                        <div class="doc-header">
+                            <div class="doc-item" data-insert="if(1, 10, 20)"><span class="doc-syntax">条件分岐 (if, ifs)</span>
+                                <div class="doc-desc">条件に応じた値を返します。</div>
+                            </div>
+                            <button class="doc-toggle">▼</button>
+                        </div>
+                        <div class="doc-detail">
+                            <div class="detail-desc">
+                                0.0は「偽」、それ以外は「真」として扱われます。<br>
+                                <ul>
+                                    <li><code>if(cond, true_val, false_val)</code>: condが真ならtrue_val、偽ならfalse_valを返します。</li>
+                                    <li><code>ifs(c1, v1, c2, v2, ...)</code>: 条件を順に評価し、最初に真になった条件の値を返します。</li>
+                                </ul>
+                            </div>
+                            <div class="detail-sample">
+SET score = 85
+REM 80点以上なら "Pass"(=1)、不合格なら "Fail"(=0)
+SET result = if(score >= 80, 1, 0)
+PRINT result
+
+REM 複数条件の判定
+REM 90以上->3, 70以上->2, その他->1
+SET rank = ifs(score>=90, 3, score>=70, 2, 1, 1)
+PRINT rank
+                            </div>
+                        </div>
                     </div>
+
+                    <div class="doc-entry">
+                        <div class="doc-header">
+                            <div class="doc-item" data-insert="and(1, 0)"><span class="doc-syntax">論理演算 (and, or, not)</span>
+                                <div class="doc-desc">論理積、論理和、否定。</div>
+                            </div>
+                            <button class="doc-toggle">▼</button>
+                        </div>
+                        <div class="doc-detail">
+                            <div class="detail-desc">
+                                数値を論理値(真/偽)として扱います。0は偽、0以外は真です。<br>
+                                <ul>
+                                    <li><code>and(a, b)</code>: 両方真なら1、そうでなければ0。</li>
+                                    <li><code>or(a, b)</code>: どちらかが真なら1、そうでなければ0。</li>
+                                    <li><code>not(x)</code>: xが0なら1、0以外なら0。</li>
+                                </ul>
+                            </div>
+                            <div class="detail-sample">
+SET a = 1
+SET b = 0
+PRINT and(a, b)  REM 0.0 (False)
+PRINT or(a, b)   REM 1.0 (True)
+PRINT not(a)     REM 0.0 (False)
+PRINT not(b)     REM 1.0 (True)
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="doc-entry">
+                        <div class="doc-header">
+                            <div class="doc-item" data-insert="iseven(2)"><span class="doc-syntax">判定・検査 (iseven, isnan...)</span>
+                                <div class="doc-desc">偶数奇数やエラーの判定。</div>
+                            </div>
+                            <button class="doc-toggle">▼</button>
+                        </div>
+                        <div class="doc-detail">
+                            <div class="detail-desc">
+                                数値の状態を判定します。結果は1(真)または0(偽)です。<br>
+                                <ul>
+                                    <li><code>iseven(x)</code>: 偶数なら1。</li>
+                                    <li><code>isodd(x)</code>: 奇数なら1。</li>
+                                    <li><code>isnan(x)</code>: 非数(NaN)なら1。</li>
+                                    <li><code>iserr(x)</code>: エラー値なら1。</li>
+                                    <li><code>even(x)</code>: xを最も近い偶数に丸めます。</li>
+                                    <li><code>odd(x)</code>: xを最も近い奇数に丸めます。</li>
+                                </ul>
+                            </div>
+                            <div class="detail-sample">
+PRINT iseven(4)  REM 1.0
+PRINT isodd(4)   REM 0.0
+PRINT even(3.5)  REM 4.0 (偶数化)
+PRINT odd(4)     REM 5.0 (奇数化)
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="doc-entry">
+                        <div class="doc-header">
+                            <div class="doc-item" data-insert="pi()"><span class="doc-syntax">定数 (pi, e, true, false)</span>
+                                <div class="doc-desc">数学定数と論理定数。</div>
+                            </div>
+                            <button class="doc-toggle">▼</button>
+                        </div>
+                        <div class="doc-detail">
+                            <div class="detail-desc">
+                                <ul>
+                                    <li><code>pi()</code>: 円周率 (約 3.14159)。</li>
+                                    <li><code>e()</code>: ネイピア数 (約 2.71828)。</li>
+                                    <li><code>true()</code>: 真 (1.0)。</li>
+                                    <li><code>false()</code>: 偽 (0.0)。</li>
+                                </ul>
+                            </div>
+                            <div class="detail-sample">
+REM 半径10の円の面積 (pi * r^2)
+SET r = 10
+SET area = pi() * sqr(r)
+PRINT area
+
+REM 無限ループ用
+IF true() GOTO Next
+LABEL Next
+                            </div>
+                        </div>
+                    </div>
+
                 </div>
             </div>
 

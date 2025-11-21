@@ -79,43 +79,53 @@ body {
     position: relative;
     flex-grow: 1;
     width: 100%;
-    height: 0;
-    /* Important for flex child to scroll */
+    height: 0; /* Flexbox内でのスクロールに必要 */
     background-color: #fafafa;
-    overflow: hidden;
+    /* 修正: ラッパー要素でスクロールを管理する */
+    overflow: auto;
 }
 
 /* Editor Layers */
 .editor-layer {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    padding: 10px;
-    box-sizing: border-box;
+    /* 共通スタイル */
     font-family: "Consolas", "Monaco", monospace;
     font-size: 14px;
     line-height: 1.5;
     white-space: pre;
-    overflow: auto;
-    border: none;
+    padding: 10px;
+    box-sizing: border-box;
     margin: 0;
+    border: none;
 }
 
 #code-highlight {
+    /* 修正: ハイライト層を文書フロー内に配置し、内容に応じてサイズを広げる */
+    position: relative;
+    top: 0; 
+    left: 0;
+    min-width: 100%;
+    width: max-content;  /* 内容（エラー含む）に合わせて幅を広げる */
+    min-height: 100%;
+    height: max-content;
     z-index: 1;
-    color: transparent;
-    pointer-events: none;
+    pointer-events: none; /* クリックは下のtextareaに通す */
+    overflow: hidden;
 }
 
 #code-input {
+    /* 修正: テキストエリアはハイライト層のサイズに合わせて追従 */
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;  /* 親(max-content)に合わせる */
+    height: 100%;
     z-index: 2;
     color: transparent;
     background: transparent;
     caret-color: black;
     outline: none;
     resize: none;
+    overflow: hidden; /* 自身のスクロールバーは消す */
 }
 
 #code-input::selection {
@@ -127,6 +137,10 @@ body {
 .line {
     display: block;
     min-height: 1.5em;
+    /* 修正: エラーメッセージ等が長い場合に親要素を広げる */
+    width: max-content;
+    min-width: 100%;
+    padding-right: 20px;
 }
 
 .func {
@@ -282,24 +296,57 @@ body.show-errors .warn-text {
     display: block;
 }
 
-/* Reference Items */
+/* Reference Items - Enhanced Layout */
 .doc-section {
     margin-bottom: 20px;
 }
 
-.doc-item {
+.doc-entry {
     margin-bottom: 6px;
-    padding: 6px;
-    border-bottom: 1px solid #eee;
-    cursor: pointer;
     background: #fff;
+    border: 1px solid #eee;
     border-radius: 4px;
 }
 
-.doc-item:hover {
+.doc-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: stretch;
+    border-bottom: 1px solid transparent;
+    transition: background-color 0.1s;
+}
+
+.doc-header:hover {
     background-color: #e6f7ff;
-    border-left: 4px solid #1890ff;
-    padding-left: 2px;
+}
+
+.doc-item {
+    flex-grow: 1;
+    padding: 8px;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.doc-toggle {
+    background: #f5f5f5;
+    border: none;
+    border-left: 1px solid #eee;
+    cursor: pointer;
+    padding: 0 10px;
+    font-size: 0.8rem;
+    color: #666;
+    width: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s;
+    border-radius: 0 4px 4px 0;
+}
+
+.doc-toggle:hover {
+    background: #ddd;
 }
 
 .doc-syntax {
@@ -311,6 +358,7 @@ body.show-errors .warn-text {
     border-radius: 3px;
     display: inline-block;
     margin-bottom: 2px;
+    width: max-content;
 }
 
 .doc-desc {
@@ -318,6 +366,46 @@ body.show-errors .warn-text {
     font-size: 0.85rem;
     color: #555;
     line-height: 1.4;
+}
+
+/* Detailed View */
+.doc-detail {
+    display: none;
+    padding: 10px;
+    background-color: #fafafa;
+    border-top: 1px solid #eee;
+    font-size: 0.9rem;
+    color: #333;
+    line-height: 1.6;
+}
+
+.doc-entry.expanded .doc-header {
+    border-bottom: 1px solid #eee;
+    background-color: #f0faff;
+}
+
+.doc-entry.expanded .doc-detail {
+    display: block;
+}
+
+.detail-desc {
+    margin-bottom: 10px;
+}
+
+.detail-sample {
+    background: #2d2d2d;
+    color: #ccc;
+    padding: 10px;
+    border-radius: 4px;
+    position: relative;
+    font-family: Consolas, monospace;
+    font-size: 0.85rem;
+    overflow-x: auto;
+    white-space: pre;
+}
+
+.detail-sample code {
+    font-family: inherit;
 }
 
 h2 {

@@ -83,11 +83,18 @@ function renderLine(line, cmdPure, lineStartIndex) {
     let error = null;
     let warning = null;
 
+    // 全角スペース(U+3000)チェック
+    // 文字列リテラル内は許可するため、一時的に除外してチェックする
+    const textWithoutStrings = line.replace(/"[^"]*"/g, "");
+    if (textWithoutStrings.includes('\u3000')) {
+        error = "全角スペース(U+3000)が含まれています。半角スペースを使用してください";
+    }
+
     // Helper to check if a char at relative index 'relIdx' is matched
     const isMatched = (relIdx) => state.matchedParenIndices.has(lineStartIndex + relIdx);
 
     const match = line.match(new RegExp(`^(\\s*)(${cmdPure})`, "i"));
-    if (!match) return { html: escapeHtml(line) };
+    if (!match) return { html: escapeHtml(line), error };
 
     const indent = escapeHtml(match[1]);
     const cmdStr = escapeHtml(match[2]);
@@ -125,13 +132,13 @@ function renderLine(line, cmdPure, lineStartIndex) {
             }
 
             const err = validateCommandArgs(cmdPure, args);
-            if (err) error = err;
+            if (err && !error) error = err;
         } else {
             // Unmatched '('
             const openIdx = restStartIdx;
             const openClass = isMatched(openIdx) ? "func paren-match" : "func";
             html += `<span class="${openClass}">(</span>` + colorizeArgs(restRaw.substring(1), lineStartIndex + restStartIdx + 1);
-            error = "閉じ括弧 ) がありません";
+            if (!error) error = "閉じ括弧 ) がありません";
         }
     } else {
         html += `<span class="other">${indent}</span><span class="func">${cmdStr}</span>`;
@@ -154,15 +161,15 @@ function renderLine(line, cmdPure, lineStartIndex) {
                 const expr = args.substring(eq + 1);
                 html += colorizeArgs(expr, argsGlobalStart + eq + 1);
                 const err = validateExpr(expr);
-                if (err) error = err;
+                if (err && !error) error = err;
             } else {
                 html += `<span class="other">${escapeHtml(args)}</span>`;
-                error = "= が必要です";
+                if (!error) error = "= が必要です";
             }
         } else if (cmdPure === "GOTO" || cmdPure === "GOSUB") {
             const lbl = args.trim();
             html += `<span class="label-ref">${escapeHtml(args)}</span>`;
-            if (!state.definedLabels.has(lbl)) error = "未定義ラベル";
+            if (!state.definedLabels.has(lbl) && !error) error = "未定義ラベル";
         } else if (cmdPure === "IF") {
             const gt = args.toUpperCase().indexOf("GOTO");
             if (gt !== -1) {
@@ -173,11 +180,11 @@ function renderLine(line, cmdPure, lineStartIndex) {
                 html += `<span class="label-ref">${escapeHtml(lblPart)}</span>`;
 
                 const err = validateExpr(expr);
-                if (err) error = err;
-                if (!state.definedLabels.has(lblPart.trim())) error = (error ? error + " " : "") + "未定義ラベル";
+                if (err && !error) error = err;
+                if (!state.definedLabels.has(lblPart.trim()) && !error) error = "未定義ラベル";
             } else {
                 html += colorizeArgs(args, argsGlobalStart);
-                error = "GOTO が必要です";
+                if (!error) error = "GOTO が必要です";
             }
         } else if (cmdPure === "LABEL") {
             html += `<span class="label-def">${escapeHtml(args)}</span>`;
@@ -185,14 +192,12 @@ function renderLine(line, cmdPure, lineStartIndex) {
             html += colorizeArgs(args, argsGlobalStart);
             if (cmdPure === "WAIT") {
                 const err = validateExpr(args);
-                if (err) error = err;
+                if (err && !error) error = err;
             }
         }
     }
 
-    // Global parenthesis check for the command line (excluding the command itself if it was separated)
-    // We need to check the *original* args part for balance.
-    // But we must ignore strings.
+    // Global parenthesis check
     if (!error) {
         const parenErr = checkBalancedParens(restRaw);
         if (parenErr) error = parenErr;
@@ -253,12 +258,21 @@ function isMatchedGlobal(idx) {
 }
 
 function validateCommandArgs(cmdPure, args) {
+    // Find the canonical mixed-case command name from COMMANDS
+    const canonicalCmd = COMMANDS.find(c => c.toUpperCase() === cmdPure);
+    const cmdKey = canonicalCmd || cmdPure;
+
     // Check if this command has strict argument type requirements
-    if (COMMAND_ARG_TYPES[cmdPure]) {
-        const argTypes = COMMAND_ARG_TYPES[cmdPure];
+    if (COMMAND_ARG_TYPES[cmdKey]) {
+        const argTypes = COMMAND_ARG_TYPES[cmdKey];
 
         // Split arguments by comma (but not commas inside strings or parentheses)
         const argList = splitArguments(args);
+
+        // Check for empty arguments
+        if (argList.length === 0) {
+            return "引数が不足しています";
+        }
 
         // Validate each argument according to its expected type
         for (let i = 0; i < argList.length; i++) {
@@ -266,17 +280,17 @@ function validateCommandArgs(cmdPure, args) {
             const expectedType = argTypes[i] || "expr"; // Default to expr if not specified
 
             if (expectedType === "constant") {
-                // Must be a single constant from AC_CONSTANTS[cmdPure]
-                const allowedConstants = AC_CONSTANTS[cmdPure] ? AC_CONSTANTS[cmdPure].map(c => c.toUpperCase()) : [];
+                // Must be a single constant from AC_CONSTANTS[cmdKey]
+                const allowedConstants = AC_CONSTANTS[cmdKey] ? AC_CONSTANTS[cmdKey].map(c => c.toUpperCase()) : [];
                 const argUpper = arg.toUpperCase();
 
                 if (!allowedConstants.includes(argUpper)) {
-                    return `${cmdPure}の引数${i + 1}は定数(${AC_CONSTANTS[cmdPure].join(', ')})のみ使用できます`;
+                    return `${cmdKey}の引数${i + 1}は定数(${AC_CONSTANTS[cmdKey].join(', ')})のみ使用できます`;
                 }
             } else if (expectedType === "string") {
                 // Must be a string literal "..."
                 if (!arg.match(/^"[^"]*"$/)) {
-                    return `${cmdPure}の引数${i + 1}は文字列リテラル("...")のみ使用できます`;
+                    return `${cmdKey}の引数${i + 1}は文字列リテラル("...")のみ使用できます`;
                 }
             } else if (expectedType === "expr") {
                 // Can be any expression, validate normally
@@ -389,13 +403,6 @@ export function updateParenMatch(text, cursor) {
 
     if (openIdx !== -1) {
         const closeIdx = findPartnerParen(text, openIdx, 1);
-        // Check if the matching ')' is actually after the cursor (or at the cursor)
-        // If closeIdx < cursor, it means the cursor is outside this pair (e.g. "()|")
-        // But our backward scan logic with balance should handle "()|" correctly:
-        // ')' -> balance=1, '(' -> balance=0. It skips the pair.
-        // So if we found an openIdx with balance=0, it implies the pair *should* enclose the cursor
-        // UNLESS the file is malformed and the ')' is missing or before the cursor (impossible if logic holds).
-
         if (closeIdx !== -1 && closeIdx >= cursor) {
             state.matchedParenIndices.add(openIdx);
             state.matchedParenIndices.add(closeIdx);

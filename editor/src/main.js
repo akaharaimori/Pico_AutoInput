@@ -12,6 +12,7 @@ window.onload = () => {
     updateView();
     UI.updateStructureTab(inputEl);
     UI.openHelp();
+    UI.setupReferenceToggles(); // 追加: リファレンスのトグル初期化
 };
 
 function updateView() {
@@ -19,6 +20,9 @@ function updateView() {
     const res = analyzeCode(inputEl.value);
     highlightEl.innerHTML = res.html;
     UI.updateStatus(res.errorCount, res.warningCount);
+    
+    // 修正: CSSによるレイアウト制御（親要素スクロール）に変更したため、
+    // JSによるスクロール同期やパディング調整は不要になりました。
 }
 
 // Editor Events
@@ -27,10 +31,8 @@ inputEl.addEventListener('input', () => {
     checkAutocomplete(inputEl, acList);
 });
 
-inputEl.addEventListener('scroll', () => {
-    highlightEl.scrollTop = inputEl.scrollTop;
-    highlightEl.scrollLeft = inputEl.scrollLeft;
-});
+// 修正: 親要素(wrapper)がスクロールを管理するため、textareaのscrollイベントリスナーは削除
+// inputEl.addEventListener('scroll', ...);
 
 inputEl.addEventListener('keydown', (e) => {
     handleKey(e, inputEl, acList, (t) => UI.insertText(t, inputEl));
@@ -60,6 +62,8 @@ document.getElementById('file-input').onchange = (e) => {
             highlightEl.innerHTML = res.html;
             UI.updateStructureTab(inputEl);
             UI.updateStatus(res.errorCount, res.warningCount);
+            // ファイル読み込み後にビューを更新
+            updateView();
         };
         r.readAsText(e.target.files[0]);
     }
@@ -77,7 +81,7 @@ document.querySelectorAll('.tab').forEach(t => {
     t.onclick = () => UI.switchTab(t.dataset.tab);
 });
 
-// Reference Items
+// Reference Items (insert text)
 document.querySelectorAll('.doc-item').forEach(item => {
     item.onclick = () => UI.insertText(item.dataset.insert, inputEl);
 });

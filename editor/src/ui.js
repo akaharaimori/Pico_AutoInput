@@ -132,3 +132,15 @@ export function updateStatus(errorCount, warningCount) {
 
 export function openHelp() { document.getElementById('help-modal').style.display = 'block'; }
 export function closeHelp() { document.getElementById('help-modal').style.display = 'none'; }
+
+// リファレンスの詳細トグル機能の初期化
+export function setupReferenceToggles() {
+    document.querySelectorAll('.doc-toggle').forEach(btn => {
+        btn.onclick = (e) => {
+            e.stopPropagation();
+            const entry = btn.closest('.doc-entry');
+            entry.classList.toggle('expanded');
+            btn.textContent = entry.classList.contains('expanded') ? '▲' : '▼';
+        };
+    });
+}

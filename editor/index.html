@@ -39,7 +39,7 @@
                         等の引数入力中に候補を表示します。クリックで挿入でき、既存の文字は正しく置換されます。</li>
                     <li><b>ラベル補完:</b> <span class="help-key">GOTO</span> や <span class="help-key">IF...GOTO</span>
                         入力時、定義済みのラベルが候補に出ます。</li>
-                    <li><b>リファレンス:</b> 右パネルの項目をクリックすると、そのコマンドがカーソル位置に挿入されます。</li>
+                    <li><b>リファレンス:</b> 右パネルの項目をクリックすると、そのコマンドがカーソル位置に挿入されます。「▼」ボタンで詳細とサンプルを確認できます。</li>
                 </ul>
 
                 <h3 class="help-h3">サンプルの使い方</h3>
@@ -106,264 +106,1106 @@
             <div id="reference" class="tab-content active">
                 <p style="font-size:0.85rem; color:#666; margin:0 0 15px 0; background:#fff8c4; padding:5px;">
                     ※ クリックするとカーソル位置に挿入されます。<br>
+                    ※ 「▼」で詳細・サンプルを表示します。<br>
                     ※ <code>expr</code> は数式や数値を意味します。
                 </p>
 
                 <div class="doc-section">
                     <h2>基本コマンド</h2>
-                    <div class="doc-item" data-insert="WAIT 1.0"><span class="doc-syntax">WAIT expr</span>
-                        <div class="doc-desc">指定した秒数だけ待機します。<br>例: <code>WAIT 0.5</code> (0.5秒待つ)</div>
+                    
+                    <div class="doc-entry">
+                        <div class="doc-header">
+                            <div class="doc-item" data-insert="WAIT 1.0"><span class="doc-syntax">WAIT expr</span>
+                                <div class="doc-desc">指定秒数待機します。</div>
+                            </div>
+                            <button class="doc-toggle">▼</button>
+                        </div>
+                        <div class="doc-detail">
+                            <div class="detail-desc">
+                                指定した秒数（<code>double</code>型、実数）だけスクリプトの実行を一時停止します。<br>
+                                <b>動作:</b> 指定時間は何も操作を行わず待機します。直前のキー押しっぱなし状態などは維持されます。<br>
+                                <b>引数:</b> 待機する秒数（正の数）。0以下は待機しません。
+                            </div>
+                            <div class="detail-sample">
+REM 1.5秒間何もしない
+WAIT 1.5
+
+REM 変数を使った待機（0.1秒～0.5秒のランダム待機）
+WAIT Rand(0.1, 0.5)
+                            </div>
+                        </div>
                     </div>
-                    <div class="doc-item" data-insert="END"><span class="doc-syntax">END</span>
-                        <div class="doc-desc">スクリプトの実行を終了します。</div>
+
+                    <div class="doc-entry">
+                        <div class="doc-header">
+                            <div class="doc-item" data-insert="END"><span class="doc-syntax">END</span>
+                                <div class="doc-desc">実行を終了します。</div>
+                            </div>
+                            <button class="doc-toggle">▼</button>
+                        </div>
+                        <div class="doc-detail">
+                            <div class="detail-desc">
+                                スクリプトの実行を完全に終了させます。<br>
+                                <b>動作:</b> これ以降の行は実行されず、デバイスは待機状態になります。再実行するには本体ボタンを押す必要があります。
+                            </div>
+                            <div class="detail-sample">
+SET count = 0
+LABEL Loop
+SET count = count + 1
+PRINT count
+REM 5回ループしたら終了 (&gt; は大なり)
+IF count &gt; 5 GOTO Finish
+WAIT 1
+GOTO Loop
+
+LABEL Finish
+PRINT "完了"
+END
+                            </div>
+                        </div>
                     </div>
-                    <div class="doc-item" data-insert="PRINT expr"><span class="doc-syntax">PRINT expr</span>
-                        <div class="doc-desc">数式の結果をルートのlog.txtに出力します。</div>
+
+                    <div class="doc-entry">
+                        <div class="doc-header">
+                            <div class="doc-item" data-insert="PRINT expr"><span class="doc-syntax">PRINT expr</span>
+                                <div class="doc-desc">ログ出力します。</div>
+                            </div>
+                            <button class="doc-toggle">▼</button>
+                        </div>
+                        <div class="doc-detail">
+                            <div class="detail-desc">
+                                変数や計算結果の値をログファイル（log.txt）とシリアルモニタに出力します。<br>
+                                <b>動作:</b> <code>PRINT: 123.456</code> のような形式で記録されます。デバッグや変数の確認に使います。<br>
+                                <b>注意:</b> 出力できるのは数値のみです。文字列の出力には対応していません。
+                            </div>
+                            <div class="detail-sample">
+SET hp = 100
+SET damage = Rand(10, 20)
+SET hp = hp - damage
+
+REM 計算結果を確認（例: PRINT: 85.0）
+PRINT hp
+
+REM 押されていれば1.0、そうでなければ0.0が出る
+PRINT IsPressed()
+                            </div>
+                        </div>
                     </div>
                 </div>
 
                 <div class="doc-section">
                     <h2>制御フロー (分岐・ループ)</h2>
-                    <div class="doc-item" data-insert="LABEL Name"><span class="doc-syntax">LABEL Name</span>
-                        <div class="doc-desc">ジャンプ先の「目印」を作ります。名前は任意です。</div>
+                    
+                    <div class="doc-entry">
+                        <div class="doc-header">
+                            <div class="doc-item" data-insert="LABEL Name"><span class="doc-syntax">LABEL Name</span>
+                                <div class="doc-desc">ラベルを定義します。</div>
+                            </div>
+                            <button class="doc-toggle">▼</button>
+                        </div>
+                        <div class="doc-detail">
+                            <div class="detail-desc">
+                                ジャンプ先となる目印（ラベル）を作成します。<br>
+                                <b>動作:</b> 実行時は何もせず、次の行へ進みます。<code>GOTO</code> や <code>GOSUB</code> の行き先として使われます。<br>
+                                <b>引数:</b> 任意の名前（英数字推奨）。大文字小文字は区別されます。
+                            </div>
+                            <div class="detail-sample">
+LABEL LoopStart
+PRINT "ここはループの先頭です"
+WAIT 1
+GOTO LoopStart
+                            </div>
+                        </div>
                     </div>
-                    <div class="doc-item" data-insert="GOTO Name"><span class="doc-syntax">GOTO Name</span>
-                        <div class="doc-desc">指定したラベルの行へ移動します。</div>
+
+                    <div class="doc-entry">
+                        <div class="doc-header">
+                            <div class="doc-item" data-insert="GOTO Name"><span class="doc-syntax">GOTO Name</span>
+                                <div class="doc-desc">ラベルへジャンプします。</div>
+                            </div>
+                            <button class="doc-toggle">▼</button>
+                        </div>
+                        <div class="doc-detail">
+                            <div class="detail-desc">
+                                指定したラベルの行へ処理を移動させます。<br>
+                                <b>動作:</b> 無条件に移動します。無限ループを作る際などに使用します。
+                            </div>
+                            <div class="detail-sample">
+REM SkipTargetへ飛び、間の行を飛ばす
+GOTO SkipTarget
+
+PRINT "この行は実行されません"
+
+LABEL SkipTarget
+PRINT "ジャンプしました"
+                            </div>
+                        </div>
                     </div>
-                    <div class="doc-item" data-insert="IF expr GOTO Name"><span class="doc-syntax">IF expr GOTO
-                            Name</span>
-                        <div class="doc-desc">条件式 <code>expr</code> が真(0以外)なら、指定ラベルへ移動します。<br>例:
-                            <code>IF count &lt; 5 GOTO LOOP</code></div>
+
+                    <div class="doc-entry">
+                        <div class="doc-header">
+                            <div class="doc-item" data-insert="IF expr GOTO Name"><span class="doc-syntax">IF expr GOTO Name</span>
+                                <div class="doc-desc">条件分岐します。</div>
+                            </div>
+                            <button class="doc-toggle">▼</button>
+                        </div>
+                        <div class="doc-detail">
+                            <div class="detail-desc">
+                                条件式が満たされた場合のみジャンプします。<br>
+                                <b>動作:</b> <code>expr</code> の結果が 0.0 以外（真）なら指定ラベルへジャンプ。0.0（偽）なら次の行へ進みます。
+                            </div>
+                            <div class="detail-sample">
+SET count = 0
+LABEL Loop
+SET count = count + 1
+
+REM countが3未満(真)ならLoopへ戻る (&lt; は小なり)
+IF count &lt; 3 GOTO Loop
+
+PRINT "3回ループしました"
+                            </div>
+                        </div>
                     </div>
-                    <div class="doc-item" data-insert="GOSUB Name"><span class="doc-syntax">GOSUB Name</span>
-                        <div class="doc-desc">サブルーチン(部品化した処理)を呼び出します。</div>
+
+                    <div class="doc-entry">
+                        <div class="doc-header">
+                            <div class="doc-item" data-insert="GOSUB Name"><span class="doc-syntax">GOSUB Name</span>
+                                <div class="doc-desc">サブルーチンを呼びます。</div>
+                            </div>
+                            <button class="doc-toggle">▼</button>
+                        </div>
+                        <div class="doc-detail">
+                            <div class="detail-desc">
+                                現在の場所を記憶してラベルへジャンプし、処理を委譲します。<br>
+                                <b>動作:</b> <code>RETURN</code> コマンドに出会うと、この <code>GOSUB</code> の次の行に戻ってきます。共通処理の使い回しに便利です。
+                            </div>
+                            <div class="detail-sample">
+PRINT "メイン処理開始"
+GOSUB MyTask
+PRINT "メイン処理終了"
+END
+
+LABEL MyTask
+PRINT "  サブ処理実行中..."
+WAIT 0.5
+RETURN
+                            </div>
+                        </div>
                     </div>
-                    <div class="doc-item" data-insert="RETURN"><span class="doc-syntax">RETURN</span>
-                        <div class="doc-desc">サブルーチンから元の場所に戻ります。</div>
+
+                    <div class="doc-entry">
+                        <div class="doc-header">
+                            <div class="doc-item" data-insert="RETURN"><span class="doc-syntax">RETURN</span>
+                                <div class="doc-desc">サブルーチンから戻ります。</div>
+                            </div>
+                            <button class="doc-toggle">▼</button>
+                        </div>
+                        <div class="doc-detail">
+                            <div class="detail-desc">
+                                サブルーチンを終了し、呼び出し元に戻ります。<br>
+                                <b>動作:</b> 直前の <code>GOSUB</code> の次の行へジャンプします。<code>GOSUB</code> を経由せずに実行するとエラーになります。
+                            </div>
+                            <div class="detail-sample">
+REM (GOSUBのサンプルを参照)
+                            </div>
+                        </div>
                     </div>
                 </div>
 
                 <div class="doc-section">
-                    <h2>変数操作</h2>
-                    <div class="doc-item" data-insert="SET var = expr"><span class="doc-syntax">SET var = expr</span>
-                        <div class="doc-desc">変数 <code>var</code> に計算結果を代入します。<br>例: <code>SET i = i + 1</code></div>
+                    <h2>変数・設定</h2>
+                    
+                    <div class="doc-entry">
+                        <div class="doc-header">
+                            <div class="doc-item" data-insert="SET var = expr"><span class="doc-syntax">SET var = expr</span>
+                                <div class="doc-desc">変数に値を代入します。</div>
+                            </div>
+                            <button class="doc-toggle">▼</button>
+                        </div>
+                        <div class="doc-detail">
+                            <div class="detail-desc">
+                                計算結果を変数に保存します。<br>
+                                <b>動作:</b> 変数 <code>var</code> がなければ新規作成し、あれば値を上書きします。変数はすべて小数（double型）として扱われます。<br>
+                                <b>引数:</b> 変数名（英数字）、代入する式。
+                            </div>
+                            <div class="detail-sample">
+SET a = 10
+SET b = 20
+SET c = (a + b) * 2
+PRINT c
+REM 出力: 60.0
+
+REM フラグの反転 (0 -> 1, 1 -> 0)
+SET flag = not(flag)
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="doc-entry">
+                        <div class="doc-header">
+                            <div class="doc-item" data-insert="Mode(KeyMouse)"><span class="doc-syntax">Mode(ModeName)</span>
+                                <div class="doc-desc">USBモードを切り替えます。</div>
+                            </div>
+                            <button class="doc-toggle">▼</button>
+                        </div>
+                        <div class="doc-detail">
+                            <div class="detail-desc">
+                                デバイスのUSB動作モードを変更します。<br>
+                                <b>動作:</b> 実行するとUSB接続がリセットされ、PCに再認識されます。モードに応じたコマンドしか使えなくなります。<br>
+                                <b>引数:</b>
+                                <ul>
+                                    <li><code>KeyMouse</code>: キーボード・マウスモード（初期値）。</li>
+                                    <li><code>ProController</code>: Switch Proコンモード。</li>
+                                </ul>
+                            </div>
+                            <div class="detail-sample">
+REM Switchモードに切り替え
+Mode(ProController)
+WAIT 3.0
+REM Aボタンを押す
+ProConPushFor(A, 0.1)
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="doc-entry">
+                        <div class="doc-header">
+                            <div class="doc-item" data-insert="LogConfig(50, OVERWRITE)"><span class="doc-syntax">LogConfig(size, mode)</span>
+                                <div class="doc-desc">ログ設定を変更します。</div>
+                            </div>
+                            <button class="doc-toggle">▼</button>
+                        </div>
+                        <div class="doc-detail">
+                            <div class="detail-desc">
+                                ルートディレクトリの <code>log.txt</code> の挙動を設定します。<br>
+                                <b>動作:</b> ファイルサイズが指定値を超えた場合の処理を決定します。<br>
+                                <b>引数:</b>
+                                <ul>
+                                    <li><code>size</code>: 最大キロバイト数(KB)。0を指定するとログ停止。</li>
+                                    <li><code>mode</code>: <code>OVERWRITE</code>（古いログを.bakにして新規作成）、<code>STOP</code>（記録停止）。</li>
+                                </ul>
+                            </div>
+                            <div class="detail-sample">
+REM 100KBまで記録し、超えたらローテーション(上書き)
+LogConfig(100, OVERWRITE)
+
+REM ログ記録を停止（高速化・寿命延命）
+LogConfig(0, STOP)
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="doc-entry">
+                        <div class="doc-header">
+                            <div class="doc-item" data-insert="DEBUG(1)"><span class="doc-syntax">DEBUG(enable)</span>
+                                <div class="doc-desc">デバッグ出力を制御します。</div>
+                            </div>
+                            <button class="doc-toggle">▼</button>
+                        </div>
+                        <div class="doc-detail">
+                            <div class="detail-desc">
+                                詳細な実行ログの出力を切り替えます。<br>
+                                <b>動作:</b> 有効にすると、実行中の行内容が逐一ログに記録されます。開発中は便利ですが、動作が遅くなるため完成後は無効にしてください。<br>
+                                <b>引数:</b> <code>1</code> (有効), <code>0</code> (無効)
+                            </div>
+                            <div class="detail-sample">
+DEBUG(1)
+PRINT "ここから詳細ログが出ます"
+SET a = 1
+DEBUG(0)
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="doc-entry">
+                        <div class="doc-header">
+                            <div class="doc-item" data-insert="UseLED(1)"><span class="doc-syntax">UseLED(enable)</span>
+                                <div class="doc-desc">LED制御を有効化します。</div>
+                            </div>
+                            <button class="doc-toggle">▼</button>
+                        </div>
+                        <div class="doc-detail">
+                            <div class="detail-desc">
+                                内蔵フルカラーLEDの制御権を取得します。<br>
+                                <b>動作:</b> 有効にすると <code>SetLED</code> が反映されるようになります。<br>
+                                <b>引数:</b> <code>1</code> (有効), <code>0</code> (無効)
+                            </div>
+                            <div class="detail-sample">
+UseLED(1)
+SetLED(255, 0, 0)
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="doc-entry">
+                        <div class="doc-header">
+                            <div class="doc-item" data-insert="SetLED(255,0,0)"><span class="doc-syntax">SetLED(r, g, b)</span>
+                                <div class="doc-desc">LEDの色を設定します。</div>
+                            </div>
+                            <button class="doc-toggle">▼</button>
+                        </div>
+                        <div class="doc-detail">
+                            <div class="detail-desc">
+                                内蔵LEDを指定した色で点灯させます。<br>
+                                <b>動作:</b> 即座に色が変更されます。<code>UseLED(1)</code> が必要です。<br>
+                                <b>引数:</b> 赤(r), 緑(g), 青(b) の強さを 0～255 で指定。
+                            </div>
+                            <div class="detail-sample">
+UseLED(1)
+REM 赤点灯
+SetLED(255, 0, 0)
+WAIT 0.5
+REM 緑点灯
+SetLED(0, 255, 0)
+WAIT 0.5
+REM 消灯
+SetLED(0, 0, 0)
+                            </div>
+                        </div>
                     </div>
                 </div>
 
                 <div class="doc-section">
-                    <h2>設定・モード</h2>
-                    <div class="doc-item" data-insert="Mode(KeyMouse)"><span class="doc-syntax">Mode(KeyMouse)</span>
-                        <div class="doc-desc">「キーボード・マウス」モードに切り替えます。キーボード・マウス操作項の関数はこの関数を実行しないと使用できません。</div>
-                    </div>
-                    <div class="doc-item" data-insert="Mode(ProController)"><span
-                            class="doc-syntax">Mode(ProController)</span>
-                        <div class="doc-desc">「Switch Proコントローラー」モードに切り替えます。Proコントローラー操作の項の関数はこの関数を実行しないと使用できません。</div>
-                    </div>
-                    <div class="doc-item" data-insert="UseLED(1)"><span class="doc-syntax">UseLED(1)</span>
-                        <div class="doc-desc">LED制御機能を有効(1)または無効(0)にします。</div>
-                    </div>
-                    <div class="doc-item" data-insert="SetLED(255,0,0)"><span class="doc-syntax">SetLED(r, g, b)</span>
-                        <div class="doc-desc">LEDの色をRGB(0-255)で指定します。</div>
-                    </div>
-                    <div class="doc-item" data-insert="DEBUG(1)"><span class="doc-syntax">DEBUG(1)</span>
-                        <div class="doc-desc">詳細な実行ログ出力を有効にします。出力はルートディレクトリのlog.txtに記録されます。</div>
+                    <h2>キーボード・マウス (KeyMouseモード)</h2>
+                    
+                    <div class="doc-entry">
+                        <div class="doc-header">
+                            <div class="doc-item" data-insert="KeyPress(ENTER)"><span class="doc-syntax">KeyPress(key)</span>
+                                <div class="doc-desc">キーを押しっぱなしにします。</div>
+                            </div>
+                            <button class="doc-toggle">▼</button>
+                        </div>
+                        <div class="doc-detail">
+                            <div class="detail-desc">
+                                キーボードのキーを押した状態にします。<br>
+                                <b>動作:</b> <code>KeyRelease</code> が呼ばれるまで、PCには「キーが押され続けている」という信号が送られます。<br>
+                                <b>引数:</b> A-Z, 0-9, F1-F12, ENTER, SPACE, ESC, TAB, SHIFT, CTRL, ALT など。
+                            </div>
+                            <div class="detail-sample">
+REM SHIFTキーを押す
+KeyPress(SHIFT)
+REM SHIFTを押したままAを押す(大文字Aになる)
+KeyPress(A)
+WAIT 0.1
+REM 両方離す
+KeyRelease(A)
+KeyRelease(SHIFT)
+                            </div>
+                        </div>
                     </div>
 
+                    <div class="doc-entry">
+                        <div class="doc-header">
+                            <div class="doc-item" data-insert="KeyRelease(ENTER)"><span class="doc-syntax">KeyRelease(key)</span>
+                                <div class="doc-desc">キーを離します。</div>
+                            </div>
+                            <button class="doc-toggle">▼</button>
+                        </div>
+                        <div class="doc-detail">
+                            <div class="detail-desc">
+                                押されているキーを離した状態にします。<br>
+                                <b>動作:</b> PCへのキー入力が停止します。
+                            </div>
+                            <div class="detail-sample">
+REM (KeyPressのサンプルを参照)
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="doc-entry">
+                        <div class="doc-header">
+                            <div class="doc-item" data-insert="KeyPushFor(A, 0.1)"><span class="doc-syntax">KeyPushFor(key, sec)</span>
+                                <div class="doc-desc">指定時間キーを押します。</div>
+                            </div>
+                            <button class="doc-toggle">▼</button>
+                        </div>
+                        <div class="doc-detail">
+                            <div class="detail-desc">
+                                キーを一回ポンと押す動作を行います。<br>
+                                <b>動作:</b> <code>KeyPress</code> → 指定秒数待機 → <code>KeyRelease</code> を自動で行います。<br>
+                                <b>引数:</b> キー名, 押す時間(秒)。
+                            </div>
+                            <div class="detail-sample">
+REM スペースキーを0.1秒間押して離す
+KeyPushFor(SPACE, 0.1)
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="doc-entry">
+                        <div class="doc-header">
+                            <div class="doc-item" data-insert='KeyType("Hello", 0.05, 0.05)'><span class="doc-syntax">KeyType("str", p, r)</span>
+                                <div class="doc-desc">文字列をタイプします。</div>
+                            </div>
+                            <button class="doc-toggle">▼</button>
+                        </div>
+                        <div class="doc-detail">
+                            <div class="detail-desc">
+                                指定した文字列をキーボードで順番に入力します。<br>
+                                <b>動作:</b> 文字列を1文字ずつ分解し、押す・離すを繰り返します。<br>
+                                <b>引数:</b>
+                                <ul>
+                                    <li><code>"str"</code>: 入力したい文字列（ダブルクォート必須）。\n(改行)も使えます。</li>
+                                    <li><code>p</code>: キーを押している時間(秒)</li>
+                                    <li><code>r</code>: キーを離してから次を押すまでの間隔(秒)</li>
+                                </ul>
+                            </div>
+                            <div class="detail-sample">
+REM "Hello" と入力してEnter(改行)を押す
+REM 1文字あたり0.03秒押し、0.03秒空ける
+KeyType("Hello\n", 0.03, 0.03)
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="doc-entry">
+                        <div class="doc-header">
+                            <div class="doc-item" data-insert="MouseMove(100, 0, 0)"><span class="doc-syntax">MouseMove(x, y, rel)</span>
+                                <div class="doc-desc">マウスカーソルを移動します。</div>
+                            </div>
+                            <button class="doc-toggle">▼</button>
+                        </div>
+                        <div class="doc-detail">
+                            <div class="detail-desc">
+                                マウスを移動、またはホイールを回転させます。<br>
+                                <b>動作:</b> 現在位置からの相対移動として処理されます。<br>
+                                <b>引数:</b>
+                                <ul>
+                                    <li><code>x</code>: 左右移動量 (-127 ～ 127)。正で右、負で左。</li>
+                                    <li><code>y</code>: 上下移動量 (-127 ～ 127)。正で下、負で上。</li>
+                                    <li><code>rel</code>: ホイール回転量。0以外を指定するとX/Y移動は無視されホイール操作になります。正で上スクロール。</li>
+                                </ul>
+                            </div>
+                            <div class="detail-sample">
+REM 右に50ピクセル移動
+MouseMove(50, 0, 0)
+REM 下に20ピクセル移動
+MouseMove(0, 20, 0)
+REM 斜めに移動
+MouseMove(10, 10, 0)
+REM ホイールを上にスクロール
+MouseMove(0, 0, 1)
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="doc-entry">
+                        <div class="doc-header">
+                            <div class="doc-item" data-insert="MousePress(LEFT)"><span class="doc-syntax">MousePress(btn)</span>
+                                <div class="doc-desc">マウスボタンを押します。</div>
+                            </div>
+                            <button class="doc-toggle">▼</button>
+                        </div>
+                        <div class="doc-detail">
+                            <div class="detail-desc">
+                                マウスボタンを押しっぱなしにします。<br>
+                                <b>動作:</b> ドラッグ操作などに使用します。必ず <code>MouseRelease</code> で離してください。<br>
+                                <b>引数:</b> <code>LEFT</code>(左), <code>RIGHT</code>(右), <code>MIDDLE</code>(中/ホイール)。
+                            </div>
+                            <div class="detail-sample">
+REM 左クリック開始（ドラッグ開始）
+MousePress(LEFT)
+REM 押したまま移動
+MouseMove(100, 50, 0)
+REM 放す（ドラッグ終了）
+MouseRelease(LEFT)
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="doc-entry">
+                        <div class="doc-header">
+                            <div class="doc-item" data-insert="MouseRelease(LEFT)"><span class="doc-syntax">MouseRelease(btn)</span>
+                                <div class="doc-desc">マウスボタンを離します。</div>
+                            </div>
+                            <button class="doc-toggle">▼</button>
+                        </div>
+                        <div class="doc-detail">
+                            <div class="detail-desc">
+                                押されているマウスボタンを離します。<br>
+                                <b>引数:</b> <code>LEFT</code>, <code>RIGHT</code>, <code>MIDDLE</code>。
+                            </div>
+                            <div class="detail-sample">
+REM (MousePressのサンプルを参照)
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="doc-entry">
+                        <div class="doc-header">
+                            <div class="doc-item" data-insert="MousePushFor(LEFT, 0.1)"><span class="doc-syntax">MousePushFor(btn, sec)</span>
+                                <div class="doc-desc">指定時間クリックします。</div>
+                            </div>
+                            <button class="doc-toggle">▼</button>
+                        </div>
+                        <div class="doc-detail">
+                            <div class="detail-desc">
+                                マウスボタンを一回クリック（押して離す）します。<br>
+                                <b>動作:</b> <code>MousePress</code> → 待機 → <code>MouseRelease</code> を自動で行います。<br>
+                                <b>引数:</b> ボタン名, 押す時間(秒)。
+                            </div>
+                            <div class="detail-sample">
+REM 左クリック (0.05秒間押す)
+MousePushFor(LEFT, 0.05)
+REM 右クリック
+MousePushFor(RIGHT, 0.05)
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="doc-entry">
+                        <div class="doc-header">
+                            <div class="doc-item" data-insert='Mouserun("file.txt", 1, 0, 1)'><span class="doc-syntax">Mouserun("file", t, a, s)</span>
+                                <div class="doc-desc">操作記録を再生します。</div>
+                            </div>
+                            <button class="doc-toggle">▼</button>
+                        </div>
+                        <div class="doc-detail">
+                            <div class="detail-desc">
+                                事前にFlashに保存されたCSVファイル("x,y,wheel,L,R,M,ms")を読み込み、マウス操作を再現します。<br>
+                                <b>動作:</b> 指定ファイルを1行ずつ読み込み、移動とクリックを実行します。<br>
+                                <b>引数:</b>
+                                <ul>
+                                    <li><code>file</code>: ファイル名（ダブルクォート必須）。</li>
+                                    <li><code>t</code>: 再生速度倍率（1.0が等速、0.5なら倍速）。</li>
+                                    <li><code>a</code>: 回転角度（ラジアン）。3.14で180度反転。</li>
+                                    <li><code>s</code>: 移動距離の拡大縮小倍率（1.0が等倍）。</li>
+                                </ul>
+                            </div>
+                            <div class="detail-sample">
+REM "rec.txt" を等速、回転なし、等倍で再生
+Mouserun("rec.txt", 1.0, 0.0, 1.0)
+
+REM 2倍速(待機時間半分)、180度回転(上下左右反転)させて再生
+Mouserun("rec.txt", 0.5, 3.14159, 1.0)
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="doc-section">
-                    <h2>キーボード・マウス操作</h2>
-                    <div class="doc-item" data-insert="KeyPress(A)"><span class="doc-syntax">KeyPress(key)</span>
-                        <div class="doc-desc">キーを押しっぱなしにします。<br>例: <code>A</code>, <code>ENTER</code>,
-                            <code>SHIFT</code></div>
+                    <h2>Proコントローラー (ProControllerモード)</h2>
+                    
+                    <div class="doc-entry">
+                        <div class="doc-header">
+                            <div class="doc-item" data-insert="ProConPress(A)"><span class="doc-syntax">ProConPress(btn)</span>
+                                <div class="doc-desc">ボタンを押します。</div>
+                            </div>
+                            <button class="doc-toggle">▼</button>
+                        </div>
+                        <div class="doc-detail">
+                            <div class="detail-desc">
+                                コントローラーのボタンを押しっぱなしにします。<br>
+                                <b>動作:</b> Switch本体に「ボタンが押された」信号を送り続けます。<br>
+                                <b>引数:</b> A, B, X, Y, L, R, ZL, ZR, MINUS, PLUS, LCLICK, RCLICK, HOME, CAPTURE
+                            </div>
+                            <div class="detail-sample">
+REM Aボタンを押し続ける
+ProConPress(A)
+WAIT 0.1
+REM 離す
+ProConRelease(A)
+                            </div>
+                        </div>
                     </div>
-                    <div class="doc-item" data-insert="KeyRelease(A)"><span class="doc-syntax">KeyRelease(key)</span>
-                        <div class="doc-desc">押しているキーを離します。</div>
+
+                    <div class="doc-entry">
+                        <div class="doc-header">
+                            <div class="doc-item" data-insert="ProConRelease(A)"><span class="doc-syntax">ProConRelease(btn)</span>
+                                <div class="doc-desc">ボタンを離します。</div>
+                            </div>
+                            <button class="doc-toggle">▼</button>
+                        </div>
+                        <div class="doc-detail">
+                            <div class="detail-desc">
+                                押されているボタンを離します。
+                            </div>
+                            <div class="detail-sample">
+REM (ProConPressのサンプルを参照)
+                            </div>
+                        </div>
                     </div>
-                    <div class="doc-item" data-insert="KeyPushFor(A, 0.1)"><span class="doc-syntax">KeyPushFor(key,
-                            sec)</span>
-                        <div class="doc-desc">キーを指定秒数だけ押して離します。</div>
+
+                    <div class="doc-entry">
+                        <div class="doc-header">
+                            <div class="doc-item" data-insert="ProConPushFor(A, 0.1)"><span class="doc-syntax">ProConPushFor(btn, sec)</span>
+                                <div class="doc-desc">指定時間ボタンを押します。</div>
+                            </div>
+                            <button class="doc-toggle">▼</button>
+                        </div>
+                        <div class="doc-detail">
+                            <div class="detail-desc">
+                                ボタンを一回押して離します。<br>
+                                <b>動作:</b> 押す→待機→離す を自動で行います。<br>
+                                <b>引数:</b> ボタン名, 押す時間(秒)。
+                            </div>
+                            <div class="detail-sample">
+REM Aボタンを0.05秒だけ短く押す
+ProConPushFor(A, 0.05)
+                            </div>
+                        </div>
                     </div>
-                    <div class="doc-item" data-insert='KeyType("Hello", 0.05, 0.05)'><span
-                            class="doc-syntax">KeyType("text", p, r)</span>
-                        <div class="doc-desc">文字列をタイピングします。p=押下時間, r=間隔(秒)。</div>
+
+                    <div class="doc-entry">
+                        <div class="doc-header">
+                            <div class="doc-item" data-insert="ProConHat(UP)"><span class="doc-syntax">ProConHat(dir)</span>
+                                <div class="doc-desc">十字キーを操作します。</div>
+                            </div>
+                            <button class="doc-toggle">▼</button>
+                        </div>
+                        <div class="doc-detail">
+                            <div class="detail-desc">
+                                十字キー（ハットスイッチ）の入力を設定します。<br>
+                                <b>動作:</b> 指定した方向にキーが入った状態になります。解除するまで維持されます。<br>
+                                <b>引数:</b> UP, DOWN, LEFT, RIGHT, UP_RIGHT, DOWN_LEFT など。<br>
+                                解除するには <code>CENTER</code> を指定します。
+                            </div>
+                            <div class="detail-sample">
+REM 上に入力
+ProConHat(UP)
+WAIT 0.5
+REM 右下に入力
+ProConHat(RIGHT_DOWN)
+WAIT 0.5
+REM ニュートラル(離す)
+ProConHat(CENTER)
+                            </div>
+                        </div>
                     </div>
-                    <div class="doc-item" data-insert="MouseMove(100, 0, 1)"><span class="doc-syntax">MouseMove(x, y,
-                            rel)</span>
-                        <div class="doc-desc">マウスを移動します。xは横移動量、yは縦移動量、relはローラーの回転量です。</div>
-                    </div>
-                    <div class="doc-item" data-insert="MousePress(LEFT)"><span class="doc-syntax">MousePress(btn)</span>
-                        <div class="doc-desc">マウスボタンを押します(LEFT/RIGHT/MIDDLE)。</div>
-                    </div>
-                    <div class="doc-item" data-insert="MouseRelease(LEFT)"><span
-                            class="doc-syntax">MouseRelease(btn)</span>
-                        <div class="doc-desc">マウスボタンを離します。</div>
+
+                    <div class="doc-entry">
+                        <div class="doc-header">
+                            <div class="doc-item" data-insert="ProConJoy(0,0,0,0)"><span class="doc-syntax">ProConJoy(lx,ly,rx,ry)</span>
+                                <div class="doc-desc">スティックを操作します。</div>
+                            </div>
+                            <button class="doc-toggle">▼</button>
+                        </div>
+                        <div class="doc-detail">
+                            <div class="detail-desc">
+                                左右のアナログスティックの傾きを設定します。<br>
+                                <b>動作:</b> 指定した座標にスティックが固定されます。<br>
+                                <b>引数:</b> 左X, 左Y, 右X, 右Y の順。<br>
+                                値の範囲は -128 ～ 127 です。0が中心、負が左/上、正が右/下です。
+                            </div>
+                            <div class="detail-sample">
+REM 左スティックを右(127)へ、右スティックを上(-128)へ最大入力
+ProConJoy(127, 0, 0, -128)
+WAIT 1.0
+REM すべて中心に戻す
+ProConJoy(0, 0, 0, 0)
+                            </div>
+                        </div>
                     </div>
                 </div>
 
                 <div class="doc-section">
-                    <h2>Proコントローラー操作</h2>
-                    <div class="doc-item" data-insert="ProConPress(A)"><span class="doc-syntax">ProConPress(btn)</span>
-                        <div class="doc-desc">ボタンを押します。<br>A, B, X, Y, L, R, ZL, ZR, HOMEなど。</div>
+                    <h2>数式・組み込み関数</h2>
+                    
+                    <div class="doc-entry">
+                        <div class="doc-header">
+                            <div class="doc-item" data-insert="IsPressed()"><span class="doc-syntax">IsPressed()</span>
+                                <div class="doc-desc">本体ボタンの状態取得。</div>
+                            </div>
+                            <button class="doc-toggle">▼</button>
+                        </div>
+                        <div class="doc-detail">
+                            <div class="detail-desc">
+                                Pico本体のBOOTSELボタンが現在押されているかを確認します。<br>
+                                <b>戻り値:</b> 押されていれば 1.0、離れていれば 0.0。<br>
+                                <b>用途:</b> 外部スイッチとして使い、スクリプトの一時停止やモード切替に使えます。
+                            </div>
+                            <div class="detail-sample">
+LABEL WaitBtn
+WAIT 0.1
+REM ボタンが押される(1.0になる)までループ
+IF IsPressed() == 0 GOTO WaitBtn
+PRINT "ボタンが押されました！"
+                            </div>
+                        </div>
                     </div>
-                    <div class="doc-item" data-insert="ProConRelease(A)"><span
-                            class="doc-syntax">ProConRelease(btn)</span>
-                        <div class="doc-desc">ボタンを離します。</div>
-                    </div>
-                    <div class="doc-item" data-insert="ProConPushFor(A, 0.1)"><span
-                            class="doc-syntax">ProConPushFor(btn, sec)</span>
-                        <div class="doc-desc">ボタンを指定秒数だけ押して離します。</div>
-                    </div>
-                    <div class="doc-item" data-insert="ProConHat(UP)"><span class="doc-syntax">ProConHat(dir)</span>
-                        <div class="doc-desc">十字キーを押します。<br>UP, DOWN, LEFT, RIGHT,
-                            UP_RIGHTなど。CENTERを入れることで押していない状態に戻ります。</div>
-                    </div>
-                    <div class="doc-item" data-insert="ProConJoy(0, 0, 0, 0)"><span class="doc-syntax">ProConJoy(lx, ly,
-                            rx, ry)</span>
-                        <div class="doc-desc">スティックを倒します。範囲は -128 ～ 127。</div>
-                    </div>
-                </div>
 
-                <div class="doc-section">
-                    <h2>固有関数 (式の中で使用)</h2>
-                    <div class="doc-item" data-insert="IsPressed()"><span class="doc-syntax">IsPressed()</span>
-                        <div class="doc-desc">本体のボタンが押されていれば 1.0、離れていれば 0.0 を返します。</div>
-                    </div>
-                    <div class="doc-item" data-insert="Rand(0, 10)"><span class="doc-syntax">Rand(min, max)</span>
-                        <div class="doc-desc">min から max までのランダムな数値を返します。</div>
-                    </div>
-                    <div class="doc-item" data-insert="GetTime()"><span class="doc-syntax">GetTime()</span>
-                        <div class="doc-desc">スクリプト開始からの経過時間(ミリ秒)を返します。</div>
-                    </div>
-                </div>
+                    <div class="doc-entry">
+                        <div class="doc-header">
+                            <div class="doc-item" data-insert="Rand(0, 10)"><span class="doc-syntax">Rand(min, max)</span>
+                                <div class="doc-desc">乱数を生成します。</div>
+                            </div>
+                            <button class="doc-toggle">▼</button>
+                        </div>
+                        <div class="doc-detail">
+                            <div class="detail-desc">
+                                min から max までの範囲のランダムな実数（double）を返します。<br>
+                                <b>戻り値:</b> min以上 max以下のランダムな数値。
+                            </div>
+                            <div class="detail-sample">
+REM 1から100までの乱数を生成
+SET r = Rand(1, 100)
+PRINT r
 
-                <div class="doc-section">
-                    <h2>数学関数 (基本)</h2>
-                    <div class="doc-item" data-insert="abs(x)"><span class="doc-syntax">abs(x)</span>
-                        <div class="doc-desc">絶対値（正の値）を返します。</div>
+REM 0.5秒～1.5秒のランダム待機
+WAIT Rand(0.5, 1.5)
+                            </div>
+                        </div>
                     </div>
-                    <div class="doc-item" data-insert="round(x, 0)"><span class="doc-syntax">round(x, d)</span>
-                        <div class="doc-desc">x を小数点以下 d 桁で四捨五入します。</div>
-                    </div>
-                    <div class="doc-item" data-insert="floor(x)"><span class="doc-syntax">floor(x)</span>
-                        <div class="doc-desc">小数点以下を切り捨てます。</div>
-                    </div>
-                    <div class="doc-item" data-insert="ceil(x)"><span class="doc-syntax">ceil(x)</span>
-                        <div class="doc-desc">小数点以下を切り上げます。</div>
-                    </div>
-                    <div class="doc-item" data-insert="trunc(x)"><span class="doc-syntax">trunc(x)</span>
-                        <div class="doc-desc">整数部分のみを取り出します。</div>
-                    </div>
-                    <div class="doc-item" data-insert="min(a, b)"><span class="doc-syntax">min(a, b, ...)</span>
-                        <div class="doc-desc">引数の中で最小の値を返します。</div>
-                    </div>
-                    <div class="doc-item" data-insert="max(a, b)"><span class="doc-syntax">max(a, b, ...)</span>
-                        <div class="doc-desc">引数の中で最大の値を返します。</div>
-                    </div>
-                    <div class="doc-item" data-insert="clamp(x, min, max)"><span class="doc-syntax">clamp(x, min,
-                            max)</span>
-                        <div class="doc-desc">x を min～max の範囲内に収めます。</div>
-                    </div>
-                    <div class="doc-item" data-insert="mod(a, b)"><span class="doc-syntax">mod(a, b)</span>
-                        <div class="doc-desc">a を b で割った余りを返します。</div>
-                    </div>
-                    <div class="doc-item" data-insert="pow(x, y)"><span class="doc-syntax">pow(x, y)</span>
-                        <div class="doc-desc">x の y 乗を計算します。</div>
-                    </div>
-                    <div class="doc-item" data-insert="sqrt(x)"><span class="doc-syntax">sqrt(x)</span>
-                        <div class="doc-desc">x の平方根（ルート）を返します。</div>
-                    </div>
-                    <div class="doc-item" data-insert="pi()"><span class="doc-syntax">pi()</span>
-                        <div class="doc-desc">円周率 (約3.14159) を返します。</div>
-                    </div>
-                    <div class="doc-item" data-insert="e()"><span class="doc-syntax">e()</span>
-                        <div class="doc-desc">ネイピア数 (約2.71828) を返します。</div>
-                    </div>
-                </div>
 
-                <div class="doc-section">
-                    <h2>数学関数 (三角関数)</h2>
-                    <div class="doc-item" data-insert="sin(x)"><span class="doc-syntax">sin(x)</span>
-                        <div class="doc-desc">正弦(サイン)を返します。xはラジアン。</div>
+                    <div class="doc-entry">
+                        <div class="doc-header">
+                            <div class="doc-item" data-insert="GetTime()"><span class="doc-syntax">GetTime()</span>
+                                <div class="doc-desc">経過時間を取得します。</div>
+                            </div>
+                            <button class="doc-toggle">▼</button>
+                        </div>
+                        <div class="doc-detail">
+                            <div class="detail-desc">
+                                スクリプト開始からの経過時間をミリ秒(ms)単位で返します。<br>
+                                <b>戻り値:</b> 経過ミリ秒（1秒=1000）。
+                            </div>
+                            <div class="detail-sample">
+SET start = GetTime()
+WAIT 1.0
+SET now = GetTime()
+SET elapsed = now - start
+REM およそ1000.0に近い値が表示される
+PRINT elapsed
+                            </div>
+                        </div>
                     </div>
-                    <div class="doc-item" data-insert="cos(x)"><span class="doc-syntax">cos(x)</span>
-                        <div class="doc-desc">余弦(コサイン)を返します。xはラジアン。</div>
-                    </div>
-                    <div class="doc-item" data-insert="tan(x)"><span class="doc-syntax">tan(x)</span>
-                        <div class="doc-desc">正接(タンジェント)を返します。xはラジアン。</div>
-                    </div>
-                    <div class="doc-item" data-insert="asin(x)"><span class="doc-syntax">asin(x)</span>
-                        <div class="doc-desc">アークサイン（逆正弦）を返します。</div>
-                    </div>
-                    <div class="doc-item" data-insert="acos(x)"><span class="doc-syntax">acos(x)</span>
-                        <div class="doc-desc">アークコサイン（逆余弦）を返します。</div>
-                    </div>
-                    <div class="doc-item" data-insert="atan(x)"><span class="doc-syntax">atan(x)</span>
-                        <div class="doc-desc">アークタンジェント（逆正接）を返します。</div>
-                    </div>
-                    <div class="doc-item" data-insert="atan2(y, x)"><span class="doc-syntax">atan2(y, x)</span>
-                        <div class="doc-desc">座標(x,y)の角度をラジアンで返します。</div>
-                    </div>
-                    <div class="doc-item" data-insert="sinh(x)"><span class="doc-syntax">sinh / cosh / tanh</span>
-                        <div class="doc-desc">双曲線関数です。</div>
-                    </div>
-                    <div class="doc-item" data-insert="rad2deg(x)"><span class="doc-syntax">rad2deg(x)</span>
-                        <div class="doc-desc">ラジアンを度数法(0-360)に変換します。</div>
-                    </div>
-                    <div class="doc-item" data-insert="deg2rad(x)"><span class="doc-syntax">deg2rad(x)</span>
-                        <div class="doc-desc">度数法をラジアンに変換します。</div>
-                    </div>
-                </div>
 
-                <div class="doc-section">
-                    <h2>数学関数 (その他・対数・組合せ)</h2>
-                    <div class="doc-item" data-insert="ln(x)"><span class="doc-syntax">ln(x)</span>
-                        <div class="doc-desc">自然対数（底がe）を返します。</div>
+                    <div class="doc-entry">
+                        <div class="doc-header">
+                            <div class="doc-item" data-insert="round(3.14, 0)"><span class="doc-syntax">算術・丸め (abs, round, floor...)</span>
+                                <div class="doc-desc">四捨五入、切り捨て、絶対値など。</div>
+                            </div>
+                            <button class="doc-toggle">▼</button>
+                        </div>
+                        <div class="doc-detail">
+                            <div class="detail-desc">
+                                基本的な数値操作を行います。<br>
+                                <ul>
+                                    <li><code>abs(x)</code>: 絶対値を返します。</li>
+                                    <li><code>sign(x)</code>: 符号を返します（正:1, 負:-1, 0:0）。</li>
+                                    <li><code>round(x, d)</code>: xを小数点以下d桁で四捨五入します。</li>
+                                    <li><code>floor(x)</code>: 切り捨て（床関数）。x以下の最大の整数。</li>
+                                    <li><code>ceil(x)</code>: 切り上げ（天井関数）。x以上の最小の整数。</li>
+                                    <li><code>trunc(x)</code>: 0に近い方向へ整数化（小数点以下削除）。</li>
+                                    <li><code>mod(a, b)</code>: a を b で割った余り (a % b)。</li>
+                                </ul>
+                            </div>
+                            <div class="detail-sample">
+SET v = -3.7
+PRINT abs(v)      REM 3.7
+PRINT sign(v)     REM -1.0
+PRINT round(v, 0) REM -4.0 (四捨五入)
+PRINT floor(v)    REM -4.0 (より小さい整数へ)
+PRINT ceil(v)     REM -3.0 (より大きい整数へ)
+PRINT trunc(v)    REM -3.0 (小数カット)
+PRINT mod(10, 3)  REM 1.0
+                            </div>
+                        </div>
                     </div>
-                    <div class="doc-item" data-insert="log10(x)"><span class="doc-syntax">log10(x)</span>
-                        <div class="doc-desc">常用対数（底が10）を返します。</div>
-                    </div>
-                    <div class="doc-item" data-insert="fact(n)"><span class="doc-syntax">fact(n)</span>
-                        <div class="doc-desc">nの階乗 (n!) を計算します。</div>
-                    </div>
-                    <div class="doc-item" data-insert="ncr(n, r)"><span class="doc-syntax">ncr(n, r)</span>
-                        <div class="doc-desc">組合せ (nCr) の数を計算します。</div>
-                    </div>
-                    <div class="doc-item" data-insert="npr(n, r)"><span class="doc-syntax">npr(n, r)</span>
-                        <div class="doc-desc">順列 (nPr) の数を計算します。</div>
-                    </div>
-                    <div class="doc-item" data-insert="sign(x)"><span class="doc-syntax">sign(x)</span>
-                        <div class="doc-desc">正なら1、負なら-1、0なら0を返します。</div>
-                    </div>
-                </div>
 
-                <div class="doc-section">
-                    <h2>論理・条件関数</h2>
-                    <div class="doc-item" data-insert="if(c, t, f)"><span class="doc-syntax">if(cond, true,
-                            false)</span>
-                        <div class="doc-desc">条件式 cond が真なら true、偽なら false を返します。</div>
+                    <div class="doc-entry">
+                        <div class="doc-header">
+                            <div class="doc-item" data-insert="sqrt(2)"><span class="doc-syntax">指数・対数 (pow, sqrt, log...)</span>
+                                <div class="doc-desc">べき乗、平方根、対数など。</div>
+                            </div>
+                            <button class="doc-toggle">▼</button>
+                        </div>
+                        <div class="doc-detail">
+                            <div class="detail-desc">
+                                <ul>
+                                    <li><code>pow(b, e)</code>: bのe乗を返します。</li>
+                                    <li><code>sqr(x)</code>: xの2乗を返します (x * x)。</li>
+                                    <li><code>sqrt(x)</code>: xの平方根（ルート）を返します。</li>
+                                    <li><code>exp(x)</code>: 指数関数 e^x を返します。</li>
+                                    <li><code>ln(x)</code>: xの自然対数（底がe）を返します。</li>
+                                    <li><code>log10(x)</code>: xの常用対数（底が10）を返します。</li>
+                                </ul>
+                            </div>
+                            <div class="detail-sample">
+PRINT pow(2, 3)   REM 8.0
+PRINT sqr(3)      REM 9.0
+PRINT sqrt(2)     REM 1.4142...
+PRINT exp(1)      REM 2.7182... (e)
+PRINT ln(2.71828) REM 1.0
+PRINT log10(100)  REM 2.0
+                            </div>
+                        </div>
                     </div>
-                    <div class="doc-item" data-insert="not(x)"><span class="doc-syntax">not(x)</span>
-                        <div class="doc-desc">xが0なら1、それ以外なら0を返します(否定)。</div>
+
+                    <div class="doc-entry">
+                        <div class="doc-header">
+                            <div class="doc-item" data-insert="sin(0)"><span class="doc-syntax">三角関数 (sin, cos, tan, cot)</span>
+                                <div class="doc-desc">基本的な三角関数。</div>
+                            </div>
+                            <button class="doc-toggle">▼</button>
+                        </div>
+                        <div class="doc-detail">
+                            <div class="detail-desc">
+                                角度の単位はすべて<b>ラジアン</b>です。度数法を使う場合は<code>deg2rad</code>と組み合わせてください。<br>
+                                <ul>
+                                    <li><code>sin(r)</code>: 正弦（サイン）。</li>
+                                    <li><code>cos(r)</code>: 余弦（コサイン）。</li>
+                                    <li><code>tan(r)</code>: 正接（タンジェント）。</li>
+                                    <li><code>cot(r)</code>: 余接（コタンジェント, 1/tan）。</li>
+                                </ul>
+                            </div>
+                            <div class="detail-sample">
+SET pi = 3.1415926
+PRINT sin(pi / 2) REM 1.0
+PRINT cos(pi)     REM -1.0
+PRINT tan(pi / 4) REM 1.0
+PRINT cot(pi / 4) REM 1.0
+                            </div>
+                        </div>
                     </div>
-                    <div class="doc-item" data-insert="and(a, b)"><span class="doc-syntax">and(a, b)</span>
-                        <div class="doc-desc">両方が真(0以外)のときのみ1を返します(論理積)。</div>
+
+                    <div class="doc-entry">
+                        <div class="doc-header">
+                            <div class="doc-item" data-insert="atan2(1, 1)"><span class="doc-syntax">逆三角関数 (asin, acos, atan...)</span>
+                                <div class="doc-desc">角度を求める関数。</div>
+                            </div>
+                            <button class="doc-toggle">▼</button>
+                        </div>
+                        <div class="doc-detail">
+                            <div class="detail-desc">
+                                値から角度（ラジアン）を求めます。<br>
+                                <ul>
+                                    <li><code>asin(x)</code>: アークサイン。-1～1の値を受け取り、-π/2～π/2を返します。</li>
+                                    <li><code>acos(x)</code>: アークコサイン。-1～1の値を受け取り、0～πを返します。</li>
+                                    <li><code>atan(x)</code>: アークタンジェント。-π/2～π/2を返します。</li>
+                                    <li><code>atan2(y, x)</code>: 座標(x, y)の角度を -π～π で返します。</li>
+                                </ul>
+                            </div>
+                            <div class="detail-sample">
+REM sinが1になる角度は PI/2 (1.5707...)
+PRINT asin(1)
+
+REM cosが-1になる角度は PI (3.1415...)
+PRINT acos(-1)
+
+REM tanが1になる角度は PI/4 (0.7853...)
+PRINT atan(1)
+
+REM 座標(1, 1)の角度は45度(PI/4)
+PRINT atan2(1, 1)
+                            </div>
+                        </div>
                     </div>
-                    <div class="doc-item" data-insert="or(a, b)"><span class="doc-syntax">or(a, b)</span>
-                        <div class="doc-desc">どちらかが真(0以外)なら1を返します(論理和)。</div>
+
+                    <div class="doc-entry">
+                        <div class="doc-header">
+                            <div class="doc-item" data-insert="tanh(1)"><span class="doc-syntax">双曲線関数 (sinh, cosh, tanh)</span>
+                                <div class="doc-desc">ハイパボリック関数。</div>
+                            </div>
+                            <button class="doc-toggle">▼</button>
+                        </div>
+                        <div class="doc-detail">
+                            <div class="detail-desc">
+                                双曲線関数です。<br>
+                                <ul>
+                                    <li><code>sinh(x)</code>: 双曲線正弦。</li>
+                                    <li><code>cosh(x)</code>: 双曲線余弦。</li>
+                                    <li><code>tanh(x)</code>: 双曲線正接。</li>
+                                </ul>
+                            </div>
+                            <div class="detail-sample">
+PRINT sinh(0)  REM 0.0
+PRINT cosh(0)  REM 1.0
+PRINT tanh(0)  REM 0.0
+                            </div>
+                        </div>
                     </div>
-                    <div class="doc-item" data-insert="even(x)"><span class="doc-syntax">even(x)</span>
-                        <div class="doc-desc">xを最も近い偶数に丸めます。</div>
+
+                    <div class="doc-entry">
+                        <div class="doc-header">
+                            <div class="doc-item" data-insert="deg2rad(90)"><span class="doc-syntax">角度変換 (deg2rad, rad2deg)</span>
+                                <div class="doc-desc">度数法と弧度法の変換。</div>
+                            </div>
+                            <button class="doc-toggle">▼</button>
+                        </div>
+                        <div class="doc-detail">
+                            <div class="detail-desc">
+                                <ul>
+                                    <li><code>deg2rad(d)</code>: 度数(deg)をラジアン(rad)に変換します。<br>(例: 180 -> 3.14...)</li>
+                                    <li><code>rad2deg(r)</code>: ラジアン(rad)を度数(deg)に変換します。<br>(例: 3.14... -> 180)</li>
+                                </ul>
+                            </div>
+                            <div class="detail-sample">
+REM 30度のサインを計算
+SET deg = 30
+SET rad = deg2rad(deg)
+PRINT sin(rad)    REM 0.5
+
+REM ラジアンを度数に戻す
+PRINT rad2deg(rad) REM 30.0
+                            </div>
+                        </div>
                     </div>
-                    <div class="doc-item" data-insert="odd(x)"><span class="doc-syntax">odd(x)</span>
-                        <div class="doc-desc">xを最も近い奇数に丸めます。</div>
+
+                    <div class="doc-entry">
+                        <div class="doc-header">
+                            <div class="doc-item" data-insert="max(1, 2)"><span class="doc-syntax">集計・比較 (min, max, clamp...)</span>
+                                <div class="doc-desc">最大・最小・範囲制限など。</div>
+                            </div>
+                            <button class="doc-toggle">▼</button>
+                        </div>
+                        <div class="doc-detail">
+                            <div class="detail-desc">
+                                <ul>
+                                    <li><code>min(a, b, ...)</code>: 引数の中で最小の値を返します（引数は多数可）。</li>
+                                    <li><code>max(a, b, ...)</code>: 引数の中で最大の値を返します。</li>
+                                    <li><code>clamp(x, low, high)</code>: x を low～high の範囲に収めます。</li>
+                                    <li><code>sum(a, b, ...)</code>: 引数の合計値を返します。</li>
+                                    <li><code>average(a, b, ...)</code>: 引数の平均値を返します。</li>
+                                </ul>
+                            </div>
+                            <div class="detail-sample">
+PRINT min(10, 5, 8)      REM 5.0
+PRINT max(10, 5, 8)      REM 10.0
+REM 150を0-100の範囲に収める -> 100
+PRINT clamp(150, 0, 100) 
+PRINT sum(1, 2, 3)       REM 6.0
+PRINT average(10, 20)    REM 15.0
+                            </div>
+                        </div>
                     </div>
-                    <div class="doc-item" data-insert="iseven(x)"><span class="doc-syntax">iseven(x)</span>
-                        <div class="doc-desc">xが偶数なら1、奇数なら0を返します。</div>
+
+                    <div class="doc-entry">
+                        <div class="doc-header">
+                            <div class="doc-item" data-insert="fact(5)"><span class="doc-syntax">順列・組合せ (fact, ncr, npr)</span>
+                                <div class="doc-desc">階乗や組み合わせの計算。</div>
+                            </div>
+                            <button class="doc-toggle">▼</button>
+                        </div>
+                        <div class="doc-detail">
+                            <div class="detail-desc">
+                                <ul>
+                                    <li><code>fact(n)</code>: nの階乗 (n!) を返します。</li>
+                                    <li><code>ncr(n, r)</code>: n個からr個を選ぶ組み合わせの数 (${}_nC_r$)。</li>
+                                    <li><code>npr(n, r)</code>: n個からr個を選んで並べる順列の数 (${}_nP_r$)。</li>
+                                </ul>
+                            </div>
+                            <div class="detail-sample">
+PRINT fact(5)    REM 120.0 (5*4*3*2*1)
+PRINT ncr(5, 2)  REM 10.0  (5C2)
+PRINT npr(5, 2)  REM 20.0  (5P2)
+                            </div>
+                        </div>
                     </div>
-                    <div class="doc-item" data-insert="isodd(x)"><span class="doc-syntax">isodd(x)</span>
-                        <div class="doc-desc">xが奇数なら1、偶数なら0を返します。</div>
+
+                    <div class="doc-entry">
+                        <div class="doc-header">
+                            <div class="doc-item" data-insert="if(1, 10, 20)"><span class="doc-syntax">条件分岐 (if, ifs)</span>
+                                <div class="doc-desc">条件に応じた値を返します。</div>
+                            </div>
+                            <button class="doc-toggle">▼</button>
+                        </div>
+                        <div class="doc-detail">
+                            <div class="detail-desc">
+                                0.0は「偽」、それ以外は「真」として扱われます。<br>
+                                <ul>
+                                    <li><code>if(cond, true_val, false_val)</code>: condが真ならtrue_val、偽ならfalse_valを返します。</li>
+                                    <li><code>ifs(c1, v1, c2, v2, ...)</code>: 条件を順に評価し、最初に真になった条件の値を返します。</li>
+                                </ul>
+                            </div>
+                            <div class="detail-sample">
+SET score = 85
+REM 80点以上なら "Pass"(=1)、不合格なら "Fail"(=0)
+SET result = if(score >= 80, 1, 0)
+PRINT result
+
+REM 複数条件の判定
+REM 90以上->3, 70以上->2, その他->1
+SET rank = ifs(score>=90, 3, score>=70, 2, 1, 1)
+PRINT rank
+                            </div>
+                        </div>
                     </div>
+
+                    <div class="doc-entry">
+                        <div class="doc-header">
+                            <div class="doc-item" data-insert="and(1, 0)"><span class="doc-syntax">論理演算 (and, or, not)</span>
+                                <div class="doc-desc">論理積、論理和、否定。</div>
+                            </div>
+                            <button class="doc-toggle">▼</button>
+                        </div>
+                        <div class="doc-detail">
+                            <div class="detail-desc">
+                                数値を論理値(真/偽)として扱います。0は偽、0以外は真です。<br>
+                                <ul>
+                                    <li><code>and(a, b)</code>: 両方真なら1、そうでなければ0。</li>
+                                    <li><code>or(a, b)</code>: どちらかが真なら1、そうでなければ0。</li>
+                                    <li><code>not(x)</code>: xが0なら1、0以外なら0。</li>
+                                </ul>
+                            </div>
+                            <div class="detail-sample">
+SET a = 1
+SET b = 0
+PRINT and(a, b)  REM 0.0 (False)
+PRINT or(a, b)   REM 1.0 (True)
+PRINT not(a)     REM 0.0 (False)
+PRINT not(b)     REM 1.0 (True)
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="doc-entry">
+                        <div class="doc-header">
+                            <div class="doc-item" data-insert="iseven(2)"><span class="doc-syntax">判定・検査 (iseven, isnan...)</span>
+                                <div class="doc-desc">偶数奇数やエラーの判定。</div>
+                            </div>
+                            <button class="doc-toggle">▼</button>
+                        </div>
+                        <div class="doc-detail">
+                            <div class="detail-desc">
+                                数値の状態を判定します。結果は1(真)または0(偽)です。<br>
+                                <ul>
+                                    <li><code>iseven(x)</code>: 偶数なら1。</li>
+                                    <li><code>isodd(x)</code>: 奇数なら1。</li>
+                                    <li><code>isnan(x)</code>: 非数(NaN)なら1。</li>
+                                    <li><code>iserr(x)</code>: エラー値なら1。</li>
+                                    <li><code>even(x)</code>: xを最も近い偶数に丸めます。</li>
+                                    <li><code>odd(x)</code>: xを最も近い奇数に丸めます。</li>
+                                </ul>
+                            </div>
+                            <div class="detail-sample">
+PRINT iseven(4)  REM 1.0
+PRINT isodd(4)   REM 0.0
+PRINT even(3.5)  REM 4.0 (偶数化)
+PRINT odd(4)     REM 5.0 (奇数化)
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="doc-entry">
+                        <div class="doc-header">
+                            <div class="doc-item" data-insert="pi()"><span class="doc-syntax">定数 (pi, e, true, false)</span>
+                                <div class="doc-desc">数学定数と論理定数。</div>
+                            </div>
+                            <button class="doc-toggle">▼</button>
+                        </div>
+                        <div class="doc-detail">
+                            <div class="detail-desc">
+                                <ul>
+                                    <li><code>pi()</code>: 円周率 (約 3.14159)。</li>
+                                    <li><code>e()</code>: ネイピア数 (約 2.71828)。</li>
+                                    <li><code>true()</code>: 真 (1.0)。</li>
+                                    <li><code>false()</code>: 偽 (0.0)。</li>
+                                </ul>
+                            </div>
+                            <div class="detail-sample">
+REM 半径10の円の面積 (pi * r^2)
+SET r = 10
+SET area = pi() * sqr(r)
+PRINT area
+
+REM 無限ループ用
+IF true() GOTO Next
+LABEL Next
+                            </div>
+                        </div>
+                    </div>
+
                 </div>
             </div>
 
