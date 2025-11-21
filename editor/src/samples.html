@@ -397,6 +397,116 @@ KeyType("This is auto typing demo.", 0.05, 0.05)</div>
         </div>
     </div>
 </div>
+<div class="doc-section">
+    <h2>Proコントローラー (Switch)</h2>
+
+    <div class="doc-entry">
+        <div class="doc-header">
+            <div class="doc-item" data-insert='REM Aボタン連打
+Mode(ProController)
+REM 再接続待ち
+WAIT 3.0
+
+LABEL LOOP
+REM 0.1秒押して0.1秒待つ
+ProConPushFor(A, 0.1)
+WAIT 0.1
+GOTO LOOP
+'>
+                <span class="doc-syntax">Aボタン連打</span>
+                <div class="doc-desc">SwitchでAボタンを高速連打します。</div>
+            </div>
+            <button class="doc-toggle">▼</button>
+        </div>
+        <div class="doc-detail">
+            <div class="detail-desc">
+                便利な連打スクリプトです。<br>
+                <b>注意:</b> <code>Mode(ProController)</code> を実行するとデバイスが再接続されるため、操作開始前に <code>WAIT</code> で数秒待つのがコツです。
+            </div>
+            <div class="detail-sample">REM Aボタン連打
+Mode(ProController)
+REM Switchに認識されるのを待つ
+WAIT 3.0
+
+LABEL LOOP
+ProConPushFor(A, 0.1)
+WAIT 0.1
+GOTO LOOP</div>
+        </div>
+    </div>
+
+    <div class="doc-entry">
+        <div class="doc-header">
+            <div class="doc-item" data-insert='REM スティック自動回転
+Mode(ProController)
+UseLED(0)
+WAIT 1.0
+LABEL START
+
+REM パラメータ設定
+SET angle = 0
+SET radius = 127
+SET step = 0.1
+
+LABEL CIRCLE_LOOP
+REM 次の点を計算
+SET x = round(radius * cos(angle))
+SET y = round(radius * sin(angle))
+
+
+REM 移動実行
+ProConJoy(x, y, 0, 0)
+WAIT 0.02
+
+REM 位置更新
+SET angle = angle + step
+
+REM 1周 (2*pi ≒ 6.283) したら終了
+IF angle < 6.283185 GOTO CIRCLE_LOOP
+ProConJoy(0, 0, 0, 0)
+END
+'>
+                <span class="doc-syntax">スティックぐるぐる</span>
+                <div class="doc-desc">左スティックを回し続けます。</div>
+            </div>
+            <button class="doc-toggle">▼</button>
+        </div>
+        <div class="doc-detail">
+            <div class="detail-desc">
+                左スティックを回し続けます。<br>
+                座標を順番に指定することで回転操作を行っています。
+            </div>
+            <div class="detail-sample">REM スティック自動回転
+Mode(ProController)
+UseLED(0)
+WAIT 1.0
+LABEL START
+
+REM パラメータ設定
+SET angle = 0
+SET radius = 127
+SET step = 0.1
+
+LABEL CIRCLE_LOOP
+REM 次の点を計算
+SET x = round(radius * cos(angle))
+SET y = round(radius * sin(angle))
+
+
+REM 移動実行
+ProConJoy(x, y, 0, 0)
+WAIT 0.02
+
+REM 位置更新
+SET angle = angle + step
+
+REM 1周 (2*pi ≒ 6.283) したら終了
+IF angle < 6.283185 GOTO CIRCLE_LOOP
+ProConJoy(0, 0, 0, 0)
+END</div>
+        </div>
+    </div>
+</div>
 
 <div class="doc-section">
     <h2>応用テクニック</h2>
@@ -560,26 +670,26 @@ GOTO START</div>
         <div class="doc-entry">
             <div class="doc-header">
                 <div class="doc-item" data-insert='REM スクリーンショット (Win + Shift + S)
-    Mode(KeyMouse)
-    UseLED(1)
-    
-    LABEL LOOP
-    REM ボタンが押されるまで待機
-    IF IsPressed() == 0 GOTO LOOP
-    
-    REM --- ショートカット実行 ---
-    REM Win(GUI) + Shift + S
-    KeyPress(GUI)
-    KeyPress(SHIFT)
-    KeyPress(S)
-    WAIT 0.1
-    KeyRelease(S)
-    KeyRelease(SHIFT)
-    KeyRelease(GUI)
-    
-    REM 連打防止のため少し待つ
-    WAIT 0.5
-    GOTO LOOP
+Mode(KeyMouse)
+UseLED(1)
+
+LABEL LOOP
+REM ボタンが押されるまで待機
+IF IsPressed() == 0 GOTO LOOP
+
+REM --- ショートカット実行 ---
+REM Win(GUI) + Shift + S
+KeyPress(GUI)
+KeyPress(SHIFT)
+KeyPress(S)
+WAIT 0.1
+KeyRelease(S)
+KeyRelease(SHIFT)
+KeyRelease(GUI)
+
+REM 連打防止のため少し待つ
+WAIT 0.5
+GOTO LOOP
     '>
                     <span class="doc-syntax">スクショボタン (Win+Shift+S)</span>
                     <div class="doc-desc">ボタン一発で「切り取り＆スケッチ」を起動します。</div>
@@ -596,48 +706,48 @@ GOTO START</div>
                     </ul>
                 </div>
                 <div class="detail-sample">REM スクリーンショット (Win + Shift + S)
-    Mode(KeyMouse)
-    UseLED(1)
-    
-    LABEL LOOP
-    REM ボタンが押されるまで待機
-    IF IsPressed() == 0 GOTO LOOP
-    
-    REM --- ショートカット実行 ---
-    KeyPress(GUI)
-    KeyPress(SHIFT)
-    KeyPress(S)
-    WAIT 0.1
-    KeyRelease(S)
-    KeyRelease(SHIFT)
-    KeyRelease(GUI)
-    
-    REM 連打防止のウェイト
-    WAIT 0.5
-    GOTO LOOP</div>
+Mode(KeyMouse)
+UseLED(1)
+
+LABEL LOOP
+REM ボタンが押されるまで待機
+IF IsPressed() == 0 GOTO LOOP
+
+REM --- ショートカット実行 ---
+KeyPress(GUI)
+KeyPress(SHIFT)
+KeyPress(S)
+WAIT 0.1
+KeyRelease(S)
+KeyRelease(SHIFT)
+KeyRelease(GUI)
+
+REM 連打防止のウェイト
+WAIT 0.5
+GOTO LOOP</div>
             </div>
         </div>
     
         <div class="doc-entry">
             <div class="doc-header">
                 <div class="doc-item" data-insert='REM タスクマネージャー (Ctrl + Shift + Esc)
-    Mode(KeyMouse)
-    UseLED(1)
-    
-    LABEL LOOP
-    IF IsPressed() == 0 GOTO LOOP
-    
-    REM --- ショートカット実行 ---
-    KeyPress(CTRL)
-    KeyPress(SHIFT)
-    KeyPress(ESC)
-    WAIT 0.1
-    KeyRelease(ESC)
-    KeyRelease(SHIFT)
-    KeyRelease(CTRL)
-    
-    WAIT 0.5
-    GOTO LOOP
+Mode(KeyMouse)
+UseLED(1)
+
+LABEL LOOP
+IF IsPressed() == 0 GOTO LOOP
+
+REM --- ショートカット実行 ---
+KeyPress(CTRL)
+KeyPress(SHIFT)
+KeyPress(ESC)
+WAIT 0.1
+KeyRelease(ESC)
+KeyRelease(SHIFT)
+KeyRelease(CTRL)
+
+WAIT 0.5
+GOTO LOOP
     '>
                     <span class="doc-syntax">強制終了ボタン (タスクマネージャー)</span>
                     <div class="doc-desc">フリーズ時に便利。タスクマネージャーを直接呼び出します。</div>
@@ -650,44 +760,44 @@ GOTO START</div>
                     PCの動作が重いときや、アプリがフリーズしたときに、物理ボタンで即座に呼び出せます。
                 </div>
                 <div class="detail-sample">REM タスクマネージャー (Ctrl + Shift + Esc)
-    Mode(KeyMouse)
-    UseLED(1)
-    
-    LABEL LOOP
-    IF IsPressed() == 0 GOTO LOOP
-    
-    REM --- ショートカット実行 ---
-    KeyPress(CTRL)
-    KeyPress(SHIFT)
-    KeyPress(ESC)
-    WAIT 0.1
-    KeyRelease(ESC)
-    KeyRelease(SHIFT)
-    KeyRelease(CTRL)
-    
-    WAIT 0.5
-    GOTO LOOP</div>
+Mode(KeyMouse)
+UseLED(1)
+
+LABEL LOOP
+IF IsPressed() == 0 GOTO LOOP
+
+REM --- ショートカット実行 ---
+KeyPress(CTRL)
+KeyPress(SHIFT)
+KeyPress(ESC)
+WAIT 0.1
+KeyRelease(ESC)
+KeyRelease(SHIFT)
+KeyRelease(CTRL)
+
+WAIT 0.5
+GOTO LOOP</div>
             </div>
         </div>
     
         <div class="doc-entry">
             <div class="doc-header">
                 <div class="doc-item" data-insert='REM 離席ロック (Win + L)
-    Mode(KeyMouse)
-    UseLED(1)
-    
-    LABEL LOOP
-    IF IsPressed() == 0 GOTO LOOP
-    
-    REM --- ショートカット実行 ---
-    KeyPress(GUI)
-    KeyPress(L)
-    WAIT 0.1
-    KeyRelease(L)
-    KeyRelease(GUI)
-    
-    WAIT 1.0
-    GOTO LOOP
+Mode(KeyMouse)
+UseLED(1)
+
+LABEL LOOP
+IF IsPressed() == 0 GOTO LOOP
+
+REM --- ショートカット実行 ---
+KeyPress(GUI)
+KeyPress(L)
+WAIT 0.1
+KeyRelease(L)
+KeyRelease(GUI)
+
+WAIT 1.0
+GOTO LOOP
     '>
                     <span class="doc-syntax">離席ロックボタン (Win+L)</span>
                     <div class="doc-desc">席を立つときにワンタッチで画面をロックします。</div>
@@ -700,43 +810,43 @@ GOTO START</div>
                     セキュリティのため離席時に画面をロックする習慣をつけるのに最適です。
                 </div>
                 <div class="detail-sample">REM 離席ロック (Win + L)
-    Mode(KeyMouse)
-    UseLED(1)
-    
-    LABEL LOOP
-    IF IsPressed() == 0 GOTO LOOP
-    
-    REM --- ショートカット実行 ---
-    KeyPress(GUI)
-    KeyPress(L)
-    WAIT 0.1
-    KeyRelease(L)
-    KeyRelease(GUI)
-    
-    WAIT 1.0
-    GOTO LOOP</div>
+Mode(KeyMouse)
+UseLED(1)
+
+LABEL LOOP
+IF IsPressed() == 0 GOTO LOOP
+
+REM --- ショートカット実行 ---
+KeyPress(GUI)
+KeyPress(L)
+WAIT 0.1
+KeyRelease(L)
+KeyRelease(GUI)
+
+WAIT 1.0
+GOTO LOOP</div>
             </div>
         </div>
         <div class="doc-entry">
             <div class="doc-header">
                 <div class="doc-item" data-insert='REM 仮想デスクトップ切替 (Ctrl + Win + ->)
-    Mode(KeyMouse)
-    UseLED(1)
-    
-    LABEL LOOP
-    IF IsPressed() == 0 GOTO LOOP
-    
-    REM 次のデスクトップへ移動 (右方向)
-    KeyPress(CTRL)
-    KeyPress(GUI)
-    KeyPress(RIGHT)
-    WAIT 0.1
-    KeyRelease(RIGHT)
-    KeyRelease(GUI)
-    KeyRelease(CTRL)
-    
-    WAIT 0.5
-    GOTO LOOP
+Mode(KeyMouse)
+UseLED(1)
+
+LABEL LOOP
+IF IsPressed() == 0 GOTO LOOP
+
+REM 次のデスクトップへ移動 (右方向)
+KeyPress(CTRL)
+KeyPress(GUI)
+KeyPress(RIGHT)
+WAIT 0.1
+KeyRelease(RIGHT)
+KeyRelease(GUI)
+KeyRelease(CTRL)
+
+WAIT 0.5
+GOTO LOOP
     '>
                     <span class="doc-syntax">仮想デスクトップ切替</span>
                     <div class="doc-desc">Windowsの仮想デスクトップを隣へスライドさせます。</div>
@@ -749,52 +859,52 @@ GOTO START</div>
                     あらかじめ <code>Win + Tab</code> で新しいデスクトップを作成しておき、アプリを分けて配置しておくと、ボタン一つで「作業画面」と「YouTube画面」などを瞬時に行き来できます。
                 </div>
                 <div class="detail-sample">REM 仮想デスクトップ切替 (Ctrl + Win + ->)
-    Mode(KeyMouse)
-    UseLED(1)
-    
-    LABEL LOOP
-    IF IsPressed() == 0 GOTO LOOP
-    
-    REM 右の仮想デスクトップへ
-    KeyPress(CTRL)
-    KeyPress(GUI)
-    KeyPress(RIGHT)
-    WAIT 0.1
-    KeyRelease(RIGHT)
-    KeyRelease(GUI)
-    KeyRelease(CTRL)
-    
-    WAIT 0.5
-    GOTO LOOP</div>
+Mode(KeyMouse)
+UseLED(1)
+
+LABEL LOOP
+IF IsPressed() == 0 GOTO LOOP
+
+REM 右の仮想デスクトップへ
+KeyPress(CTRL)
+KeyPress(GUI)
+KeyPress(RIGHT)
+WAIT 0.1
+KeyRelease(RIGHT)
+KeyRelease(GUI)
+KeyRelease(CTRL)
+
+WAIT 0.5
+GOTO LOOP</div>
             </div>
         </div>
         <div class="doc-entry">
             <div class="doc-header">
                 <div class="doc-item" data-insert='REM ハッカー風演出 (treeコマンド)
-    Mode(KeyMouse)
-    
-    LABEL LOOP
-    IF IsPressed() == 0 GOTO LOOP
-    
-    REM Win+R で「ファイル名を指定して実行」を開く
-    KeyPress(GUI)
-    KeyPress(r)
-    WAIT 0.1
-    KeyRelease(r)
-    KeyRelease(GUI)
-    WAIT 0.5
-    
-    REM cmd を起動
-    KeyType("cmd\n", 0.05, 0.05)
-    WAIT 1.0
-    
-    REM 色を緑に変えて、Cドライブのツリーを表示
-    KeyType("color a\n", 0.05, 0.05)
-    WAIT 0.2
-    KeyType("tree c:\\\n", 0.05, 0.05)
-    
-    WAIT 2.0
-    GOTO LOOP
+Mode(KeyMouse)
+
+LABEL LOOP
+IF IsPressed() == 0 GOTO LOOP
+
+REM Win+R で「ファイル名を指定して実行」を開く
+KeyPress(GUI)
+KeyPress(r)
+WAIT 0.1
+KeyRelease(r)
+KeyRelease(GUI)
+WAIT 0.5
+
+REM cmd を起動
+KeyType("cmd\n", 0.05, 0.05)
+WAIT 1.0
+
+REM 色を緑に変えて、Cドライブのツリーを表示
+KeyType("color a\n", 0.05, 0.05)
+WAIT 0.2
+KeyType("tree c:\\\n", 0.05, 0.05)
+
+WAIT 2.0
+GOTO LOOP
     '>
                     <span class="doc-syntax">ハッカー風演出 (CMD)</span>
                     <div class="doc-desc">コマンドプロンプトを立ち上げ、大量の文字を高速で流します。</div>
@@ -807,28 +917,28 @@ GOTO START</div>
                     コマンドプロンプトで <code>tree</code> コマンド（フォルダ構造を表示するコマンド）を実行しているだけなので、PCへの悪影響はありません。
                 </div>
                 <div class="detail-sample">REM ハッカー風演出
-    Mode(KeyMouse)
-    
-    LABEL LOOP
-    IF IsPressed() == 0 GOTO LOOP
-    
-    REM Win+R -> cmd
-    KeyPress(GUI)
-    KeyPress(r)
-    WAIT 0.1
-    KeyRelease(r)
-    KeyRelease(GUI)
-    WAIT 0.5
-    KeyType("cmd\n", 0.05, 0.05)
-    WAIT 1.0
-    
-    REM 演出開始
-    KeyType("color a\n", 0.05, 0.05)
-    KeyType("cls\n", 0.05, 0.05)
-    KeyType("tree c:\\\n", 0.05, 0.05)
-    
-    WAIT 2.0
-    GOTO LOOP</div>
+Mode(KeyMouse)
+
+LABEL LOOP
+IF IsPressed() == 0 GOTO LOOP
+
+REM Win+R -> cmd
+KeyPress(GUI)
+KeyPress(r)
+WAIT 0.1
+KeyRelease(r)
+KeyRelease(GUI)
+WAIT 0.5
+KeyType("cmd\n", 0.05, 0.05)
+WAIT 1.0
+
+REM 演出開始
+KeyType("color a\n", 0.05, 0.05)
+KeyType("cls\n", 0.05, 0.05)
+KeyType("tree c:\\\n", 0.05, 0.05)
+
+WAIT 2.0
+GOTO LOOP</div>
             </div>
         </div>
     </div>
