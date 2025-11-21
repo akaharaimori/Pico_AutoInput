@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pico AutoInput Editor v6</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+  <script type="module" crossorigin>(function(){const o=document.createElement("link").relList;if(o&&o.supports&&o.supports("modulepreload"))return;for(const n of document.querySelectorAll('link[rel="modulepreload"]'))e(n);new MutationObserver(n=>{for(const r of n)if(r.type==="childList")for(const a of r.addedNodes)a.tagName==="LINK"&&a.rel==="modulepreload"&&e(a)}).observe(document,{childList:!0,subtree:!0});function t(n){const r={};return n.integrity&&(r.integrity=n.integrity),n.referrerPolicy&&(r.referrerPolicy=n.referrerPolicy),n.crossOrigin==="use-credentials"?r.credentials="include":n.crossOrigin==="anonymous"?r.credentials="omit":r.credentials="same-origin",r}function e(n){if(n.ep)return;n.ep=!0;const r=t(n);fetch(n.href,r)}})();const $=["LABEL","GOTO","IF","GOSUB","RETURN","WAIT","END","SET","PRINT","DEBUG","REM","Mode","UseLED","SetLED","KeyPress","KeyRelease","KeyPushFor","KeyType","MouseMove","MousePress","MouseRelease","MousePushFor","Mouserun","ProConPress","ProConRelease","ProConPushFor","ProConHat","ProConJoy"],w=new Set(["ispressed","rand","gettime","abs","acos","asin","atan","atan2","ceil","clamp","cos","cosh","cot","deg2rad","e","exp","floor","ln","log10","max","min","mod","pi","pow","power","rad2deg","round","sign","sin","sinh","sqr","sqrt","sum","tan","tanh","trunc","fac","fact","ncr","npr","permut","combin","if","ifs","not","and","or","true","false","nan","even","odd","iseven","isodd","isnan","iserr","effect","nominal"]),b={MousePress:["LEFT","RIGHT","MIDDLE"],MouseRelease:["LEFT","RIGHT","MIDDLE"],MousePushFor:["LEFT","RIGHT","MIDDLE"],Mode:["KeyMouse","ProController"],ProConPress:["A","B","X","Y","L","R","ZL","ZR","MINUS","PLUS","HOME","CAPTURE","LCLICK","RCLICK","UP","DOWN","LEFT","RIGHT"],ProConRelease:["A","B","X","Y","L","R","ZL","ZR","MINUS","PLUS","HOME","CAPTURE","LCLICK","RCLICK"],ProConPushFor:["A","B","X","Y","L","R","ZL","ZR","MINUS","PLUS","HOME","CAPTURE","LCLICK","RCLICK"],ProConHat:["UP","UP_RIGHT","RIGHT","RIGHT_DOWN","DOWN","DOWN_LEFT","LEFT","LEFT_UP","CENTER"],KeyPress:["F1","F2","F3","F4","F5","F6","F7","F8","F9","F10","F11","F12","ENTER","RETURN","ESC","ESCAPE","BACKSPACE","BKSP","TAB","SPACE","SPACEBAR","CAPSLOCK","CAPS","MINUS","EQUAL","LEFTBRACE","RIGHTBRACE","BACKSLASH","SEMICOLON","APOSTROPHE","GRAVE","COMMA","DOT","PERIOD","SLASH","UP","DOWN","LEFT","RIGHT","ARROWUP","ARROWDOWN","ARROWLEFT","ARROWRIGHT"],KeyRelease:["F1","F2","F3","F4","F5","F6","F7","F8","F9","F10","F11","F12","ENTER","RETURN","ESC","ESCAPE","BACKSPACE","BKSP","TAB","SPACE","SPACEBAR","CAPSLOCK","CAPS","MINUS","EQUAL","LEFTBRACE","RIGHTBRACE","BACKSLASH","SEMICOLON","APOSTROPHE","GRAVE","COMMA","DOT","PERIOD","SLASH","UP","DOWN","LEFT","RIGHT","ARROWUP","ARROWDOWN","ARROWLEFT","ARROWRIGHT"],KeyPushFor:["F1","F2","F3","F4","F5","F6","F7","F8","F9","F10","F11","F12","ENTER","RETURN","ESC","ESCAPE","BACKSPACE","BKSP","TAB","SPACE","SPACEBAR","CAPSLOCK","CAPS","MINUS","EQUAL","LEFTBRACE","RIGHTBRACE","BACKSLASH","SEMICOLON","APOSTROPHE","GRAVE","COMMA","DOT","PERIOD","SLASH","UP","DOWN","LEFT","RIGHT","ARROWUP","ARROWDOWN","ARROWLEFT","ARROWRIGHT"]},H=new Set(Object.values(b).flat().map(s=>s.toUpperCase())),U={Mode:["constant"],MousePress:["constant"],MouseRelease:["constant"],MousePushFor:["constant","expr"],ProConPress:["constant"],ProConRelease:["constant"],ProConPushFor:["constant","expr"],ProConHat:["constant"],KeyPress:["constant"],KeyRelease:["constant"],KeyPushFor:["constant","expr"],KeyType:["string","expr","expr"]},u={definedLabels:new Map,definedVars:new Map,scriptLines:[],matchedParenIndices:new Set};function M(s){u.scriptLines=s.split(/\r?\n/),u.definedLabels.clear(),u.definedVars.clear();let o=0,t=0;u.scriptLines.forEach((r,a)=>{const l=r.trim();if(!(!l||l.startsWith("#")||l.toUpperCase().startsWith("REM"))){if(l.toUpperCase().startsWith("LABEL")){const c=l.split(/\s+/);c[1]&&u.definedLabels.set(c[1],a+1)}if(l.toUpperCase().startsWith("SET")){const c=l.indexOf("=");if(c>3){const f=l.substring(3,c).trim().split(/\s+/)[0];u.definedVars.has(f)||u.definedVars.set(f,a+1)}}}});let e="",n=0;return u.scriptLines.forEach((r,a)=>{const l=L(r);let c=l,p="",f="";const g=r.trim();if(g.length>0&&!g.startsWith("#")&&!g.toUpperCase().startsWith("REM")){const i=g.indexOf(" "),C=(i===-1?g:g.substring(0,i)).toUpperCase(),d=C.indexOf("("),E=d!==-1?C.substring(0,d):C;if($.some(m=>m.toUpperCase()===E)){const m=_(r,E,n);c=m.html,m.error?(p="error-bg",f=`<span class="msg-text err-text">${m.error}</span>`,o++):m.warning&&(p="warning-bg",f=`<span class="msg-text warn-text">${m.warning}</span>`,t++)}else c=`<span class="other">${l}</span>`}else g.length>0&&(c=`<span class="other">${l}</span>`);e+=`<div class="line ${p}">${c}${f}</div>`,n+=r.length+1}),s.endsWith(`
+`)&&(e+='<div class="line"><br></div>'),{html:e,errorCount:o,warningCount:t}}function _(s,o,t){let e="",n=null,r=null;const a=i=>u.matchedParenIndices.has(t+i),l=s.match(new RegExp(`^(\\s*)(${o})`,"i"));if(!l)return{html:L(s)};const c=L(l[1]),p=L(l[2]),f=s.substring(l[0].length),g=l[0].length;if(f.startsWith("(")){e+=`<span class="other">${c}</span><span class="func">${p}</span>`;const i=j(f,0);if(i!==-1){const d=a(g)?"func paren-match":"func";e+=`<span class="${d}">(</span>`;const E=f.substring(1,i);e+=R(E,t+g+1);const m=g+i,T=a(m)?"func paren-match":"func";e+=`<span class="${T}">)</span>`;const A=f.substring(i+1);if(A.trim().length>0){const F=A.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");e+=`<span class="other">${F}</span>`,r="閉じ括弧の後ろの文字は無視されます"}else e+=L(A);const y=z(o,E);y&&(n=y)}else{const d=a(g)?"func paren-match":"func";e+=`<span class="${d}">(</span>`+R(f.substring(1),t+g+1),n="閉じ括弧 ) がありません"}}else{e+=`<span class="other">${c}</span><span class="func">${p}</span>`;let i=f,C=t+g;if(o==="SET"){const d=i.indexOf("=");if(d!==-1){const E=i.substring(0,d),m=E.match(/([a-zA-Z_][a-zA-Z0-9_]*)/);if(m){const y=E.substring(0,m.index),F=E.substring(m.index+m[0].length);e+=`<span class="other">${L(y)}</span><span class="var">${m[0]}</span><span class="other">${L(F)}</span>`}else e+=`<span class="other">${L(E)}</span>`;e+='<span class="func">=</span>';const T=i.substring(d+1);e+=R(T,C+d+1);const A=O(T);A&&(n=A)}else e+=`<span class="other">${L(i)}</span>`,n="= が必要です"}else if(o==="GOTO"||o==="GOSUB"){const d=i.trim();e+=`<span class="label-ref">${L(i)}</span>`,u.definedLabels.has(d)||(n="未定義ラベル")}else if(o==="IF"){const d=i.toUpperCase().indexOf("GOTO");if(d!==-1){const E=i.substring(0,d),m=i.substring(d+4);e+=R(E,C),e+='<span class="func">GOTO</span>',e+=`<span class="label-ref">${L(m)}</span>`;const T=O(E);T&&(n=T),u.definedLabels.has(m.trim())||(n=(n?n+" ":"")+"未定義ラベル")}else e+=R(i,C),n="GOTO が必要です"}else if(o==="LABEL")e+=`<span class="label-def">${L(i)}</span>`;else if(e+=R(i,C),o==="WAIT"){const d=O(i);d&&(n=d)}}if(!n){const i=Z(f);i&&(n=i)}return{html:e,error:n,warning:r}}function Z(s){const o=s.replace(/"[^"]*"/g,"");let t=0;for(const e of o)if(e==="(")t++;else if(e===")"&&(t--,t<0))return"括弧の対応が取れていません";return t!==0?"括弧の対応が取れていません":null}function R(s,o){let t="";const e=/([a-zA-Z_][a-zA-Z0-9_]*)|([(),])|([^a-zA-Z_(),]+)/g;let n;for(;(n=e.exec(s))!==null;){const r=n[0],a=L(r),l=o+n.index;if(n[1]){const c=r.toLowerCase();w.has(c)?t+=`<span class="func">${a}</span>`:u.definedVars.has(r)?t+=`<span class="var">${a}</span>`:H.has(r.toUpperCase())?t+=`<span class="arg">${a}</span>`:t+=`<span class="arg">${a}</span>`}else if(n[2])if(r==="("||r===")"){const c=V(l)?"func paren-match":"func";t+=`<span class="${c}">${a}</span>`}else t+=`<span class="func">${a}</span>`;else t+=`<span class="arg">${a}</span>`}return t}function V(s){return u.matchedParenIndices.has(s)}function z(s,o){if(U[s]){const t=U[s],e=q(o);for(let n=0;n<e.length;n++){const r=e[n].trim(),a=t[n]||"expr";if(a==="constant"){const l=b[s]?b[s].map(p=>p.toUpperCase()):[],c=r.toUpperCase();if(!l.includes(c))return`${s}の引数${n+1}は定数(${b[s].join(", ")})のみ使用できます`}else if(a==="string"){if(!r.match(/^"[^"]*"$/))return`${s}の引数${n+1}は文字列リテラル("...")のみ使用できます`}else if(a==="expr"){const l=O(r);if(l)return l}}return null}return O(o)}function q(s){const o=[];let t="",e=0,n=!1;for(let r=0;r<s.length;r++){const a=s[r];a==='"'&&(r===0||s[r-1]!=="\\")?(n=!n,t+=a):n?t+=a:a==="("?(e++,t+=a):a===")"?(e--,t+=a):a===","&&e===0?(o.push(t),t=""):t+=a}return t.trim()&&o.push(t),o}function O(s){const t=s.replace(/"[^"]*"/g,"0").match(/[a-zA-Z_][a-zA-Z0-9_]*/g);if(!t)return null;for(const e of t){const n=e.toLowerCase();if(!w.has(n)&&!H.has(e.toUpperCase())&&!u.definedVars.has(e)&&!$.some(r=>r.toUpperCase()===n.toUpperCase()))return`未定義: ${e}`}return null}function j(s,o){let t=0;for(let e=o;e<s.length;e++)if(s[e]==="(")t++;else if(s[e]===")"&&(t--,t===0))return e;return-1}function L(s){return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")}function Y(s,o){u.matchedParenIndices.clear();let t=0,e=-1;for(let n=o-1;n>=0;n--){const r=s[n];if(r===")")t++;else if(r==="(")if(t>0)t--;else{e=n;break}}if(e!==-1){const n=Q(s,e,1);n!==-1&&n>=o&&(u.matchedParenIndices.add(e),u.matchedParenIndices.add(n))}}function Q(s,o,t){const e="(",n=")",r=s[o],a=r===e?n:e;let l=0,c=o;for(;c>=0&&c<s.length;){const p=s[c];if(p===r?l++:p===a&&l--,l===0)return c;c+=t}return-1}function N(s,o){const t=s.value,e=s.selectionStart;let n=e-1;for(;n>=0&&/[a-zA-Z0-9_]/.test(t[n]);)n--;n++;const r=t.substring(n,e);let a=n-1;for(;a>=0&&/\s/.test(t[a]);)a--;let l=null;if(a>=0&&t[a]==="("){let p=a-1;for(;p>=0&&/\s/.test(t[p]);)p--;let f=p+1;for(;p>=0&&/[a-zA-Z0-9_]/.test(t[p]);)p--;l=t.substring(p+1,f)}else a>=0&&(t[a]===","||t[a]);let c=[];if(l&&b[l])c=b[l].filter(p=>p.startsWith(r.toUpperCase()));else{let p=t.lastIndexOf(`
+`,n-1)+1,f=t.substring(p,n).trim().toUpperCase();(f.endsWith("GOTO")||f.endsWith("GOSUB")||f.includes("GOTO "))&&(c=Array.from(u.definedLabels.keys()).filter(g=>g.toUpperCase().startsWith(r.toUpperCase())))}c.length>0?X(c,s,o,n,e):o.style.display="none"}function X(s,o,t,e,n){let r="";s.forEach((i,C)=>{const d=n-e,E=i.substring(0,d),m=i.substring(d);r+=`<div class="ac-item ${C===0?"selected":""}" data-val="${i}">
+            <span class="ac-match">${E}</span>${m}
+        </div>`}),t.innerHTML=r;const a=21,c=o.value.substring(0,e).split(`
+`),p=c.length*a-o.scrollTop,g=c[c.length-1].length*8.4+10;t.style.left=g+"px",t.style.top=p+20+"px",t.style.display="block",Array.from(t.children).forEach(i=>{i.addEventListener("click",C=>{v(i.dataset.val,o,t,e,n)}),i.onmousedown=C=>{v(i.dataset.val,o,t,e,n)}})}function v(s,o,t,e,n){const r=o.value,a=r.substring(0,e),l=r.substring(n);o.value=a+s+l,o.selectionStart=o.selectionEnd=e+s.length,t.style.display="none",o.focus(),o.dispatchEvent(new Event("input"))}function J(s,o,t,e){if(t.style.display==="block")if(s.key==="Enter"||s.key==="Tab"){if(s.preventDefault(),t.firstElementChild){const n=t.firstElementChild;n.onmousedown&&n.onmousedown({preventDefault:()=>{}})}}else s.key==="Escape"&&(t.style.display="none");else s.key==="Tab"&&(s.preventDefault(),e&&e("    "))}function x(s,o){const t=o.selectionStart,e=o.selectionEnd;o.value=o.value.substring(0,t)+s+o.value.substring(e),o.selectionStart=o.selectionEnd=t+s.length,o.focus();const n=M(o.value);document.getElementById("code-highlight").innerHTML=n.html}function ee(s){const o=new Blob([s.value],{type:"text/plain"}),t=document.createElement("a");t.href=URL.createObjectURL(o),t.download="script.txt",t.click()}function te(){document.body.classList.toggle("show-errors",document.getElementById("chk-errors").checked)}function se(s){document.querySelectorAll(".tab").forEach(e=>e.classList.remove("active")),document.querySelectorAll(".tab-content").forEach(e=>e.classList.remove("active"));const o=document.querySelector(`.tab[data-tab="${s}"]`);o&&o.classList.add("active");const t=document.getElementById(s);t&&t.classList.add("active"),s==="flowchart"&&G()}function W(s){const o=document.getElementById("label-list"),t=document.getElementById("var-list");!o||!t||(o.innerHTML="",t.innerHTML="",u.definedLabels.forEach((e,n)=>{const r=document.createElement("div");r.className="struct-item",r.innerHTML=`<span class="struct-name">${n}</span><span>L${e}</span>`,r.onclick=()=>B(e,s),o.appendChild(r)}),u.definedVars.forEach((e,n)=>{const r=document.createElement("div");r.className="struct-item",r.innerHTML=`<span class="struct-name">${n}</span><span>Def: L${e}</span>`,r.onclick=()=>B(e,s),t.appendChild(r)}))}function B(s,o){o.scrollTop=(s-5)*21}function G(){const s=document.getElementById("mermaid-container");if(!s)return;s.innerHTML="Loading...";let o=`graph TD;
+`,t="START",e="START",n=[];u.scriptLines.forEach((r,a)=>{const l=r.trim();if(!(!l||l.startsWith("#")||l.toUpperCase().startsWith("REM"))){if(l.toUpperCase().startsWith("LABEL")){const c=l.split(/\s+/)[1];e&&n.push({id:t,lbl:e,next:c}),t=c,e=c+`
+`;return}if(l.toUpperCase().startsWith("GOTO")){n.push({id:t,lbl:e+"GOTO "+l.split(/\s+/)[1],jump:l.split(/\s+/)[1]}),t="N"+a,e="";return}if(l.toUpperCase().startsWith("IF")){const c=l.toUpperCase().indexOf("GOTO");if(c!==-1){n.push({id:t,lbl:e+"IF "+l.substring(2,c).trim(),jump:l.substring(c+4).trim(),next:"N"+a}),t="N"+a,e="";return}}if(l.toUpperCase()=="END"||l.toUpperCase()=="RETURN"){n.push({id:t,lbl:e+l}),t="N"+a,e="";return}e+=l.replace(/[()\"]/g,"")+`
+`}}),e&&n.push({id:t,lbl:e}),n.forEach(r=>{if(!r.lbl.trim())return;let a=r.lbl.trim().replace(/\n/g,"<br>");o+=`    ${r.id}["${a}"]
+`,r.jump&&(o+=`    ${r.id} --> ${r.jump}
+`),r.next&&(o+=`    ${r.id} --> ${r.next}
+`)});try{window.mermaid?window.mermaid.render("graphDiv",o).then(r=>s.innerHTML=r.svg):s.innerHTML="Mermaid library not loaded."}catch(r){s.innerHTML="Error: "+r.message}}function D(s,o){const t=document.getElementById("status-area");if(t)if(s>0||o>0){let e="";s>0&&(e+=`<span style="color: #ff6b6b;">エラー: ${s}件</span>`),o>0&&(e&&(e+=", "),e+=`<span style="color: #ffa500;">警告: ${o}件</span>`),t.innerHTML=e}else t.innerHTML='<span style="color: #51cf66;">準備完了</span>'}function K(){document.getElementById("help-modal").style.display="block"}function k(){document.getElementById("help-modal").style.display="none"}const h=document.getElementById("code-input"),S=document.getElementById("code-highlight"),P=document.getElementById("autocomplete-list");window.onload=()=>{I(),W(h),K()};function I(){Y(h.value,h.selectionStart);const s=M(h.value);S.innerHTML=s.html,D(s.errorCount,s.warningCount)}h.addEventListener("input",()=>{I(),N(h,P)});h.addEventListener("scroll",()=>{S.scrollTop=h.scrollTop,S.scrollLeft=h.scrollLeft});h.addEventListener("keydown",s=>{J(s,h,P,o=>x(o,h))});h.addEventListener("click",()=>{I(),N(h,P)});h.addEventListener("keyup",()=>{I()});h.addEventListener("blur",()=>{setTimeout(()=>P.style.display="none",200)});document.getElementById("btn-open").onclick=()=>document.getElementById("file-input").click();document.getElementById("file-input").onchange=s=>{if(s.target.files[0]){const o=new FileReader;o.onload=t=>{h.value=t.target.result;const e=M(h.value);S.innerHTML=e.html,W(h),D(e.errorCount,e.warningCount)},o.readAsText(s.target.files[0])}};document.getElementById("btn-save").onclick=()=>ee(h);document.getElementById("btn-help").onclick=()=>K();document.getElementById("chk-errors").onchange=()=>te();document.getElementById("close-help-btn").onclick=()=>k();window.onclick=s=>{s.target===document.getElementById("help-modal")&&k()};document.querySelectorAll(".tab").forEach(s=>{s.onclick=()=>se(s.dataset.tab)});document.querySelectorAll(".doc-item").forEach(s=>{s.onclick=()=>x(s.dataset.insert,h)});document.getElementById("btn-update-flowchart").onclick=()=>G();</script>
+  <style rel="stylesheet" crossorigin>html,body{margin:0;padding:0;width:100%;height:100%;font-family:Meiryo,sans-serif;background-color:#f0f0f0;overflow:hidden}#container{display:flex;width:100%;height:100%;box-sizing:border-box}#editor-pane{width:55%;height:100%;display:flex;flex-direction:column;background-color:#fff;border-right:1px solid #ccc}#toolbar{padding:8px;background:#eee;border-bottom:1px solid #ccc;display:flex;align-items:center;gap:10px;flex-shrink:0}.tool-btn{padding:5px 12px;cursor:pointer;border:1px solid #999;background:#fff;border-radius:3px;font-size:.9rem;transition:background .1s}.tool-btn:hover{background:#e6f7ff;border-color:#1890ff}.toggle-label{font-size:.9rem;-webkit-user-select:none;user-select:none;display:flex;align-items:center;gap:5px;cursor:pointer}#status-area{padding:4px 8px;font-size:.85rem;color:#333;background:#fafafa;border-bottom:1px solid #ddd;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#editor-wrapper{position:relative;flex-grow:1;width:100%;height:0;background-color:#fafafa;overflow:hidden}.editor-layer{position:absolute;top:0;left:0;width:100%;height:100%;padding:10px;box-sizing:border-box;font-family:Consolas,Monaco,monospace;font-size:14px;line-height:1.5;white-space:pre;overflow:auto;border:none;margin:0}#code-highlight{z-index:1;color:transparent;pointer-events:none}#code-input{z-index:2;color:transparent;background:transparent;caret-color:#000;outline:none;resize:none}#code-input::selection{background:#0078d74d;color:transparent}.line{display:block;min-height:1.5em}.func{color:green;font-weight:700}.var{color:brown;font-weight:700}.arg{color:#d4a017}.other{color:#00f}.label-def,.label-ref{color:brown;font-weight:700;text-decoration:underline}.paren-match{border-bottom:2px solid #008000;background-color:#00ff001a}body.show-errors .error-bg{background-color:#fcc}body.show-errors .warning-bg{background-color:#fff8c4}.msg-text{font-size:.8em;font-weight:700;margin-left:10px;padding:0 4px;border-radius:2px;background:#ffffffe6;vertical-align:middle}.err-text{color:red;display:none}.warn-text{color:#e6a800;display:none}body.show-errors .err-text,body.show-errors .warn-text{display:inline}#autocomplete-list{position:absolute;border:1px solid #ccc;background:#fff;z-index:100;max-height:200px;overflow-y:auto;box-shadow:3px 3px 5px #0003;display:none;font-size:12px;font-family:Meiryo,sans-serif}.ac-item{padding:6px 10px;cursor:pointer;border-bottom:1px solid #eee}.ac-item:hover,.ac-item.selected{background-color:#e6f7ff;color:#1890ff}.ac-match{font-weight:700;color:green}.ac-type{float:right;color:#888;font-size:.8em;margin-left:10px}#info-pane{width:45%;height:100%;display:flex;flex-direction:column;background-color:#f9f9f9;border-left:1px solid #ddd}.tab-bar{display:flex;background:#eee;border-bottom:1px solid #ccc;flex-shrink:0}.tab{padding:10px 15px;cursor:pointer;border-right:1px solid #ccc;background:#eee;font-size:.9rem}.tab:hover{background:#ddd}.tab.active{background:#fff;font-weight:700;border-bottom:1px solid #fff;margin-bottom:-1px}.tab-content{display:none;flex-grow:1;overflow-y:auto;padding:15px}.tab-content.active{display:block}.doc-section{margin-bottom:20px}.doc-item{margin-bottom:6px;padding:6px;border-bottom:1px solid #eee;cursor:pointer;background:#fff;border-radius:4px}.doc-item:hover{background-color:#e6f7ff;border-left:4px solid #1890ff;padding-left:2px}.doc-syntax{font-family:monospace;font-weight:700;color:green;background-color:#e8f5e9;padding:2px 6px;border-radius:3px;display:inline-block;margin-bottom:2px}.doc-desc{margin-left:0;font-size:.85rem;color:#555;line-height:1.4}h2{font-size:1rem;background:#eef;padding:8px;border-left:5px solid #0078d7;margin-top:0;margin-bottom:10px;border-radius:2px}.struct-item{padding:5px 10px;border-bottom:1px solid #eee;cursor:pointer;display:flex;justify-content:space-between;font-size:.9rem;background:#fff}.struct-item:hover{background-color:#e0f7fa}.struct-name{font-weight:700;color:#001080}#mermaid-container{text-align:center;padding:10px}#help-modal{display:none;position:fixed;z-index:1000;left:0;top:0;width:100%;height:100%;overflow:auto;background-color:#00000080;-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px)}.modal-content{background-color:#fff;margin:5% auto;padding:0;border:1px solid #888;width:80%;max-width:800px;border-radius:8px;box-shadow:0 4px 8px #0003;position:relative;animation:slidein .3s}@keyframes slidein{0%{transform:translateY(-50px);opacity:0}to{transform:translateY(0);opacity:1}}.modal-header{padding:15px 20px;background:#f5f5f5;border-bottom:1px solid #ddd;border-radius:8px 8px 0 0;display:flex;justify-content:space-between;align-items:center}.modal-body{padding:20px;max-height:70vh;overflow-y:auto;line-height:1.6;color:#333}.close-btn{color:#aaa;font-size:28px;font-weight:700;cursor:pointer}.close-btn:hover{color:#000}.help-h3{border-left:4px solid #1890ff;margin-top:20px;background:#e6f7ff;padding:5px 10px;font-size:1.1em;font-weight:700}.help-key{background:#eee;padding:2px 6px;border-radius:4px;border:1px solid #ccc;font-family:monospace;font-weight:700;font-size:.9em}.help-link{color:#1890ff;text-decoration:none;font-weight:700}.help-link:hover{text-decoration:underline}.legend-box{display:inline-block;width:12px;height:12px;margin-right:5px;border-radius:2px;vertical-align:middle}.legend-func{background-color:green}.legend-var{background-color:brown}.legend-arg{background-color:#d4a017}.legend-other{background-color:#00f}</style>
+</head>
+
+<body class="show-errors">
+
+    <div id="help-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 style="margin:0; padding:0; background:none; border:none;">Pico AutoInput Editor へようこそ</h2>
+                <span class="close-btn" id="close-help-btn">&times;</span>
+            </div>
+            <div class="modal-body">
+                <p>このエディタは、<b>Pico AutoInput</b> デバイスのスクリプト編集を支援する公式ツールです。</p>
+
+                <h3 class="help-h3">エディタの配色（シンタックスハイライト）</h3>
+                <ul>
+                    <li><span class="legend-box legend-func"></span><b style="color:#008000">緑色</b> : コマンド、関数、構文 (例:
+                        <code>WAIT</code>, <code>(</code>, <code>)</code>)</li>
+                    <li><span class="legend-box legend-var"></span><b style="color:#a52a2a">茶色</b> : 変数、ラベル (例:
+                        <code>i</code>, <code>LOOP</code>)</li>
+                    <li><span class="legend-box legend-arg"></span><b style="color:#d4a017">黄色</b> : 引数、数値、定数 (例:
+                        <code>0.5</code>, <code>LEFT</code>)</li>
+                    <li><span class="legend-box legend-other"></span><b style="color:#0000ff">青色</b> : コメント、その他 (例:
+                        <code>REM</code>, <code>#</code>)</li>
+                    <li><b style="border-bottom:2px solid #008000; background:rgba(0,255,0,0.1)">緑の下線</b> :
+                        現在カーソルがある括弧に対応するペア</li>
+                </ul>
+
+                <h3 class="help-h3">エディタの機能</h3>
+                <ul>
+                    <li><b>入力補完:</b> <span class="help-key">MousePress</span>
+                        等の引数入力中に候補を表示します。クリックで挿入でき、既存の文字は正しく置換されます。</li>
+                    <li><b>ラベル補完:</b> <span class="help-key">GOTO</span> や <span class="help-key">IF...GOTO</span>
+                        入力時、定義済みのラベルが候補に出ます。</li>
+                    <li><b>リファレンス:</b> 右パネルの項目をクリックすると、そのコマンドがカーソル位置に挿入されます。</li>
+                </ul>
+
+                <h3 class="help-h3">サンプルの使い方</h3>
+                <ol>
+                    <li>エディタでスクリプトを作成するか、サンプルコードをコピーして貼り付けます。</li>
+                    <li>ツールバーの「<b>保存</b>」ボタンを押し、ファイル名を <code>Script.txt</code> にして保存します。</li>
+                    <li>Pico AutoInput をPCに接続し、USBドライブとして認識させます。</li>
+                    <li>保存した <code>Script.txt</code> をドライブのルート（一番上の階層）にコピー（上書き）します。</li>
+                    <li>Picoの <b>BOOTSELボタン</b> を短く押すとスクリプトが実行されます。</li>
+                </ol>
+
+                <h3 class="help-h3">ファームウェアの更新方法</h3>
+                <ol>
+                    <li>最新のファームウェア (<code>.uf2</code> ファイル) を入手します。<br>
+                        配布URL: <a href="#" class="help-link" onclick="alert('配布URLは後日決定されます。')">[こちらをクリックしてダウンロード]</a>
+                        (準備中)</li>
+                    <li>PicoをPCから取り外します。</li>
+                    <li>Pico本体の <b>BOOTSELボタン</b> を<b>押したまま</b>、USBケーブルでPCに接続します。</li>
+                    <li>"RPI-RP2" というドライブが認識されたらボタンを離します。</li>
+                    <li><code>.uf2</code> ファイルをそのドライブにドラッグ＆ドロップします。自動的に再起動して更新完了です。</li>
+                </ol>
+
+                <h3 class="help-h3">トラブルシューティング</h3>
+                <ul>
+                    <li><b>Q. デバイスが反応しない / 起動しなくなった</b><br>
+                        A. 起動直後やスクリプト実行中にフリーズしている可能性があります。<br>
+                        <b>「3回連続リセット」機能</b>を試してください。USBケーブルを抜き差し（再起動）して、起動処理中にわざと電源を切る、を3回繰り返すと、自動的に内部ストレージが初期化されて復旧します。この機能が発動しそうになると起動時に赤いランプが点滅する回数が増えていきます。
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <div id="container">
+        <div id="editor-pane">
+            <div id="toolbar">
+                <span style="font-weight:bold;">Pico AutoInput Editor v6</span>
+                <button class="tool-btn" id="btn-open">📂 開く</button>
+                <input type="file" id="file-input" accept=".txt" style="display:none">
+                <button class="tool-btn" id="btn-save">💾 保存</button>
+                <button class="tool-btn" id="btn-help">❓ 使い方</button>
+                <label class="toggle-label" style="margin-left:auto;">
+                    <input type="checkbox" id="chk-errors" checked>
+                    <span>⚠️ エラー表示</span>
+                </label>
+            </div>
+            <div id="status-area">準備完了</div>
+
+            <div id="editor-wrapper">
+                <pre id="code-highlight" class="editor-layer"></pre>
+                <textarea id="code-input" class="editor-layer" spellcheck="false"
+                    placeholder="// ここにスクリプトを入力してください..."></textarea>
+                <div id="autocomplete-list"></div>
+            </div>
+        </div>
+
+        <div id="info-pane">
+            <div class="tab-bar">
+                <div class="tab active" data-tab="reference">リファレンス</div>
+                <div class="tab" data-tab="structure">構造解析</div>
+                <div class="tab" data-tab="flowchart">フローチャート</div>
+            </div>
+
+            <div id="reference" class="tab-content active">
+                <p style="font-size:0.85rem; color:#666; margin:0 0 15px 0; background:#fff8c4; padding:5px;">
+                    ※ クリックするとカーソル位置に挿入されます。<br>
+                    ※ <code>expr</code> は数式や数値を意味します。
+                </p>
+
+                <div class="doc-section">
+                    <h2>基本コマンド</h2>
+                    <div class="doc-item" data-insert="WAIT 1.0"><span class="doc-syntax">WAIT expr</span>
+                        <div class="doc-desc">指定した秒数だけ待機します。<br>例: <code>WAIT 0.5</code> (0.5秒待つ)</div>
+                    </div>
+                    <div class="doc-item" data-insert="END"><span class="doc-syntax">END</span>
+                        <div class="doc-desc">スクリプトの実行を終了します。</div>
+                    </div>
+                    <div class="doc-item" data-insert="PRINT expr"><span class="doc-syntax">PRINT expr</span>
+                        <div class="doc-desc">数式の結果をルートのlog.txtに出力します。</div>
+                    </div>
+                </div>
+
+                <div class="doc-section">
+                    <h2>制御フロー (分岐・ループ)</h2>
+                    <div class="doc-item" data-insert="LABEL Name"><span class="doc-syntax">LABEL Name</span>
+                        <div class="doc-desc">ジャンプ先の「目印」を作ります。名前は任意です。</div>
+                    </div>
+                    <div class="doc-item" data-insert="GOTO Name"><span class="doc-syntax">GOTO Name</span>
+                        <div class="doc-desc">指定したラベルの行へ移動します。</div>
+                    </div>
+                    <div class="doc-item" data-insert="IF expr GOTO Name"><span class="doc-syntax">IF expr GOTO
+                            Name</span>
+                        <div class="doc-desc">条件式 <code>expr</code> が真(0以外)なら、指定ラベルへ移動します。<br>例:
+                            <code>IF count &lt; 5 GOTO LOOP</code></div>
+                    </div>
+                    <div class="doc-item" data-insert="GOSUB Name"><span class="doc-syntax">GOSUB Name</span>
+                        <div class="doc-desc">サブルーチン(部品化した処理)を呼び出します。</div>
+                    </div>
+                    <div class="doc-item" data-insert="RETURN"><span class="doc-syntax">RETURN</span>
+                        <div class="doc-desc">サブルーチンから元の場所に戻ります。</div>
+                    </div>
+                </div>
+
+                <div class="doc-section">
+                    <h2>変数操作</h2>
+                    <div class="doc-item" data-insert="SET var = expr"><span class="doc-syntax">SET var = expr</span>
+                        <div class="doc-desc">変数 <code>var</code> に計算結果を代入します。<br>例: <code>SET i = i + 1</code></div>
+                    </div>
+                </div>
+
+                <div class="doc-section">
+                    <h2>設定・モード</h2>
+                    <div class="doc-item" data-insert="Mode(KeyMouse)"><span class="doc-syntax">Mode(KeyMouse)</span>
+                        <div class="doc-desc">「キーボード・マウス」モードに切り替えます。キーボード・マウス操作項の関数はこの関数を実行しないと使用できません。</div>
+                    </div>
+                    <div class="doc-item" data-insert="Mode(ProController)"><span
+                            class="doc-syntax">Mode(ProController)</span>
+                        <div class="doc-desc">「Switch Proコントローラー」モードに切り替えます。Proコントローラー操作の項の関数はこの関数を実行しないと使用できません。</div>
+                    </div>
+                    <div class="doc-item" data-insert="UseLED(1)"><span class="doc-syntax">UseLED(1)</span>
+                        <div class="doc-desc">LED制御機能を有効(1)または無効(0)にします。</div>
+                    </div>
+                    <div class="doc-item" data-insert="SetLED(255,0,0)"><span class="doc-syntax">SetLED(r, g, b)</span>
+                        <div class="doc-desc">LEDの色をRGB(0-255)で指定します。</div>
+                    </div>
+                    <div class="doc-item" data-insert="DEBUG(1)"><span class="doc-syntax">DEBUG(1)</span>
+                        <div class="doc-desc">詳細な実行ログ出力を有効にします。出力はルートディレクトリのlog.txtに記録されます。</div>
+                    </div>
+
+                </div>
+
+                <div class="doc-section">
+                    <h2>キーボード・マウス操作</h2>
+                    <div class="doc-item" data-insert="KeyPress(A)"><span class="doc-syntax">KeyPress(key)</span>
+                        <div class="doc-desc">キーを押しっぱなしにします。<br>例: <code>A</code>, <code>ENTER</code>,
+                            <code>SHIFT</code></div>
+                    </div>
+                    <div class="doc-item" data-insert="KeyRelease(A)"><span class="doc-syntax">KeyRelease(key)</span>
+                        <div class="doc-desc">押しているキーを離します。</div>
+                    </div>
+                    <div class="doc-item" data-insert="KeyPushFor(A, 0.1)"><span class="doc-syntax">KeyPushFor(key,
+                            sec)</span>
+                        <div class="doc-desc">キーを指定秒数だけ押して離します。</div>
+                    </div>
+                    <div class="doc-item" data-insert='KeyType("Hello", 0.05, 0.05)'><span
+                            class="doc-syntax">KeyType("text", p, r)</span>
+                        <div class="doc-desc">文字列をタイピングします。p=押下時間, r=間隔(秒)。</div>
+                    </div>
+                    <div class="doc-item" data-insert="MouseMove(100, 0, 1)"><span class="doc-syntax">MouseMove(x, y,
+                            rel)</span>
+                        <div class="doc-desc">マウスを移動します。xは横移動量、yは縦移動量、relはローラーの回転量です。</div>
+                    </div>
+                    <div class="doc-item" data-insert="MousePress(LEFT)"><span class="doc-syntax">MousePress(btn)</span>
+                        <div class="doc-desc">マウスボタンを押します(LEFT/RIGHT/MIDDLE)。</div>
+                    </div>
+                    <div class="doc-item" data-insert="MouseRelease(LEFT)"><span
+                            class="doc-syntax">MouseRelease(btn)</span>
+                        <div class="doc-desc">マウスボタンを離します。</div>
+                    </div>
+                </div>
+
+                <div class="doc-section">
+                    <h2>Proコントローラー操作</h2>
+                    <div class="doc-item" data-insert="ProConPress(A)"><span class="doc-syntax">ProConPress(btn)</span>
+                        <div class="doc-desc">ボタンを押します。<br>A, B, X, Y, L, R, ZL, ZR, HOMEなど。</div>
+                    </div>
+                    <div class="doc-item" data-insert="ProConRelease(A)"><span
+                            class="doc-syntax">ProConRelease(btn)</span>
+                        <div class="doc-desc">ボタンを離します。</div>
+                    </div>
+                    <div class="doc-item" data-insert="ProConPushFor(A, 0.1)"><span
+                            class="doc-syntax">ProConPushFor(btn, sec)</span>
+                        <div class="doc-desc">ボタンを指定秒数だけ押して離します。</div>
+                    </div>
+                    <div class="doc-item" data-insert="ProConHat(UP)"><span class="doc-syntax">ProConHat(dir)</span>
+                        <div class="doc-desc">十字キーを押します。<br>UP, DOWN, LEFT, RIGHT,
+                            UP_RIGHTなど。CENTERを入れることで押していない状態に戻ります。</div>
+                    </div>
+                    <div class="doc-item" data-insert="ProConJoy(0, 0, 0, 0)"><span class="doc-syntax">ProConJoy(lx, ly,
+                            rx, ry)</span>
+                        <div class="doc-desc">スティックを倒します。範囲は -128 ～ 127。</div>
+                    </div>
+                </div>
+
+                <div class="doc-section">
+                    <h2>固有関数 (式の中で使用)</h2>
+                    <div class="doc-item" data-insert="IsPressed()"><span class="doc-syntax">IsPressed()</span>
+                        <div class="doc-desc">本体のボタンが押されていれば 1.0、離れていれば 0.0 を返します。</div>
+                    </div>
+                    <div class="doc-item" data-insert="Rand(0, 10)"><span class="doc-syntax">Rand(min, max)</span>
+                        <div class="doc-desc">min から max までのランダムな数値を返します。</div>
+                    </div>
+                    <div class="doc-item" data-insert="GetTime()"><span class="doc-syntax">GetTime()</span>
+                        <div class="doc-desc">スクリプト開始からの経過時間(ミリ秒)を返します。</div>
+                    </div>
+                </div>
+
+                <div class="doc-section">
+                    <h2>数学関数 (基本)</h2>
+                    <div class="doc-item" data-insert="abs(x)"><span class="doc-syntax">abs(x)</span>
+                        <div class="doc-desc">絶対値（正の値）を返します。</div>
+                    </div>
+                    <div class="doc-item" data-insert="round(x, 0)"><span class="doc-syntax">round(x, d)</span>
+                        <div class="doc-desc">x を小数点以下 d 桁で四捨五入します。</div>
+                    </div>
+                    <div class="doc-item" data-insert="floor(x)"><span class="doc-syntax">floor(x)</span>
+                        <div class="doc-desc">小数点以下を切り捨てます。</div>
+                    </div>
+                    <div class="doc-item" data-insert="ceil(x)"><span class="doc-syntax">ceil(x)</span>
+                        <div class="doc-desc">小数点以下を切り上げます。</div>
+                    </div>
+                    <div class="doc-item" data-insert="trunc(x)"><span class="doc-syntax">trunc(x)</span>
+                        <div class="doc-desc">整数部分のみを取り出します。</div>
+                    </div>
+                    <div class="doc-item" data-insert="min(a, b)"><span class="doc-syntax">min(a, b, ...)</span>
+                        <div class="doc-desc">引数の中で最小の値を返します。</div>
+                    </div>
+                    <div class="doc-item" data-insert="max(a, b)"><span class="doc-syntax">max(a, b, ...)</span>
+                        <div class="doc-desc">引数の中で最大の値を返します。</div>
+                    </div>
+                    <div class="doc-item" data-insert="clamp(x, min, max)"><span class="doc-syntax">clamp(x, min,
+                            max)</span>
+                        <div class="doc-desc">x を min～max の範囲内に収めます。</div>
+                    </div>
+                    <div class="doc-item" data-insert="mod(a, b)"><span class="doc-syntax">mod(a, b)</span>
+                        <div class="doc-desc">a を b で割った余りを返します。</div>
+                    </div>
+                    <div class="doc-item" data-insert="pow(x, y)"><span class="doc-syntax">pow(x, y)</span>
+                        <div class="doc-desc">x の y 乗を計算します。</div>
+                    </div>
+                    <div class="doc-item" data-insert="sqrt(x)"><span class="doc-syntax">sqrt(x)</span>
+                        <div class="doc-desc">x の平方根（ルート）を返します。</div>
+                    </div>
+                    <div class="doc-item" data-insert="pi()"><span class="doc-syntax">pi()</span>
+                        <div class="doc-desc">円周率 (約3.14159) を返します。</div>
+                    </div>
+                    <div class="doc-item" data-insert="e()"><span class="doc-syntax">e()</span>
+                        <div class="doc-desc">ネイピア数 (約2.71828) を返します。</div>
+                    </div>
+                </div>
+
+                <div class="doc-section">
+                    <h2>数学関数 (三角関数)</h2>
+                    <div class="doc-item" data-insert="sin(x)"><span class="doc-syntax">sin(x)</span>
+                        <div class="doc-desc">正弦(サイン)を返します。xはラジアン。</div>
+                    </div>
+                    <div class="doc-item" data-insert="cos(x)"><span class="doc-syntax">cos(x)</span>
+                        <div class="doc-desc">余弦(コサイン)を返します。xはラジアン。</div>
+                    </div>
+                    <div class="doc-item" data-insert="tan(x)"><span class="doc-syntax">tan(x)</span>
+                        <div class="doc-desc">正接(タンジェント)を返します。xはラジアン。</div>
+                    </div>
+                    <div class="doc-item" data-insert="asin(x)"><span class="doc-syntax">asin(x)</span>
+                        <div class="doc-desc">アークサイン（逆正弦）を返します。</div>
+                    </div>
+                    <div class="doc-item" data-insert="acos(x)"><span class="doc-syntax">acos(x)</span>
+                        <div class="doc-desc">アークコサイン（逆余弦）を返します。</div>
+                    </div>
+                    <div class="doc-item" data-insert="atan(x)"><span class="doc-syntax">atan(x)</span>
+                        <div class="doc-desc">アークタンジェント（逆正接）を返します。</div>
+                    </div>
+                    <div class="doc-item" data-insert="atan2(y, x)"><span class="doc-syntax">atan2(y, x)</span>
+                        <div class="doc-desc">座標(x,y)の角度をラジアンで返します。</div>
+                    </div>
+                    <div class="doc-item" data-insert="sinh(x)"><span class="doc-syntax">sinh / cosh / tanh</span>
+                        <div class="doc-desc">双曲線関数です。</div>
+                    </div>
+                    <div class="doc-item" data-insert="rad2deg(x)"><span class="doc-syntax">rad2deg(x)</span>
+                        <div class="doc-desc">ラジアンを度数法(0-360)に変換します。</div>
+                    </div>
+                    <div class="doc-item" data-insert="deg2rad(x)"><span class="doc-syntax">deg2rad(x)</span>
+                        <div class="doc-desc">度数法をラジアンに変換します。</div>
+                    </div>
+                </div>
+
+                <div class="doc-section">
+                    <h2>数学関数 (その他・対数・組合せ)</h2>
+                    <div class="doc-item" data-insert="ln(x)"><span class="doc-syntax">ln(x)</span>
+                        <div class="doc-desc">自然対数（底がe）を返します。</div>
+                    </div>
+                    <div class="doc-item" data-insert="log10(x)"><span class="doc-syntax">log10(x)</span>
+                        <div class="doc-desc">常用対数（底が10）を返します。</div>
+                    </div>
+                    <div class="doc-item" data-insert="fact(n)"><span class="doc-syntax">fact(n)</span>
+                        <div class="doc-desc">nの階乗 (n!) を計算します。</div>
+                    </div>
+                    <div class="doc-item" data-insert="ncr(n, r)"><span class="doc-syntax">ncr(n, r)</span>
+                        <div class="doc-desc">組合せ (nCr) の数を計算します。</div>
+                    </div>
+                    <div class="doc-item" data-insert="npr(n, r)"><span class="doc-syntax">npr(n, r)</span>
+                        <div class="doc-desc">順列 (nPr) の数を計算します。</div>
+                    </div>
+                    <div class="doc-item" data-insert="sign(x)"><span class="doc-syntax">sign(x)</span>
+                        <div class="doc-desc">正なら1、負なら-1、0なら0を返します。</div>
+                    </div>
+                </div>
+
+                <div class="doc-section">
+                    <h2>論理・条件関数</h2>
+                    <div class="doc-item" data-insert="if(c, t, f)"><span class="doc-syntax">if(cond, true,
+                            false)</span>
+                        <div class="doc-desc">条件式 cond が真なら true、偽なら false を返します。</div>
+                    </div>
+                    <div class="doc-item" data-insert="not(x)"><span class="doc-syntax">not(x)</span>
+                        <div class="doc-desc">xが0なら1、それ以外なら0を返します(否定)。</div>
+                    </div>
+                    <div class="doc-item" data-insert="and(a, b)"><span class="doc-syntax">and(a, b)</span>
+                        <div class="doc-desc">両方が真(0以外)のときのみ1を返します(論理積)。</div>
+                    </div>
+                    <div class="doc-item" data-insert="or(a, b)"><span class="doc-syntax">or(a, b)</span>
+                        <div class="doc-desc">どちらかが真(0以外)なら1を返します(論理和)。</div>
+                    </div>
+                    <div class="doc-item" data-insert="even(x)"><span class="doc-syntax">even(x)</span>
+                        <div class="doc-desc">xを最も近い偶数に丸めます。</div>
+                    </div>
+                    <div class="doc-item" data-insert="odd(x)"><span class="doc-syntax">odd(x)</span>
+                        <div class="doc-desc">xを最も近い奇数に丸めます。</div>
+                    </div>
+                    <div class="doc-item" data-insert="iseven(x)"><span class="doc-syntax">iseven(x)</span>
+                        <div class="doc-desc">xが偶数なら1、奇数なら0を返します。</div>
+                    </div>
+                    <div class="doc-item" data-insert="isodd(x)"><span class="doc-syntax">isodd(x)</span>
+                        <div class="doc-desc">xが奇数なら1、偶数なら0を返します。</div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="structure" class="tab-content">
+                <div class="struct-item" style="cursor:default; background:#eee;"><b>ラベル一覧</b></div>
+                <div id="label-list"></div>
+                <div class="struct-item" style="cursor:default; background:#eee; margin-top:20px;"><b>変数一覧</b></div>
+                <div id="var-list"></div>
+            </div>
+
+            <div id="flowchart" class="tab-content">
+                <div id="mermaid-container">Loading...</div>
+                <button class="tool-btn" id="btn-update-flowchart" style="margin-top:10px;">更新</button>
+            </div>
+        </div>
+    </div>
+
+</body>
+
+</html>

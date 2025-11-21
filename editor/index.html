@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pico AutoInput Editor v6</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+</head>
+
+<body class="show-errors">
+
+    <div id="help-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 style="margin:0; padding:0; background:none; border:none;">Pico AutoInput Editor へようこそ</h2>
+                <span class="close-btn" id="close-help-btn">&times;</span>
+            </div>
+            <div class="modal-body">
+                <p>このエディタは、<b>Pico AutoInput</b> デバイスのスクリプト編集を支援する公式ツールです。</p>
+
+                <h3 class="help-h3">エディタの配色（シンタックスハイライト）</h3>
+                <ul>
+                    <li><span class="legend-box legend-func"></span><b style="color:#008000">緑色</b> : コマンド、関数、構文 (例:
+                        <code>WAIT</code>, <code>(</code>, <code>)</code>)</li>
+                    <li><span class="legend-box legend-var"></span><b style="color:#a52a2a">茶色</b> : 変数、ラベル (例:
+                        <code>i</code>, <code>LOOP</code>)</li>
+                    <li><span class="legend-box legend-arg"></span><b style="color:#d4a017">黄色</b> : 引数、数値、定数 (例:
+                        <code>0.5</code>, <code>LEFT</code>)</li>
+                    <li><span class="legend-box legend-other"></span><b style="color:#0000ff">青色</b> : コメント、その他 (例:
+                        <code>REM</code>, <code>#</code>)</li>
+                    <li><b style="border-bottom:2px solid #008000; background:rgba(0,255,0,0.1)">緑の下線</b> :
+                        現在カーソルがある括弧に対応するペア</li>
+                </ul>
+
+                <h3 class="help-h3">エディタの機能</h3>
+                <ul>
+                    <li><b>入力補完:</b> <span class="help-key">MousePress</span>
+                        等の引数入力中に候補を表示します。クリックで挿入でき、既存の文字は正しく置換されます。</li>
+                    <li><b>ラベル補完:</b> <span class="help-key">GOTO</span> や <span class="help-key">IF...GOTO</span>
+                        入力時、定義済みのラベルが候補に出ます。</li>
+                    <li><b>リファレンス:</b> 右パネルの項目をクリックすると、そのコマンドがカーソル位置に挿入されます。</li>
+                </ul>
+
+                <h3 class="help-h3">サンプルの使い方</h3>
+                <ol>
+                    <li>エディタでスクリプトを作成するか、サンプルコードをコピーして貼り付けます。</li>
+                    <li>ツールバーの「<b>保存</b>」ボタンを押し、ファイル名を <code>Script.txt</code> にして保存します。</li>
+                    <li>Pico AutoInput をPCに接続し、USBドライブとして認識させます。</li>
+                    <li>保存した <code>Script.txt</code> をドライブのルート（一番上の階層）にコピー（上書き）します。</li>
+                    <li>Picoの <b>BOOTSELボタン</b> を短く押すとスクリプトが実行されます。</li>
+                </ol>
+
+                <h3 class="help-h3">ファームウェアの更新方法</h3>
+                <ol>
+                    <li>最新のファームウェア (<code>.uf2</code> ファイル) を入手します。<br>
+                        配布URL: <a href="#" class="help-link" onclick="alert('配布URLは後日決定されます。')">[こちらをクリックしてダウンロード]</a>
+                        (準備中)</li>
+                    <li>PicoをPCから取り外します。</li>
+                    <li>Pico本体の <b>BOOTSELボタン</b> を<b>押したまま</b>、USBケーブルでPCに接続します。</li>
+                    <li>"RPI-RP2" というドライブが認識されたらボタンを離します。</li>
+                    <li><code>.uf2</code> ファイルをそのドライブにドラッグ＆ドロップします。自動的に再起動して更新完了です。</li>
+                </ol>
+
+                <h3 class="help-h3">トラブルシューティング</h3>
+                <ul>
+                    <li><b>Q. デバイスが反応しない / 起動しなくなった</b><br>
+                        A. 起動直後やスクリプト実行中にフリーズしている可能性があります。<br>
+                        <b>「3回連続リセット」機能</b>を試してください。USBケーブルを抜き差し（再起動）して、起動処理中にわざと電源を切る、を3回繰り返すと、自動的に内部ストレージが初期化されて復旧します。この機能が発動しそうになると起動時に赤いランプが点滅する回数が増えていきます。
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <div id="container">
+        <div id="editor-pane">
+            <div id="toolbar">
+                <span style="font-weight:bold;">Pico AutoInput Editor v6</span>
+                <button class="tool-btn" id="btn-open">📂 開く</button>
+                <input type="file" id="file-input" accept=".txt" style="display:none">
+                <button class="tool-btn" id="btn-save">💾 保存</button>
+                <button class="tool-btn" id="btn-help">❓ 使い方</button>
+                <label class="toggle-label" style="margin-left:auto;">
+                    <input type="checkbox" id="chk-errors" checked>
+                    <span>⚠️ エラー表示</span>
+                </label>
+            </div>
+            <div id="status-area">準備完了</div>
+
+            <div id="editor-wrapper">
+                <pre id="code-highlight" class="editor-layer"></pre>
+                <textarea id="code-input" class="editor-layer" spellcheck="false"
+                    placeholder="// ここにスクリプトを入力してください..."></textarea>
+                <div id="autocomplete-list"></div>
+            </div>
+        </div>
+
+        <div id="info-pane">
+            <div class="tab-bar">
+                <div class="tab active" data-tab="reference">リファレンス</div>
+                <div class="tab" data-tab="structure">構造解析</div>
+                <div class="tab" data-tab="flowchart">フローチャート</div>
+            </div>
+
+            <div id="reference" class="tab-content active">
+                <p style="font-size:0.85rem; color:#666; margin:0 0 15px 0; background:#fff8c4; padding:5px;">
+                    ※ クリックするとカーソル位置に挿入されます。<br>
+                    ※ <code>expr</code> は数式や数値を意味します。
+                </p>
+
+                <div class="doc-section">
+                    <h2>基本コマンド</h2>
+                    <div class="doc-item" data-insert="WAIT 1.0"><span class="doc-syntax">WAIT expr</span>
+                        <div class="doc-desc">指定した秒数だけ待機します。<br>例: <code>WAIT 0.5</code> (0.5秒待つ)</div>
+                    </div>
+                    <div class="doc-item" data-insert="END"><span class="doc-syntax">END</span>
+                        <div class="doc-desc">スクリプトの実行を終了します。</div>
+                    </div>
+                    <div class="doc-item" data-insert="PRINT expr"><span class="doc-syntax">PRINT expr</span>
+                        <div class="doc-desc">数式の結果をルートのlog.txtに出力します。</div>
+                    </div>
+                </div>
+
+                <div class="doc-section">
+                    <h2>制御フロー (分岐・ループ)</h2>
+                    <div class="doc-item" data-insert="LABEL Name"><span class="doc-syntax">LABEL Name</span>
+                        <div class="doc-desc">ジャンプ先の「目印」を作ります。名前は任意です。</div>
+                    </div>
+                    <div class="doc-item" data-insert="GOTO Name"><span class="doc-syntax">GOTO Name</span>
+                        <div class="doc-desc">指定したラベルの行へ移動します。</div>
+                    </div>
+                    <div class="doc-item" data-insert="IF expr GOTO Name"><span class="doc-syntax">IF expr GOTO
+                            Name</span>
+                        <div class="doc-desc">条件式 <code>expr</code> が真(0以外)なら、指定ラベルへ移動します。<br>例:
+                            <code>IF count &lt; 5 GOTO LOOP</code></div>
+                    </div>
+                    <div class="doc-item" data-insert="GOSUB Name"><span class="doc-syntax">GOSUB Name</span>
+                        <div class="doc-desc">サブルーチン(部品化した処理)を呼び出します。</div>
+                    </div>
+                    <div class="doc-item" data-insert="RETURN"><span class="doc-syntax">RETURN</span>
+                        <div class="doc-desc">サブルーチンから元の場所に戻ります。</div>
+                    </div>
+                </div>
+
+                <div class="doc-section">
+                    <h2>変数操作</h2>
+                    <div class="doc-item" data-insert="SET var = expr"><span class="doc-syntax">SET var = expr</span>
+                        <div class="doc-desc">変数 <code>var</code> に計算結果を代入します。<br>例: <code>SET i = i + 1</code></div>
+                    </div>
+                </div>
+
+                <div class="doc-section">
+                    <h2>設定・モード</h2>
+                    <div class="doc-item" data-insert="Mode(KeyMouse)"><span class="doc-syntax">Mode(KeyMouse)</span>
+                        <div class="doc-desc">「キーボード・マウス」モードに切り替えます。キーボード・マウス操作項の関数はこの関数を実行しないと使用できません。</div>
+                    </div>
+                    <div class="doc-item" data-insert="Mode(ProController)"><span
+                            class="doc-syntax">Mode(ProController)</span>
+                        <div class="doc-desc">「Switch Proコントローラー」モードに切り替えます。Proコントローラー操作の項の関数はこの関数を実行しないと使用できません。</div>
+                    </div>
+                    <div class="doc-item" data-insert="UseLED(1)"><span class="doc-syntax">UseLED(1)</span>
+                        <div class="doc-desc">LED制御機能を有効(1)または無効(0)にします。</div>
+                    </div>
+                    <div class="doc-item" data-insert="SetLED(255,0,0)"><span class="doc-syntax">SetLED(r, g, b)</span>
+                        <div class="doc-desc">LEDの色をRGB(0-255)で指定します。</div>
+                    </div>
+                    <div class="doc-item" data-insert="DEBUG(1)"><span class="doc-syntax">DEBUG(1)</span>
+                        <div class="doc-desc">詳細な実行ログ出力を有効にします。出力はルートディレクトリのlog.txtに記録されます。</div>
+                    </div>
+
+                </div>
+
+                <div class="doc-section">
+                    <h2>キーボード・マウス操作</h2>
+                    <div class="doc-item" data-insert="KeyPress(A)"><span class="doc-syntax">KeyPress(key)</span>
+                        <div class="doc-desc">キーを押しっぱなしにします。<br>例: <code>A</code>, <code>ENTER</code>,
+                            <code>SHIFT</code></div>
+                    </div>
+                    <div class="doc-item" data-insert="KeyRelease(A)"><span class="doc-syntax">KeyRelease(key)</span>
+                        <div class="doc-desc">押しているキーを離します。</div>
+                    </div>
+                    <div class="doc-item" data-insert="KeyPushFor(A, 0.1)"><span class="doc-syntax">KeyPushFor(key,
+                            sec)</span>
+                        <div class="doc-desc">キーを指定秒数だけ押して離します。</div>
+                    </div>
+                    <div class="doc-item" data-insert='KeyType("Hello", 0.05, 0.05)'><span
+                            class="doc-syntax">KeyType("text", p, r)</span>
+                        <div class="doc-desc">文字列をタイピングします。p=押下時間, r=間隔(秒)。</div>
+                    </div>
+                    <div class="doc-item" data-insert="MouseMove(100, 0, 1)"><span class="doc-syntax">MouseMove(x, y,
+                            rel)</span>
+                        <div class="doc-desc">マウスを移動します。xは横移動量、yは縦移動量、relはローラーの回転量です。</div>
+                    </div>
+                    <div class="doc-item" data-insert="MousePress(LEFT)"><span class="doc-syntax">MousePress(btn)</span>
+                        <div class="doc-desc">マウスボタンを押します(LEFT/RIGHT/MIDDLE)。</div>
+                    </div>
+                    <div class="doc-item" data-insert="MouseRelease(LEFT)"><span
+                            class="doc-syntax">MouseRelease(btn)</span>
+                        <div class="doc-desc">マウスボタンを離します。</div>
+                    </div>
+                </div>
+
+                <div class="doc-section">
+                    <h2>Proコントローラー操作</h2>
+                    <div class="doc-item" data-insert="ProConPress(A)"><span class="doc-syntax">ProConPress(btn)</span>
+                        <div class="doc-desc">ボタンを押します。<br>A, B, X, Y, L, R, ZL, ZR, HOMEなど。</div>
+                    </div>
+                    <div class="doc-item" data-insert="ProConRelease(A)"><span
+                            class="doc-syntax">ProConRelease(btn)</span>
+                        <div class="doc-desc">ボタンを離します。</div>
+                    </div>
+                    <div class="doc-item" data-insert="ProConPushFor(A, 0.1)"><span
+                            class="doc-syntax">ProConPushFor(btn, sec)</span>
+                        <div class="doc-desc">ボタンを指定秒数だけ押して離します。</div>
+                    </div>
+                    <div class="doc-item" data-insert="ProConHat(UP)"><span class="doc-syntax">ProConHat(dir)</span>
+                        <div class="doc-desc">十字キーを押します。<br>UP, DOWN, LEFT, RIGHT,
+                            UP_RIGHTなど。CENTERを入れることで押していない状態に戻ります。</div>
+                    </div>
+                    <div class="doc-item" data-insert="ProConJoy(0, 0, 0, 0)"><span class="doc-syntax">ProConJoy(lx, ly,
+                            rx, ry)</span>
+                        <div class="doc-desc">スティックを倒します。範囲は -128 ～ 127。</div>
+                    </div>
+                </div>
+
+                <div class="doc-section">
+                    <h2>固有関数 (式の中で使用)</h2>
+                    <div class="doc-item" data-insert="IsPressed()"><span class="doc-syntax">IsPressed()</span>
+                        <div class="doc-desc">本体のボタンが押されていれば 1.0、離れていれば 0.0 を返します。</div>
+                    </div>
+                    <div class="doc-item" data-insert="Rand(0, 10)"><span class="doc-syntax">Rand(min, max)</span>
+                        <div class="doc-desc">min から max までのランダムな数値を返します。</div>
+                    </div>
+                    <div class="doc-item" data-insert="GetTime()"><span class="doc-syntax">GetTime()</span>
+                        <div class="doc-desc">スクリプト開始からの経過時間(ミリ秒)を返します。</div>
+                    </div>
+                </div>
+
+                <div class="doc-section">
+                    <h2>数学関数 (基本)</h2>
+                    <div class="doc-item" data-insert="abs(x)"><span class="doc-syntax">abs(x)</span>
+                        <div class="doc-desc">絶対値（正の値）を返します。</div>
+                    </div>
+                    <div class="doc-item" data-insert="round(x, 0)"><span class="doc-syntax">round(x, d)</span>
+                        <div class="doc-desc">x を小数点以下 d 桁で四捨五入します。</div>
+                    </div>
+                    <div class="doc-item" data-insert="floor(x)"><span class="doc-syntax">floor(x)</span>
+                        <div class="doc-desc">小数点以下を切り捨てます。</div>
+                    </div>
+                    <div class="doc-item" data-insert="ceil(x)"><span class="doc-syntax">ceil(x)</span>
+                        <div class="doc-desc">小数点以下を切り上げます。</div>
+                    </div>
+                    <div class="doc-item" data-insert="trunc(x)"><span class="doc-syntax">trunc(x)</span>
+                        <div class="doc-desc">整数部分のみを取り出します。</div>
+                    </div>
+                    <div class="doc-item" data-insert="min(a, b)"><span class="doc-syntax">min(a, b, ...)</span>
+                        <div class="doc-desc">引数の中で最小の値を返します。</div>
+                    </div>
+                    <div class="doc-item" data-insert="max(a, b)"><span class="doc-syntax">max(a, b, ...)</span>
+                        <div class="doc-desc">引数の中で最大の値を返します。</div>
+                    </div>
+                    <div class="doc-item" data-insert="clamp(x, min, max)"><span class="doc-syntax">clamp(x, min,
+                            max)</span>
+                        <div class="doc-desc">x を min～max の範囲内に収めます。</div>
+                    </div>
+                    <div class="doc-item" data-insert="mod(a, b)"><span class="doc-syntax">mod(a, b)</span>
+                        <div class="doc-desc">a を b で割った余りを返します。</div>
+                    </div>
+                    <div class="doc-item" data-insert="pow(x, y)"><span class="doc-syntax">pow(x, y)</span>
+                        <div class="doc-desc">x の y 乗を計算します。</div>
+                    </div>
+                    <div class="doc-item" data-insert="sqrt(x)"><span class="doc-syntax">sqrt(x)</span>
+                        <div class="doc-desc">x の平方根（ルート）を返します。</div>
+                    </div>
+                    <div class="doc-item" data-insert="pi()"><span class="doc-syntax">pi()</span>
+                        <div class="doc-desc">円周率 (約3.14159) を返します。</div>
+                    </div>
+                    <div class="doc-item" data-insert="e()"><span class="doc-syntax">e()</span>
+                        <div class="doc-desc">ネイピア数 (約2.71828) を返します。</div>
+                    </div>
+                </div>
+
+                <div class="doc-section">
+                    <h2>数学関数 (三角関数)</h2>
+                    <div class="doc-item" data-insert="sin(x)"><span class="doc-syntax">sin(x)</span>
+                        <div class="doc-desc">正弦(サイン)を返します。xはラジアン。</div>
+                    </div>
+                    <div class="doc-item" data-insert="cos(x)"><span class="doc-syntax">cos(x)</span>
+                        <div class="doc-desc">余弦(コサイン)を返します。xはラジアン。</div>
+                    </div>
+                    <div class="doc-item" data-insert="tan(x)"><span class="doc-syntax">tan(x)</span>
+                        <div class="doc-desc">正接(タンジェント)を返します。xはラジアン。</div>
+                    </div>
+                    <div class="doc-item" data-insert="asin(x)"><span class="doc-syntax">asin(x)</span>
+                        <div class="doc-desc">アークサイン（逆正弦）を返します。</div>
+                    </div>
+                    <div class="doc-item" data-insert="acos(x)"><span class="doc-syntax">acos(x)</span>
+                        <div class="doc-desc">アークコサイン（逆余弦）を返します。</div>
+                    </div>
+                    <div class="doc-item" data-insert="atan(x)"><span class="doc-syntax">atan(x)</span>
+                        <div class="doc-desc">アークタンジェント（逆正接）を返します。</div>
+                    </div>
+                    <div class="doc-item" data-insert="atan2(y, x)"><span class="doc-syntax">atan2(y, x)</span>
+                        <div class="doc-desc">座標(x,y)の角度をラジアンで返します。</div>
+                    </div>
+                    <div class="doc-item" data-insert="sinh(x)"><span class="doc-syntax">sinh / cosh / tanh</span>
+                        <div class="doc-desc">双曲線関数です。</div>
+                    </div>
+                    <div class="doc-item" data-insert="rad2deg(x)"><span class="doc-syntax">rad2deg(x)</span>
+                        <div class="doc-desc">ラジアンを度数法(0-360)に変換します。</div>
+                    </div>
+                    <div class="doc-item" data-insert="deg2rad(x)"><span class="doc-syntax">deg2rad(x)</span>
+                        <div class="doc-desc">度数法をラジアンに変換します。</div>
+                    </div>
+                </div>
+
+                <div class="doc-section">
+                    <h2>数学関数 (その他・対数・組合せ)</h2>
+                    <div class="doc-item" data-insert="ln(x)"><span class="doc-syntax">ln(x)</span>
+                        <div class="doc-desc">自然対数（底がe）を返します。</div>
+                    </div>
+                    <div class="doc-item" data-insert="log10(x)"><span class="doc-syntax">log10(x)</span>
+                        <div class="doc-desc">常用対数（底が10）を返します。</div>
+                    </div>
+                    <div class="doc-item" data-insert="fact(n)"><span class="doc-syntax">fact(n)</span>
+                        <div class="doc-desc">nの階乗 (n!) を計算します。</div>
+                    </div>
+                    <div class="doc-item" data-insert="ncr(n, r)"><span class="doc-syntax">ncr(n, r)</span>
+                        <div class="doc-desc">組合せ (nCr) の数を計算します。</div>
+                    </div>
+                    <div class="doc-item" data-insert="npr(n, r)"><span class="doc-syntax">npr(n, r)</span>
+                        <div class="doc-desc">順列 (nPr) の数を計算します。</div>
+                    </div>
+                    <div class="doc-item" data-insert="sign(x)"><span class="doc-syntax">sign(x)</span>
+                        <div class="doc-desc">正なら1、負なら-1、0なら0を返します。</div>
+                    </div>
+                </div>
+
+                <div class="doc-section">
+                    <h2>論理・条件関数</h2>
+                    <div class="doc-item" data-insert="if(c, t, f)"><span class="doc-syntax">if(cond, true,
+                            false)</span>
+                        <div class="doc-desc">条件式 cond が真なら true、偽なら false を返します。</div>
+                    </div>
+                    <div class="doc-item" data-insert="not(x)"><span class="doc-syntax">not(x)</span>
+                        <div class="doc-desc">xが0なら1、それ以外なら0を返します(否定)。</div>
+                    </div>
+                    <div class="doc-item" data-insert="and(a, b)"><span class="doc-syntax">and(a, b)</span>
+                        <div class="doc-desc">両方が真(0以外)のときのみ1を返します(論理積)。</div>
+                    </div>
+                    <div class="doc-item" data-insert="or(a, b)"><span class="doc-syntax">or(a, b)</span>
+                        <div class="doc-desc">どちらかが真(0以外)なら1を返します(論理和)。</div>
+                    </div>
+                    <div class="doc-item" data-insert="even(x)"><span class="doc-syntax">even(x)</span>
+                        <div class="doc-desc">xを最も近い偶数に丸めます。</div>
+                    </div>
+                    <div class="doc-item" data-insert="odd(x)"><span class="doc-syntax">odd(x)</span>
+                        <div class="doc-desc">xを最も近い奇数に丸めます。</div>
+                    </div>
+                    <div class="doc-item" data-insert="iseven(x)"><span class="doc-syntax">iseven(x)</span>
+                        <div class="doc-desc">xが偶数なら1、奇数なら0を返します。</div>
+                    </div>
+                    <div class="doc-item" data-insert="isodd(x)"><span class="doc-syntax">isodd(x)</span>
+                        <div class="doc-desc">xが奇数なら1、偶数なら0を返します。</div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="structure" class="tab-content">
+                <div class="struct-item" style="cursor:default; background:#eee;"><b>ラベル一覧</b></div>
+                <div id="label-list"></div>
+                <div class="struct-item" style="cursor:default; background:#eee; margin-top:20px;"><b>変数一覧</b></div>
+                <div id="var-list"></div>
+            </div>
+
+            <div id="flowchart" class="tab-content">
+                <div id="mermaid-container">Loading...</div>
+                <button class="tool-btn" id="btn-update-flowchart" style="margin-top:10px;">更新</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="/src/main.js"></script>
+</body>
+
+</html>
