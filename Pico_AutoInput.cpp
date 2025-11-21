@@ -59,6 +59,105 @@ static const uint32_t MODE_SHOW = WS2812::RGB(0, 0, 255);  // 表示モード: �
 static const uint32_t MODE_WRITE = WS2812::RGB(255, 0, 0); // 書き込みモード: 赤
 static const uint32_t LED_OFF = WS2812::RGB(0, 0, 0);      // 消灯
 
+// 必要なヘッダを追加
+#include <stdarg.h>
+
+// --- ログ設定用グローバル変数 ---
+static uint32_t g_log_max_size = 20480; // デフォルト20KB
+static bool g_log_overwrite = true;     // デフォルトは上書き(OVERWRITE)
+static bool g_log_enabled = true;       // デフォルト有効
+
+// --- ログ設定関数 (ScriptProcessorから呼ばれる) ---
+extern "C" void ConfigureLog(uint32_t size_kb, bool overwrite)
+{
+    if (size_kb == 0)
+    {
+        g_log_enabled = false;
+        printf("LOG: Logging disabled\n");
+    }
+    else
+    {
+        g_log_enabled = true;
+        g_log_max_size = size_kb * 1024;
+        g_log_overwrite = overwrite;
+        printf("LOG: Configured max=%lu bytes, mode=%s\n", g_log_max_size, overwrite ? "OVERWRITE" : "STOP");
+    }
+}
+
+// --- システムログ関数 (UART + ファイル出力) ---
+extern "C" void SystemLog(const char *fmt, ...)
+{
+    char buf[256];
+
+    // 文字列整形
+    va_list args;
+    va_start(args, fmt);
+    vsnprintf(buf, sizeof(buf), fmt, args);
+    va_end(args);
+
+    // 1. UARTに出力 (常に実行)
+    printf("%s", buf);
+
+    // 2. ファイルに出力 (有効な場合のみ)
+    if (g_log_enabled && lfs_mount(&fs, &lfs_pico_flash_config) == 0)
+    {
+
+        // サイズチェック
+        lfs_file_t f;
+        int err = lfs_file_open(&fs, &f, "log.txt", LFS_O_RDONLY);
+        lfs_soff_t size = 0;
+        if (err == 0)
+        {
+            size = lfs_file_size(&fs, &f);
+            lfs_file_close(&fs, &f);
+        }
+
+        // 制限を超えている場合の処理
+        if (size >= g_log_max_size)
+        {
+            bool do_rotate = false;
+
+            if (g_log_overwrite)
+            {
+                // OVERWRITEモード: 常にローテーション(古いbakを上書き)
+                do_rotate = true;
+            }
+            else
+            {
+                // STOPモード: bakが存在しなければローテーション、存在すれば停止
+                struct lfs_info info;
+                int bak_err = lfs_stat(&fs, "log.bak", &info);
+                if (bak_err == LFS_ERR_NOENT)
+                {
+                    do_rotate = true; // まだbakがないので作る
+                }
+                else
+                {
+                    // bakが既にある -> 停止 (何もしない)
+                    lfs_unmount(&fs);
+                    return;
+                }
+            }
+
+            if (do_rotate)
+            {
+                lfs_remove(&fs, "log.bak");            // 古いbakを消す
+                lfs_rename(&fs, "log.txt", "log.bak"); // txtをbakへ
+                // 新しい log.txt はこの後の書き込みで作成される
+            }
+        }
+
+        // 追記モードで書き込み
+        err = lfs_file_open(&fs, &f, "log.txt", LFS_O_WRONLY | LFS_O_CREAT | LFS_O_APPEND);
+        if (err == 0)
+        {
+            lfs_file_write(&fs, &f, buf, strlen(buf));
+            lfs_file_close(&fs, &f);
+        }
+
+        lfs_unmount(&fs);
+    }
+}
 // Helper used by ScriptProcessor to apply color without pulling WS2812 header into that TU
 // Matches extern declaration in ScriptProcessor.cpp: extern void ApplyStripColor(int r, int g, int b);
 void ApplyStripColor(int r, int g, int b)

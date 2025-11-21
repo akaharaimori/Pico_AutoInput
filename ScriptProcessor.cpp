@@ -44,6 +44,11 @@ static uint32_t get_free_memory()
     }
     return m.fordblks;
 }
+// 外部関数の宣言に追加
+extern "C" void ConfigureLog(uint32_t size_kb, bool overwrite);
+
+// ■ 追加: 外部関数の宣言
+extern "C" void SystemLog(const char *fmt, ...);
 
 static bool g_script_debug = false;
 
@@ -52,10 +57,16 @@ static void dbg_printf(const char *fmt, ...)
 {
     if (!g_script_debug)
         return;
+
+    char buf[256];
     va_list ap;
     va_start(ap, fmt);
-    vprintf(fmt, ap);
+    vsnprintf(buf, sizeof(buf), fmt, ap);
     va_end(ap);
+
+    // ■ 変更: printf ではなく SystemLog を呼ぶ
+    // これにより UART と log.txt の両方に出力される
+    SystemLog("%s", buf);
 }
 
 // redirect printf in this TU to dbg_printf so DEBUG(...) controls output
@@ -156,6 +167,16 @@ static te_type te_GetTime()
     uint64_t delta_us = (now_us >= g_script_start_us) ? (now_us - g_script_start_us) : 0;
     uint64_t ms = delta_us / 1000u;
     return static_cast<te_type>(ms);
+}
+// --- 数学ヘルパー関数 ---
+static te_type te_deg2rad(te_type deg)
+{
+    return deg * 3.14159265358979323846 / 180.0;
+}
+
+static te_type te_rad2deg(te_type rad)
+{
+    return rad * 180.0 / 3.14159265358979323846;
 }
 
 // ScriptState 定義 (current_line_indexを追加)
@@ -287,14 +308,16 @@ static std::string mangle_expression_identifiers(ScriptState &st, const std::str
  treats identifiers in a case-sensitive way while the script language retains
  original-case variable semantics in st.vars.
 */
+/*
+ Build te variables using mangled variable names...
+*/
 static std::set<te_variable> build_te_variables_and_funcs(ScriptState &st)
 {
     std::set<te_variable> vars;
-    // add variables (mangled names) so tinyexpr sees case-sensitive distinct identifiers
+    // add variables (mangled names)
     for (auto &kv : st.vars)
     {
         te_variable v;
-        // register as __V_<originalName>
         std::string mname = std::string("__V_") + kv.first;
         v.m_name = mname;
         v.m_value = static_cast<const te_type *>(&kv.second);
@@ -303,31 +326,17 @@ static std::set<te_variable> build_te_variables_and_funcs(ScriptState &st)
         vars.insert(std::move(v));
     }
 
-    // add built-in functions (keep original names & casing)
-    {
-        te_variable fn;
-        fn.m_name = "IsPressed";
-        fn.m_value = (te_variant_type)(&te_IsPressed);
-        fn.m_type = TE_DEFAULT;
-        vars.insert(fn);
-    }
-    {
-        te_variable fn;
-        fn.m_name = "Rand";
-        fn.m_value = (te_variant_type)(&te_Rand);
-        fn.m_type = TE_DEFAULT;
-        vars.insert(fn);
-    }
-    {
-        te_variable fn;
-        fn.m_name = "GetTime";
-        fn.m_value = (te_variant_type)(&te_GetTime);
-        fn.m_type = TE_DEFAULT;
-        vars.insert(fn);
-    }
+    // --- 組み込み関数の登録 ---
+    vars.insert({"IsPressed", (te_variant_type)te_IsPressed, TE_DEFAULT});
+    vars.insert({"Rand", (te_variant_type)te_Rand, TE_DEFAULT});
+    vars.insert({"GetTime", (te_variant_type)te_GetTime, TE_DEFAULT});
+
+    // ■ 追加: 三角関数用変換
+    vars.insert({"deg2rad", (te_variant_type)te_deg2rad, TE_DEFAULT});
+    vars.insert({"rad2deg", (te_variant_type)te_rad2deg, TE_DEFAULT});
+
     return vars;
 }
-
 // Helper: map human-friendly key names to Arduino/TinyUSB keyboard codes or ASCII.
 // Script commands use names like "ENTER", "SPACE", "F1", "A", "1", "LEFT", "UP".
 static uint8_t key_name_to_hid(const std::string &name)
@@ -1002,6 +1011,52 @@ static int execute_line(ScriptState &st, int current_index)
         }
         SignalRuntimeError("RETURN without GOSUB", current_index + 1, line.c_str(), "N/A");
         st.end_flag = true;
+        return current_index + 1;
+    }
+    // 使用例: LogConfig(20, OVERWRITE) または LogConfig(10, STOP)
+    if (starts_with_cmd(line, "LogConfig"))
+    {
+        size_t p = line.find('(');
+        size_t q = line.rfind(')');
+        if (p != std::string::npos && q != std::string::npos && q > p)
+        {
+            std::string args = line.substr(p + 1, q - p - 1);
+            auto parts = split_top_level_args(args);
+            if (parts.size() >= 2)
+            {
+                auto [ok, val] = eval_expression(st, parts[0]); // サイズ(KB)
+                std::string mode = trim(parts[1]);              // モード文字列
+
+                if (ok)
+                {
+                    uint32_t kb = (uint32_t)val;
+                    bool overwrite = true; // デフォルト
+
+                    // 大文字小文字無視で判定
+                    std::string m_upper = mode;
+                    for (auto &c : m_upper)
+                        if (c >= 'a' && c <= 'z')
+                            c = c - 'a' + 'A';
+
+                    if (m_upper == "STOP")
+                    {
+                        overwrite = false;
+                    }
+                    else if (m_upper == "OVERWRITE")
+                    {
+                        overwrite = true;
+                    }
+                    else
+                    {
+                        // 数値(0/1)での指定も許容
+                        if (mode == "0")
+                            overwrite = false;
+                    }
+
+                    ConfigureLog(kb, overwrite);
+                }
+            }
+        }
         return current_index + 1;
     }
 
