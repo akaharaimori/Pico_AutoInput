@@ -1,4 +1,4 @@
-import { COMMANDS, BUILTIN_FUNCS, VALID_CONSTANTS, AC_CONSTANTS, COMMAND_ARG_TYPES } from './constants.js';
+import { COMMANDS, BUILTIN_FUNCS, VALID_CONSTANTS, AC_CONSTANTS, COMMAND_ARG_TYPES, LOG_CONSTANTS } from './constants.js';
 
 export const state = {
     definedLabels: new Map(),
@@ -83,8 +83,7 @@ function renderLine(line, cmdPure, lineStartIndex) {
     let error = null;
     let warning = null;
 
-    // 全角スペース(U+3000)チェック
-    // 文字列リテラル内は許可するため、一時的に除外してチェックする
+    // 全角スペースチェック
     const textWithoutStrings = line.replace(/"[^"]*"/g, "");
     if (textWithoutStrings.includes('\u3000')) {
         error = "全角スペース(U+3000)が含まれています。半角スペースを使用してください";
@@ -104,7 +103,7 @@ function renderLine(line, cmdPure, lineStartIndex) {
     if (restRaw.startsWith('(')) {
         html += `<span class="other">${indent}</span><span class="func">${cmdStr}</span>`;
 
-        // Find the MATCHING closing parenthesis, not the last one
+        // Find the MATCHING closing parenthesis
         const endP = findMatchingCloseParen(restRaw, 0);
         if (endP !== -1) {
             // '('
@@ -122,8 +121,6 @@ function renderLine(line, cmdPure, lineStartIndex) {
 
             const tail = restRaw.substring(endP + 1);
             if (tail.trim().length > 0) {
-                // Always render trailing text as "other" (blue) since it's ignored
-                // Escape the entire tail to prevent any special character interpretation
                 const escapedTail = tail.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
                 html += `<span class="other">${escapedTail}</span>`;
                 warning = "閉じ括弧の後ろの文字は無視されます";
@@ -197,7 +194,6 @@ function renderLine(line, cmdPure, lineStartIndex) {
         }
     }
 
-    // Global parenthesis check
     if (!error) {
         const parenErr = checkBalancedParens(restRaw);
         if (parenErr) error = parenErr;
@@ -214,11 +210,9 @@ function checkBalancedParens(text) {
             balance++;
         } else if (c === ')') {
             balance--;
-            // If balance goes negative, we have a closing paren without an opening one
             if (balance < 0) return "括弧の対応が取れていません";
         }
     }
-    // If balance is positive, we have unclosed opening parens
     if (balance !== 0) return "括弧の対応が取れていません";
     return null;
 }
@@ -239,12 +233,11 @@ function colorizeArgs(text, startGlobalIndex) {
             else if (VALID_CONSTANTS.has(str.toUpperCase())) html += `<span class="arg">${safe}</span>`;
             else html += `<span class="arg">${safe}</span>`;
         } else if (match[2]) {
-            // Parens inside args
             if (str === '(' || str === ')') {
                 const pClass = isMatchedGlobal(tokenGlobalIdx) ? "func paren-match" : "func";
                 html += `<span class="${pClass}">${safe}</span>`;
             } else {
-                html += `<span class="func">${safe}</span>`; // Comma
+                html += `<span class="func">${safe}</span>`;
             }
         } else {
             html += `<span class="arg">${safe}</span>`;
@@ -258,55 +251,66 @@ function isMatchedGlobal(idx) {
 }
 
 function validateCommandArgs(cmdPure, args) {
-    // Find the canonical mixed-case command name from COMMANDS
     const canonicalCmd = COMMANDS.find(c => c.toUpperCase() === cmdPure);
     const cmdKey = canonicalCmd || cmdPure;
 
-    // Check if this command has strict argument type requirements
     if (COMMAND_ARG_TYPES[cmdKey]) {
         const argTypes = COMMAND_ARG_TYPES[cmdKey];
-
-        // Split arguments by comma (but not commas inside strings or parentheses)
         const argList = splitArguments(args);
 
-        // Check for empty arguments
         if (argList.length === 0) {
             return "引数が不足しています";
         }
 
-        // Validate each argument according to its expected type
         for (let i = 0; i < argList.length; i++) {
             const arg = argList[i].trim();
-            const expectedType = argTypes[i] || "expr"; // Default to expr if not specified
+            const expectedType = argTypes[i] || "expr";
 
             if (expectedType === "constant") {
-                // Must be a single constant from AC_CONSTANTS[cmdKey]
                 const allowedConstants = AC_CONSTANTS[cmdKey] ? AC_CONSTANTS[cmdKey].map(c => c.toUpperCase()) : [];
                 const argUpper = arg.toUpperCase();
-
                 if (!allowedConstants.includes(argUpper)) {
                     return `${cmdKey}の引数${i + 1}は定数(${AC_CONSTANTS[cmdKey].join(', ')})のみ使用できます`;
                 }
+            } else if (expectedType === "constant_custom") {
+                // LogConfigなどの特殊定数用
+                if (!LOG_CONSTANTS.includes(arg.toUpperCase())) {
+                    return `${cmdKey}の引数${i + 1}は定数(${LOG_CONSTANTS.join(', ')})のみ使用できます`;
+                }
             } else if (expectedType === "string") {
-                // Must be a string literal "..."
                 if (!arg.match(/^"[^"]*"$/)) {
                     return `${cmdKey}の引数${i + 1}は文字列リテラル("...")のみ使用できます`;
                 }
+            } else if (expectedType === "key") {
+                // KeyPress用: 定数(ENTERなど) or 1文字(a, A, 1, @) or 文字列リテラル("Hello")
+                // 1. 定数チェック
+                const allowedConstants = AC_CONSTANTS[cmdKey] ? AC_CONSTANTS[cmdKey].map(c => c.toUpperCase()) : [];
+                if (allowedConstants.includes(arg.toUpperCase())) {
+                    continue; // OK
+                }
+                // 2. 文字列リテラルチェック
+                if (arg.match(/^"[^"]*"$/)) {
+                    continue; // OK
+                }
+                // 3. 1文字チェック (変数ではなくリテラルとみなせるもの)
+                // 変数名と被る場合はどうするか？ -> ScriptProcessorは変数展開しないのでリテラルとして扱う
+                // 英数字記号1文字ならOK
+                if (arg.length === 1) {
+                    continue; // OK
+                }
+                // エラー
+                return `${cmdKey}の引数${i + 1}は定数、1文字、または文字列リテラルである必要があります`;
+
             } else if (expectedType === "expr") {
-                // Can be any expression, validate normally
                 const err = validateExpr(arg);
                 if (err) return err;
             }
         }
-
-        return null; // All arguments valid
+        return null;
     }
-
-    // Fall back to general expression validation for commands without strict types
     return validateExpr(args);
 }
 
-// Helper function to split arguments by comma, respecting strings and parentheses
 function splitArguments(args) {
     const result = [];
     let current = '';
@@ -315,7 +319,6 @@ function splitArguments(args) {
 
     for (let i = 0; i < args.length; i++) {
         const char = args[i];
-
         if (char === '"' && (i === 0 || args[i - 1] !== '\\')) {
             inString = !inString;
             current += char;
@@ -336,11 +339,7 @@ function splitArguments(args) {
             current += char;
         }
     }
-
-    if (current.trim()) {
-        result.push(current);
-    }
-
+    if (current.trim()) result.push(current);
     return result;
 }
 
@@ -360,20 +359,16 @@ function validateExpr(expr) {
 }
 
 function findMatchingCloseParen(text, openIdx) {
-    // Find the closing paren that matches the opening paren at openIdx
-    // Assumes text[openIdx] === '('
     let depth = 0;
     for (let i = openIdx; i < text.length; i++) {
         if (text[i] === '(') {
             depth++;
         } else if (text[i] === ')') {
             depth--;
-            if (depth === 0) {
-                return i;
-            }
+            if (depth === 0) return i;
         }
     }
-    return -1; // No matching closing paren found
+    return -1;
 }
 
 function escapeHtml(text) {
@@ -382,25 +377,19 @@ function escapeHtml(text) {
 
 export function updateParenMatch(text, cursor) {
     state.matchedParenIndices.clear();
-
     let balance = 0;
     let openIdx = -1;
-
-    // Scan backwards from cursor to find the nearest enclosing '('
     for (let i = cursor - 1; i >= 0; i--) {
         const c = text[i];
-        if (c === ')') {
-            balance++;
-        } else if (c === '(') {
-            if (balance > 0) {
-                balance--;
-            } else {
+        if (c === ')') balance++;
+        else if (c === '(') {
+            if (balance > 0) balance--;
+            else {
                 openIdx = i;
                 break;
             }
         }
     }
-
     if (openIdx !== -1) {
         const closeIdx = findPartnerParen(text, openIdx, 1);
         if (closeIdx !== -1 && closeIdx >= cursor) {
@@ -414,14 +403,12 @@ function findPartnerParen(text, idx, dir) {
     const open = '('; const close = ')';
     const target = text[idx];
     const partner = (target === open) ? close : open;
-
     let depth = 0;
     let i = idx;
     while (i >= 0 && i < text.length) {
         const c = text[i];
         if (c === target) depth++;
         else if (c === partner) depth--;
-
         if (depth === 0) return i;
         i += dir;
     }

@@ -69,6 +69,23 @@
                         <b>「3回連続リセット」機能</b>を試してください。USBケーブルを抜き差し（再起動）して、起動処理中にわざと電源を切る、を3回繰り返すと、自動的に内部ストレージが初期化されて復旧します。この機能が発動しそうになると起動時に赤いランプが点滅する回数が増えていきます。
                     </li>
                 </ul>
+
+                <h3 class="help-h3">オープンソースライセンス</h3>
+                <p style="font-size: 0.85rem; color: #666;">
+                    本ソフトウェアは、以下のオープンソースソフトウェアを含んでいます。各ライセンスの全文はソースコードリポジトリを参照してください。
+                </p>
+                <ul style="font-size: 0.85rem; color: #666;">
+                    <li><b>TinyUSB</b> (MIT License) - Copyright (c) 2019 Ha Thach (tinyusb.org)</li>
+                    <li><b>TinyExpr++</b> (Zlib License) - Copyright (c) 2020-2025 Blake Madden</li>
+                    <li><b>Pico SDK</b> (BSD-3-Clause) - Copyright (c) 2020 Raspberry Pi (Trading) Ltd.</li>
+                    <li><b>Mermaid.js</b> (MIT License) - Copyright (c) 2014-2023 Knut Sveidqvist</li>
+                    <li><b>Vite</b> (MIT License) - Copyright (c) 2019-present Evan You & Vite Contributors</li>
+                    <li><b>SwitchControllerPico</b> (MIT License) - Copyright (c) 2023 sorasen2020</li>
+                    <li><b>PNGdec</b> (Apache-2.0) - Copyright 2020 BitBank Software, Inc.</li>
+                    <li><b>LittleFS</b> (BSD-3-Clause) - Copyright (c) 2017 Arm Limited, 2022 The littlefs authors</li>
+                    <li><b>TinyUSB_Mouse_and_Keyboard</b> (MIT License) - Copyright (c) 2020 Chris Young</li>
+                    <li><b>pico-littlefs-usb</b> (BSD-3-Clause) - Copyright 2024 Hiroyuki OYAMA</li>
+                </ul>
             </div>
         </div>
     </div>
@@ -101,6 +118,9 @@
                 <div class="tab active" data-tab="reference">リファレンス</div>
                 <div class="tab" data-tab="structure">構造解析</div>
                 <div class="tab" data-tab="flowchart">フローチャート</div>
+                <div class="tab" data-tab="samples">サンプル</div>
+            </div>
+            <div id="samples" class="tab-content">
             </div>
 
             <div id="reference" class="tab-content active">
@@ -479,16 +499,133 @@ SetLED(0, 0, 0)
                             <div class="detail-desc">
                                 キーボードのキーを押した状態にします。<br>
                                 <b>動作:</b> <code>KeyRelease</code> が呼ばれるまで、PCには「キーが押され続けている」という信号が送られます。<br>
-                                <b>引数:</b> A-Z, 0-9, F1-F12, ENTER, SPACE, ESC, TAB, SHIFT, CTRL, ALT など。
+                                <b>引数:</b>
+                                <ul>
+                                    <li>定義済み定数: <code>ENTER</code>, <code>SPACE</code>, <code>SHIFT</code>, <code>F1</code> など。</li>
+                                    <li>1文字: <code>A</code>, <code>a</code>, <code>1</code>, <code>@</code> など（キーボード上の文字）。</li>
+                                    <li>文字列リテラル: <code>"Hello"</code> (各文字を順に押しますが、KeyPressの場合は最後の文字が押された状態になります)。</li>
+                                </ul>
                             </div>
+                            
+                            <div class="sub-doc-entry">
+                                <div class="sub-doc-header">
+                                    <span>定義済みキー定数対応表</span>
+                                    <span class="sub-toggle-icon">▼</span>
+                                </div>
+                                <div class="sub-doc-detail">
+                                    <p style="margin:5px 0; color:#666; font-size:0.8rem;">
+                                        ※ 1文字の英数字・記号（<code>A</code>, <code>1</code>, <code>!</code>, <code>@</code>など）は定数を使わずに直接記述可能です。
+                                    </p>
+                                    <table class="key-table">
+                                        <thead>
+                                            <tr>
+                                                <th style="width: 25%;">カテゴリー</th>
+                                                <th style="width: 40%;">定数名 (エイリアス)</th>
+                                                <th style="width: 35%;">対応するキー / 説明</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td><b>英数字</b></td>
+                                                <td><span class="key-code">A-Z, 0-9</span></td>
+                                                <td>英字(A-Z), 数字(0-9)</td>
+                                            </tr>
+
+                                            <tr>
+                                                <td><b>ファンクション</b></td>
+                                                <td><span class="key-code">F1 - F12</span></td>
+                                                <td>F1 ～ F12 キー</td>
+                                            </tr>
+
+                                            <tr>
+                                                <td rowspan="6"><b>制御・編集</b></td>
+                                                <td><span class="key-code">ENTER, RETURN</span></td>
+                                                <td>Enter (リターン)</td>
+                                            </tr>
+                                            <tr><td><span class="key-code">ESC, ESCAPE</span></td><td>Esc (エスケープ)</td></tr>
+                                            <tr><td><span class="key-code">BACKSPACE, BKSP</span></td><td>Backspace</td></tr>
+                                            <tr><td><span class="key-code">TAB</span></td><td>Tab</td></tr>
+                                            <tr><td><span class="key-code">SPACE, SPACEBAR</span></td><td>Space (空白)</td></tr>
+                                            <tr><td><span class="key-code">CAPSLOCK, CAPS</span></td><td>CapsLock</td></tr>
+
+                                            <tr>
+                                                <td rowspan="5"><b>移動・削除</b></td>
+                                                <td><span class="key-code">UP, DOWN, LEFT, RIGHT</span></td>
+                                                <td>矢印 (↑, ↓, ←, →)<br><span style="font-size:0.75em; color:#888">ARROWUP, ARROWDOWN...</span></td>
+                                            </tr>
+                                            <tr><td><span class="key-code">PGUP, PGDN</span></td><td>PageUp, PageDown<br><span style="font-size:0.75em; color:#888">PAGEUP, PAGEDOWN</span></td></tr>
+                                            <tr><td><span class="key-code">HOME, END</span></td><td>Home, End</td></tr>
+                                            <tr><td><span class="key-code">INSERT, INS</span></td><td>Insert</td></tr>
+                                            <tr><td><span class="key-code">DELETE, DEL</span></td><td>Delete</td></tr>
+
+                                            <tr>
+                                                <td rowspan="4"><b>システム</b></td>
+                                                <td><span class="key-code">PRINTSCREEN, PRTSC</span></td>
+                                                <td>PrintScreen</td>
+                                            </tr>
+                                            <tr><td><span class="key-code">SCROLLLOCK</span></td><td>ScrollLock</td></tr>
+                                            <tr><td><span class="key-code">PAUSE, BREAK</span></td><td>Pause / Break</td></tr>
+                                            <tr><td><span class="key-code">NUMLOCK</span></td><td>NumLock</td></tr>
+
+                                            <tr>
+                                                <td rowspan="4"><b>修飾キー</b></td>
+                                                <td><span class="key-code">CTRL, LCTRL, RCTRL</span></td>
+                                                <td>Ctrl (左右)</td>
+                                            </tr>
+                                            <tr><td><span class="key-code">SHIFT, LSHIFT, RSHIFT</span></td><td>Shift (左右)</td></tr>
+                                            <tr><td><span class="key-code">ALT, LALT, RALT</span></td><td>Alt (左右)</td></tr>
+                                            <tr><td><span class="key-code">WIN, GUI, CMD</span></td><td>Windows / Command (左右)</td></tr>
+
+                                            <tr>
+                                                <td rowspan="4"><b>日本語キー</b></td>
+                                                <td><span class="key-code">HENKAN</span></td>
+                                                <td>変換</td>
+                                            </tr>
+                                            <tr><td><span class="key-code">MUHENKAN</span></td><td>無変換</td></tr>
+                                            <tr><td><span class="key-code">ZENKAKU, HANKAKU</span></td><td>全角/半角 (ZENKAKUHANKAKU)</td></tr>
+                                            <tr><td><span class="key-code">KATAKANA, HIRAGANA</span></td><td>カタカナ/ひらがな</td></tr>
+
+                                            <tr>
+                                                <td rowspan="14"><b>記号</b><br><span style="font-size:0.8em; font-weight:normal">直接入力可</span></td>
+                                                <td><span class="key-code">EXCLAMATION</span></td><td><b>!</b> (感嘆符)</td>
+                                            </tr>
+                                            <tr><td><span class="key-code">DOUBLEQUOTE</span></td><td><b>"</b> (二重引用符)</td></tr>
+                                            <tr><td><span class="key-code">HASH</span></td><td><b>#</b> (井桁)</td></tr>
+                                            <tr><td><span class="key-code">DOLLAR</span></td><td><b>$</b> (ドル)</td></tr>
+                                            <tr><td><span class="key-code">PERCENT</span></td><td><b>%</b> (パーセント)</td></tr>
+                                            <tr><td><span class="key-code">AMPERSAND</span></td><td><b>&amp;</b> (アンパサンド)</td></tr>
+                                            <tr><td><span class="key-code">APOSTROPHE</span></td><td><b>'</b> (シングルクォート)</td></tr>
+                                            <tr><td><span class="key-code">LEFTPAREN, RIGHTPAREN</span></td><td><b>( )</b> (小括弧)</td></tr>
+                                            <tr><td><span class="key-code">ASTERISK, MUL</span></td><td><b>*</b> (アスタリスク)</td></tr>
+                                            <tr><td><span class="key-code">PLUS, ADD</span></td><td><b>+</b> (プラス)</td></tr>
+                                            <tr><td><span class="key-code">COMMA, DOT</span></td><td><b>, .</b> (カンマ, ドット)</td></tr>
+                                            <tr><td><span class="key-code">MINUS</span></td><td><b>-</b> (マイナス)</td></tr>
+                                            <tr><td><span class="key-code">SLASH, BACKSLASH</span></td><td><b>/ \</b> (スラッシュ, バックスラッシュ)</td></tr>
+                                            <tr><td><span class="key-code">COLON, SEMICOLON</span></td><td><b>: ;</b> (コロン, セミコロン)</td></tr>
+                                            <tr><td><span class="key-code">LESS, GREATER</span></td><td><b>&lt; &gt;</b> (小なり, 大なり)</td></tr>
+                                            <tr><td><span class="key-code">EQUAL</span></td><td><b>=</b> (イコール)</td></tr>
+                                            <tr><td><span class="key-code">QUESTION</span></td><td><b>?</b> (疑問符)</td></tr>
+                                            <tr><td><span class="key-code">AT</span></td><td><b>@</b> (アットマーク)</td></tr>
+                                            <tr><td><span class="key-code">LEFTBRACE, RIGHTBRACE</span></td><td><b>[ ]</b> (大括弧)</td></tr>
+                                            <tr><td><span class="key-code">CARET</span></td><td><b>^</b> (キャレット)</td></tr>
+                                            <tr><td><span class="key-code">UNDERSCORE</span></td><td><b>_</b> (アンダースコア)</td></tr>
+                                            <tr><td><span class="key-code">GRAVE</span></td><td><b>`</b> (バッククォート)</td></tr>
+                                            <tr><td><span class="key-code">LEFTCURLY, RIGHTCURLY</span></td><td><b>{ }</b> (中括弧)</td></tr>
+                                            <tr><td><span class="key-code">PIPE, BAR</span></td><td><b>|</b> (縦棒)</td></tr>
+                                            <tr><td><span class="key-code">TILDE</span></td><td><b>~</b> (チルダ)</td></tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
                             <div class="detail-sample">
 REM SHIFTキーを押す
 KeyPress(SHIFT)
-REM SHIFTを押したままAを押す(大文字Aになる)
-KeyPress(A)
+REM 'a' キーを押す (SHIFT中なので 'A' になる)
+KeyPress(a)
 WAIT 0.1
 REM 両方離す
-KeyRelease(A)
+KeyRelease(a)
 KeyRelease(SHIFT)
                             </div>
                         </div>
@@ -504,7 +641,117 @@ KeyRelease(SHIFT)
                         <div class="doc-detail">
                             <div class="detail-desc">
                                 押されているキーを離した状態にします。<br>
-                                <b>動作:</b> PCへのキー入力が停止します。
+                                <b>引数:</b> <code>KeyPress</code> と同様に、定数・1文字・文字列が使用可能です。
+                            </div>
+                            <div class="sub-doc-entry">
+                                <div class="sub-doc-header">
+                                    <span>定義済みキー定数対応表</span>
+                                    <span class="sub-toggle-icon">▼</span>
+                                </div>
+                                <div class="sub-doc-detail">
+                                    <p style="margin:5px 0; color:#666; font-size:0.8rem;">
+                                        ※ 1文字の英数字・記号（<code>A</code>, <code>1</code>, <code>!</code>, <code>@</code>など）は定数を使わずに直接記述可能です。
+                                    </p>
+                                    <table class="key-table">
+                                        <thead>
+                                            <tr>
+                                                <th style="width: 25%;">カテゴリー</th>
+                                                <th style="width: 40%;">定数名 (エイリアス)</th>
+                                                <th style="width: 35%;">対応するキー / 説明</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td><b>英数字</b></td>
+                                                <td><span class="key-code">A-Z, 0-9</span></td>
+                                                <td>英字(A-Z), 数字(0-9)</td>
+                                            </tr>
+
+                                            <tr>
+                                                <td><b>ファンクション</b></td>
+                                                <td><span class="key-code">F1 - F12</span></td>
+                                                <td>F1 ～ F12 キー</td>
+                                            </tr>
+
+                                            <tr>
+                                                <td rowspan="6"><b>制御・編集</b></td>
+                                                <td><span class="key-code">ENTER, RETURN</span></td>
+                                                <td>Enter (リターン)</td>
+                                            </tr>
+                                            <tr><td><span class="key-code">ESC, ESCAPE</span></td><td>Esc (エスケープ)</td></tr>
+                                            <tr><td><span class="key-code">BACKSPACE, BKSP</span></td><td>Backspace</td></tr>
+                                            <tr><td><span class="key-code">TAB</span></td><td>Tab</td></tr>
+                                            <tr><td><span class="key-code">SPACE, SPACEBAR</span></td><td>Space (空白)</td></tr>
+                                            <tr><td><span class="key-code">CAPSLOCK, CAPS</span></td><td>CapsLock</td></tr>
+
+                                            <tr>
+                                                <td rowspan="5"><b>移動・削除</b></td>
+                                                <td><span class="key-code">UP, DOWN, LEFT, RIGHT</span></td>
+                                                <td>矢印 (↑, ↓, ←, →)<br><span style="font-size:0.75em; color:#888">ARROWUP, ARROWDOWN...</span></td>
+                                            </tr>
+                                            <tr><td><span class="key-code">PGUP, PGDN</span></td><td>PageUp, PageDown<br><span style="font-size:0.75em; color:#888">PAGEUP, PAGEDOWN</span></td></tr>
+                                            <tr><td><span class="key-code">HOME, END</span></td><td>Home, End</td></tr>
+                                            <tr><td><span class="key-code">INSERT, INS</span></td><td>Insert</td></tr>
+                                            <tr><td><span class="key-code">DELETE, DEL</span></td><td>Delete</td></tr>
+
+                                            <tr>
+                                                <td rowspan="4"><b>システム</b></td>
+                                                <td><span class="key-code">PRINTSCREEN, PRTSC</span></td>
+                                                <td>PrintScreen</td>
+                                            </tr>
+                                            <tr><td><span class="key-code">SCROLLLOCK</span></td><td>ScrollLock</td></tr>
+                                            <tr><td><span class="key-code">PAUSE, BREAK</span></td><td>Pause / Break</td></tr>
+                                            <tr><td><span class="key-code">NUMLOCK</span></td><td>NumLock</td></tr>
+
+                                            <tr>
+                                                <td rowspan="4"><b>修飾キー</b></td>
+                                                <td><span class="key-code">CTRL, LCTRL, RCTRL</span></td>
+                                                <td>Ctrl (左右)</td>
+                                            </tr>
+                                            <tr><td><span class="key-code">SHIFT, LSHIFT, RSHIFT</span></td><td>Shift (左右)</td></tr>
+                                            <tr><td><span class="key-code">ALT, LALT, RALT</span></td><td>Alt (左右)</td></tr>
+                                            <tr><td><span class="key-code">WIN, GUI, CMD</span></td><td>Windows / Command (左右)</td></tr>
+
+                                            <tr>
+                                                <td rowspan="4"><b>日本語キー</b></td>
+                                                <td><span class="key-code">HENKAN</span></td>
+                                                <td>変換</td>
+                                            </tr>
+                                            <tr><td><span class="key-code">MUHENKAN</span></td><td>無変換</td></tr>
+                                            <tr><td><span class="key-code">ZENKAKU, HANKAKU</span></td><td>全角/半角 (ZENKAKUHANKAKU)</td></tr>
+                                            <tr><td><span class="key-code">KATAKANA, HIRAGANA</span></td><td>カタカナ/ひらがな</td></tr>
+
+                                            <tr>
+                                                <td rowspan="14"><b>記号</b><br><span style="font-size:0.8em; font-weight:normal">直接入力可</span></td>
+                                                <td><span class="key-code">EXCLAMATION</span></td><td><b>!</b> (感嘆符)</td>
+                                            </tr>
+                                            <tr><td><span class="key-code">DOUBLEQUOTE</span></td><td><b>"</b> (二重引用符)</td></tr>
+                                            <tr><td><span class="key-code">HASH</span></td><td><b>#</b> (井桁)</td></tr>
+                                            <tr><td><span class="key-code">DOLLAR</span></td><td><b>$</b> (ドル)</td></tr>
+                                            <tr><td><span class="key-code">PERCENT</span></td><td><b>%</b> (パーセント)</td></tr>
+                                            <tr><td><span class="key-code">AMPERSAND</span></td><td><b>&amp;</b> (アンパサンド)</td></tr>
+                                            <tr><td><span class="key-code">APOSTROPHE</span></td><td><b>'</b> (シングルクォート)</td></tr>
+                                            <tr><td><span class="key-code">LEFTPAREN, RIGHTPAREN</span></td><td><b>( )</b> (小括弧)</td></tr>
+                                            <tr><td><span class="key-code">ASTERISK, MUL</span></td><td><b>*</b> (アスタリスク)</td></tr>
+                                            <tr><td><span class="key-code">PLUS, ADD</span></td><td><b>+</b> (プラス)</td></tr>
+                                            <tr><td><span class="key-code">COMMA, DOT</span></td><td><b>, .</b> (カンマ, ドット)</td></tr>
+                                            <tr><td><span class="key-code">MINUS</span></td><td><b>-</b> (マイナス)</td></tr>
+                                            <tr><td><span class="key-code">SLASH, BACKSLASH</span></td><td><b>/ \</b> (スラッシュ, バックスラッシュ)</td></tr>
+                                            <tr><td><span class="key-code">COLON, SEMICOLON</span></td><td><b>: ;</b> (コロン, セミコロン)</td></tr>
+                                            <tr><td><span class="key-code">LESS, GREATER</span></td><td><b>&lt; &gt;</b> (小なり, 大なり)</td></tr>
+                                            <tr><td><span class="key-code">EQUAL</span></td><td><b>=</b> (イコール)</td></tr>
+                                            <tr><td><span class="key-code">QUESTION</span></td><td><b>?</b> (疑問符)</td></tr>
+                                            <tr><td><span class="key-code">AT</span></td><td><b>@</b> (アットマーク)</td></tr>
+                                            <tr><td><span class="key-code">LEFTBRACE, RIGHTBRACE</span></td><td><b>[ ]</b> (大括弧)</td></tr>
+                                            <tr><td><span class="key-code">CARET</span></td><td><b>^</b> (キャレット)</td></tr>
+                                            <tr><td><span class="key-code">UNDERSCORE</span></td><td><b>_</b> (アンダースコア)</td></tr>
+                                            <tr><td><span class="key-code">GRAVE</span></td><td><b>`</b> (バッククォート)</td></tr>
+                                            <tr><td><span class="key-code">LEFTCURLY, RIGHTCURLY</span></td><td><b>{ }</b> (中括弧)</td></tr>
+                                            <tr><td><span class="key-code">PIPE, BAR</span></td><td><b>|</b> (縦棒)</td></tr>
+                                            <tr><td><span class="key-code">TILDE</span></td><td><b>~</b> (チルダ)</td></tr>
+                                        </tbody>
+                                    </table>
+                                </div>
                             </div>
                             <div class="detail-sample">
 REM (KeyPressのサンプルを参照)
@@ -523,11 +770,125 @@ REM (KeyPressのサンプルを参照)
                             <div class="detail-desc">
                                 キーを一回ポンと押す動作を行います。<br>
                                 <b>動作:</b> <code>KeyPress</code> → 指定秒数待機 → <code>KeyRelease</code> を自動で行います。<br>
-                                <b>引数:</b> キー名, 押す時間(秒)。
+                                <b>引数:</b> キー（定数/文字/文字列）, 押す時間(秒)。
+                            </div>
+                            
+                            <div class="sub-doc-entry">
+                                <div class="sub-doc-header">
+                                    <span>定義済みキー定数対応表</span>
+                                    <span class="sub-toggle-icon">▼</span>
+                                </div>
+                                <div class="sub-doc-detail">
+                                    <p style="margin:5px 0; color:#666; font-size:0.8rem;">
+                                        ※ 1文字の英数字・記号（<code>A</code>, <code>1</code>, <code>!</code>, <code>@</code>など）は定数を使わずに直接記述可能です。
+                                    </p>
+                                    <table class="key-table">
+                                        <thead>
+                                            <tr>
+                                                <th style="width: 25%;">カテゴリー</th>
+                                                <th style="width: 40%;">定数名 (エイリアス)</th>
+                                                <th style="width: 35%;">対応するキー / 説明</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td><b>英数字</b></td>
+                                                <td><span class="key-code">A-Z, 0-9</span></td>
+                                                <td>英字(A-Z), 数字(0-9)</td>
+                                            </tr>
+
+                                            <tr>
+                                                <td><b>ファンクション</b></td>
+                                                <td><span class="key-code">F1 - F12</span></td>
+                                                <td>F1 ～ F12 キー</td>
+                                            </tr>
+
+                                            <tr>
+                                                <td rowspan="6"><b>制御・編集</b></td>
+                                                <td><span class="key-code">ENTER, RETURN</span></td>
+                                                <td>Enter (リターン)</td>
+                                            </tr>
+                                            <tr><td><span class="key-code">ESC, ESCAPE</span></td><td>Esc (エスケープ)</td></tr>
+                                            <tr><td><span class="key-code">BACKSPACE, BKSP</span></td><td>Backspace</td></tr>
+                                            <tr><td><span class="key-code">TAB</span></td><td>Tab</td></tr>
+                                            <tr><td><span class="key-code">SPACE, SPACEBAR</span></td><td>Space (空白)</td></tr>
+                                            <tr><td><span class="key-code">CAPSLOCK, CAPS</span></td><td>CapsLock</td></tr>
+
+                                            <tr>
+                                                <td rowspan="5"><b>移動・削除</b></td>
+                                                <td><span class="key-code">UP, DOWN, LEFT, RIGHT</span></td>
+                                                <td>矢印 (↑, ↓, ←, →)<br><span style="font-size:0.75em; color:#888">ARROWUP, ARROWDOWN...</span></td>
+                                            </tr>
+                                            <tr><td><span class="key-code">PGUP, PGDN</span></td><td>PageUp, PageDown<br><span style="font-size:0.75em; color:#888">PAGEUP, PAGEDOWN</span></td></tr>
+                                            <tr><td><span class="key-code">HOME, END</span></td><td>Home, End</td></tr>
+                                            <tr><td><span class="key-code">INSERT, INS</span></td><td>Insert</td></tr>
+                                            <tr><td><span class="key-code">DELETE, DEL</span></td><td>Delete</td></tr>
+
+                                            <tr>
+                                                <td rowspan="4"><b>システム</b></td>
+                                                <td><span class="key-code">PRINTSCREEN, PRTSC</span></td>
+                                                <td>PrintScreen</td>
+                                            </tr>
+                                            <tr><td><span class="key-code">SCROLLLOCK</span></td><td>ScrollLock</td></tr>
+                                            <tr><td><span class="key-code">PAUSE, BREAK</span></td><td>Pause / Break</td></tr>
+                                            <tr><td><span class="key-code">NUMLOCK</span></td><td>NumLock</td></tr>
+
+                                            <tr>
+                                                <td rowspan="4"><b>修飾キー</b></td>
+                                                <td><span class="key-code">CTRL, LCTRL, RCTRL</span></td>
+                                                <td>Ctrl (左右)</td>
+                                            </tr>
+                                            <tr><td><span class="key-code">SHIFT, LSHIFT, RSHIFT</span></td><td>Shift (左右)</td></tr>
+                                            <tr><td><span class="key-code">ALT, LALT, RALT</span></td><td>Alt (左右)</td></tr>
+                                            <tr><td><span class="key-code">WIN, GUI, CMD</span></td><td>Windows / Command (左右)</td></tr>
+
+                                            <tr>
+                                                <td rowspan="4"><b>日本語キー</b></td>
+                                                <td><span class="key-code">HENKAN</span></td>
+                                                <td>変換</td>
+                                            </tr>
+                                            <tr><td><span class="key-code">MUHENKAN</span></td><td>無変換</td></tr>
+                                            <tr><td><span class="key-code">ZENKAKU, HANKAKU</span></td><td>全角/半角 (ZENKAKUHANKAKU)</td></tr>
+                                            <tr><td><span class="key-code">KATAKANA, HIRAGANA</span></td><td>カタカナ/ひらがな</td></tr>
+
+                                            <tr>
+                                                <td rowspan="14"><b>記号</b><br><span style="font-size:0.8em; font-weight:normal">直接入力可</span></td>
+                                                <td><span class="key-code">EXCLAMATION</span></td><td><b>!</b> (感嘆符)</td>
+                                            </tr>
+                                            <tr><td><span class="key-code">DOUBLEQUOTE</span></td><td><b>"</b> (二重引用符)</td></tr>
+                                            <tr><td><span class="key-code">HASH</span></td><td><b>#</b> (井桁)</td></tr>
+                                            <tr><td><span class="key-code">DOLLAR</span></td><td><b>$</b> (ドル)</td></tr>
+                                            <tr><td><span class="key-code">PERCENT</span></td><td><b>%</b> (パーセント)</td></tr>
+                                            <tr><td><span class="key-code">AMPERSAND</span></td><td><b>&amp;</b> (アンパサンド)</td></tr>
+                                            <tr><td><span class="key-code">APOSTROPHE</span></td><td><b>'</b> (シングルクォート)</td></tr>
+                                            <tr><td><span class="key-code">LEFTPAREN, RIGHTPAREN</span></td><td><b>( )</b> (小括弧)</td></tr>
+                                            <tr><td><span class="key-code">ASTERISK, MUL</span></td><td><b>*</b> (アスタリスク)</td></tr>
+                                            <tr><td><span class="key-code">PLUS, ADD</span></td><td><b>+</b> (プラス)</td></tr>
+                                            <tr><td><span class="key-code">COMMA, DOT</span></td><td><b>, .</b> (カンマ, ドット)</td></tr>
+                                            <tr><td><span class="key-code">MINUS</span></td><td><b>-</b> (マイナス)</td></tr>
+                                            <tr><td><span class="key-code">SLASH, BACKSLASH</span></td><td><b>/ \</b> (スラッシュ, バックスラッシュ)</td></tr>
+                                            <tr><td><span class="key-code">COLON, SEMICOLON</span></td><td><b>: ;</b> (コロン, セミコロン)</td></tr>
+                                            <tr><td><span class="key-code">LESS, GREATER</span></td><td><b>&lt; &gt;</b> (小なり, 大なり)</td></tr>
+                                            <tr><td><span class="key-code">EQUAL</span></td><td><b>=</b> (イコール)</td></tr>
+                                            <tr><td><span class="key-code">QUESTION</span></td><td><b>?</b> (疑問符)</td></tr>
+                                            <tr><td><span class="key-code">AT</span></td><td><b>@</b> (アットマーク)</td></tr>
+                                            <tr><td><span class="key-code">LEFTBRACE, RIGHTBRACE</span></td><td><b>[ ]</b> (大括弧)</td></tr>
+                                            <tr><td><span class="key-code">CARET</span></td><td><b>^</b> (キャレット)</td></tr>
+                                            <tr><td><span class="key-code">UNDERSCORE</span></td><td><b>_</b> (アンダースコア)</td></tr>
+                                            <tr><td><span class="key-code">GRAVE</span></td><td><b>`</b> (バッククォート)</td></tr>
+                                            <tr><td><span class="key-code">LEFTCURLY, RIGHTCURLY</span></td><td><b>{ }</b> (中括弧)</td></tr>
+                                            <tr><td><span class="key-code">PIPE, BAR</span></td><td><b>|</b> (縦棒)</td></tr>
+                                            <tr><td><span class="key-code">TILDE</span></td><td><b>~</b> (チルダ)</td></tr>
+                                        </tbody>
+                                    </table>
+                                </div>
                             </div>
                             <div class="detail-sample">
 REM スペースキーを0.1秒間押して離す
 KeyPushFor(SPACE, 0.1)
+
+REM 'z' キーを0.5秒間押す
+KeyPushFor(z, 0.5)
                             </div>
                         </div>
                     </div>

@@ -29,6 +29,9 @@ extern "C"
 #include <hardware/flash.h>
 #include <hardware/sync.h>
 
+// ■ 追加: Pythonスクリプトで生成したHTMLコンテンツのヘッダをインクルード
+#include "usage_html.h"
+
 // allow controlling stdio drivers (USB stdio is disabled via CMake for this target)
 extern bool ExecuteScript(const char *filename);
 
@@ -535,29 +538,75 @@ void diagnose_littlefs(void)
     printf("=== Diagnostics Complete ===\n\n");
     fflush(stdout);
 }
-// ファイル作成ヘルパー
-static void create_file_if_missing(const char *path, const char *content)
+// ---------------------------------------------------------
+// ファイル作成ヘルパー (改良版)
+// ---------------------------------------------------------
+// check_size: trueの場合、ファイルが存在してもサイズが異なれば上書きする（静的リソース用）
+//             falseの場合、ファイルが存在すれば何もしない（ユーザーファイル用）
+static void create_file_if_missing(const char *path, const char *content, bool check_size = false)
 {
     lfs_file_t f;
+    size_t expected_len = strlen(content);
+    bool perform_write = false;
+
     // 読み込みモードで開いて存在チェック
     int err = lfs_file_open(&fs, &f, path, LFS_O_RDONLY);
     if (err >= 0)
     {
-        lfs_file_close(&fs, &f);
-        return; // 既に存在する
-    }
-
-    // 存在しないので作成
-    printf("Creating default file: %s\n", path);
-    err = lfs_file_open(&fs, &f, path, LFS_O_WRONLY | LFS_O_CREAT);
-    if (err >= 0)
-    {
-        lfs_file_write(&fs, &f, content, strlen(content));
+        // ファイルが存在する場合
+        if (check_size)
+        {
+            lfs_soff_t size = lfs_file_size(&fs, &f);
+            if (size != (lfs_soff_t)expected_len)
+            {
+                printf("File '%s' exists but size mismatch (Found: %ld, Expected: %d). Re-creating.\n", path, (long)size, expected_len);
+                perform_write = true;
+            }
+            else
+            {
+                printf("File '%s' exists and size matches (%ld bytes). Skipping write.\n", path, (long)size);
+                perform_write = false;
+            }
+        }
+        else
+        {
+            // check_size=falseなら存在すれば何もしない
+            // printf("File '%s' exists. Skipping.\n", path);
+            perform_write = false;
+        }
         lfs_file_close(&fs, &f);
     }
     else
     {
-        printf("Failed to create %s (err=%d)\n", path, err);
+        // 存在しない場合
+        printf("File '%s' not found. Creating.\n", path);
+        perform_write = true;
+    }
+
+    // 書き込み実行
+    if (perform_write)
+    {
+        // LFS_O_TRUNC: 既に存在する場合はサイズを0にしてから書き込む
+        err = lfs_file_open(&fs, &f, path, LFS_O_WRONLY | LFS_O_CREAT | LFS_O_TRUNC);
+        if (err >= 0)
+        {
+            printf("Writing '%s' (%d bytes)... ", path, expected_len);
+            lfs_ssize_t res = lfs_file_write(&fs, &f, content, expected_len);
+            lfs_file_close(&fs, &f);
+
+            if (res == (lfs_ssize_t)expected_len)
+            {
+                printf("Done.\n");
+            }
+            else
+            {
+                printf("FAILED (Written: %ld / %d)\n", (long)res, expected_len);
+            }
+        }
+        else
+        {
+            printf("Failed to open '%s' for writing (err=%d)\n", path, err);
+        }
     }
 }
 
@@ -578,7 +627,7 @@ static void deploy_default_files(void)
     if (err != 0)
         return;
 
-    // 1. ルートファイル
+    // 1. Script.txt (ユーザーが編集するため、存在すれば上書きしない = false)
     const char *script_content =
         "// Default Script\n"
         "UseLED(1)\n"
@@ -589,50 +638,11 @@ static void deploy_default_files(void)
         "SetLED((sin(t * 2) + 1.0) * 127.5,(sin(t * 2 + 2.1) + 1.0) * 127.5,(sin(t * 2 + 4.2) + 1.0) * 127.5)\n"
         "WAIT 0.001\n"
         "GOTO LOOP\n";
-    create_file_if_missing("Script.txt", script_content);
+    create_file_if_missing("Script.txt", script_content, false);
 
-    const char *readme_content =
-        "Pico AutoInput\n"
-        "For detailed usage, please check the EXAMPLES folder.\n";
-    create_file_if_missing("README.TXT", readme_content);
-
-    // 2. ディレクトリ作成 (8.3形式推奨)
-    create_dir_safe("EXAMPLES");
-    create_dir_safe("EXAMPLES/Basic");
-    create_dir_safe("EXAMPLES/Mouse");
-    // create_dir_safe("EXAMPLES/Keyboard"); // 必要なら追加
-
-    // 3. サンプルスクリプトの配置 (5個程度ずつ)
-
-    // --- Basic ---
-    create_file_if_missing("EXAMPLES/Basic/01_Hello.txt",
-                           "// LED Blink Example\n"
-                           "UseLED(1)\n"
-                           "SetLED(255,0,0)\n"
-                           "WAIT 500\n"
-                           "SetLED(0,0,0)\n"
-                           "WAIT 500\n");
-
-    create_file_if_missing("EXAMPLES/Basic/02_Loop.txt",
-                           "// Simple Loop\n"
-                           "SET i = 0\n"
-                           "LABEL START\n"
-                           "IF i >= 5 GOTO END\n"
-                           "SET i = i + 1\n"
-                           "WAIT 100\n"
-                           "GOTO START\n"
-                           "LABEL END\n");
-
-    // --- Mouse ---
-    create_file_if_missing("EXAMPLES/Mouse/Circle.txt",
-                           "// Mouse Circle Move\n"
-                           "// Move mouse in a circle\n"
-                           "LABEL LOOP\n"
-                           "SET t = GetTime() / 500.0\n"
-                           "MouseMove(sin(t)*10, cos(t)*10, 0)\n"
-                           "WAIT 10\n"
-                           "GOTO LOOP\n");
-
+    // 2. usage.html (システムファイルなので、サイズが違えば壊れているとみなして修復する = true)
+    // usage_html_content は usage_html.h で定義されている
+    create_file_if_missing("使い方.html", usage_html_content, true);
     lfs_unmount(&fs);
 }
 /*

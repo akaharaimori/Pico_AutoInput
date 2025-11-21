@@ -133,14 +133,42 @@ export function updateStatus(errorCount, warningCount) {
 export function openHelp() { document.getElementById('help-modal').style.display = 'block'; }
 export function closeHelp() { document.getElementById('help-modal').style.display = 'none'; }
 
-// リファレンスの詳細トグル機能の初期化
-export function setupReferenceToggles() {
+// ドキュメント項目のインタラクション設定
+export function setupDocumentInteractions(inputEl) {
+    // クリックでコード挿入
+    document.querySelectorAll('.doc-item').forEach(item => {
+        item.onclick = () => {
+            const text = item.dataset.insert;
+            // 改行を含む場合は長いコードとみなし、確認ダイアログを表示
+            if (text.includes('\n')) {
+                if (!confirm("サンプルコードをカーソル位置に挿入しますか？")) {
+                    return;
+                }
+            }
+            insertText(text, inputEl);
+        };
+    });
+
+    // ▼ボタンで詳細表示トグル
     document.querySelectorAll('.doc-toggle').forEach(btn => {
         btn.onclick = (e) => {
             e.stopPropagation();
             const entry = btn.closest('.doc-entry');
             entry.classList.toggle('expanded');
             btn.textContent = entry.classList.contains('expanded') ? '▲' : '▼';
+        };
+    });
+
+    // 追加: サブ詳細（ネストされたドロップダウン）のトグル
+    document.querySelectorAll('.sub-doc-header').forEach(header => {
+        header.onclick = (e) => {
+            e.stopPropagation();
+            const entry = header.closest('.sub-doc-entry');
+            entry.classList.toggle('expanded');
+            const icon = header.querySelector('.sub-toggle-icon');
+            if (icon) {
+                icon.textContent = entry.classList.contains('expanded') ? '▲' : '▼';
+            }
         };
     });
 }

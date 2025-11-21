@@ -339,6 +339,9 @@ static std::set<te_variable> build_te_variables_and_funcs(ScriptState &st)
 }
 // Helper: map human-friendly key names to Arduino/TinyUSB keyboard codes or ASCII.
 // Script commands use names like "ENTER", "SPACE", "F1", "A", "1", "LEFT", "UP".
+// ... (前略) ...
+
+// Helper: map human-friendly key names to Arduino/TinyUSB keyboard codes or ASCII.
 static uint8_t key_name_to_hid(const std::string &name)
 {
     std::string s = name;
@@ -347,18 +350,15 @@ static uint8_t key_name_to_hid(const std::string &name)
         if (c >= 'a' && c <= 'z')
             c = c - 'a' + 'A';
 
-    // single letter A-Z -> return ASCII lowercase/uppercase is handled by host via modifier;
-    // but for Keyboard.press we can send the ASCII code for printable chars.
+    // 1文字の場合はすべての印刷可能文字(ASCII)を許可
     if (s.size() == 1)
     {
         char c = s[0];
-        if (c >= 'A' && c <= 'Z')
-            return static_cast<uint8_t>(c); // send ASCII letter
-        if (c >= '0' && c <= '9')
-            return static_cast<uint8_t>(c); // send ASCII digit
+        if (c >= 0x20 && c <= 0x7E)
+            return static_cast<uint8_t>(c);
     }
 
-    // Map function keys F1..F12 to Arduino/TinyUSB KEY_F* constants defined in TinyUSB_Mouse_and_Keyboard.h
+    // Function keys F1..F24
     if (s.size() >= 2 && s[0] == 'F')
     {
         int num = atoi(s.c_str() + 1);
@@ -390,12 +390,12 @@ static uint8_t key_name_to_hid(const std::string &name)
                 return KEY_F11;
             case 12:
                 return KEY_F12;
-            default:
-                return 0;
             }
         }
+        // F13..F24が必要な場合はここに追加
     }
 
+    // Basic Control
     if (s == "ENTER" || s == "RETURN")
         return KEY_RETURN;
     if (s == "ESC" || s == "ESCAPE")
@@ -409,44 +409,136 @@ static uint8_t key_name_to_hid(const std::string &name)
     if (s == "CAPSLOCK" || s == "CAPS")
         return KEY_CAPS_LOCK;
 
-    // Common punctuation: return ASCII where appropriate so host receives intended character
-    if (s == "MINUS" || s == "-")
-        return static_cast<uint8_t>('-');
-    if (s == "EQUAL" || s == "=")
-        return static_cast<uint8_t>('=');
-    if (s == "LEFTBRACE" || s == "[")
-        return static_cast<uint8_t>('[');
-    if (s == "RIGHTBRACE" || s == "]")
-        return static_cast<uint8_t>(']');
-    if (s == "BACKSLASH" || s == "\\")
-        return static_cast<uint8_t>('\\');
-    if (s == "SEMICOLON" || s == ";")
-        return static_cast<uint8_t>(';');
-    if (s == "APOSTROPHE" || s == "'")
-        return static_cast<uint8_t>('\'');
-    if (s == "GRAVE" || s == "`")
-        return static_cast<uint8_t>('`');
-    if (s == "COMMA" || s == ",")
-        return static_cast<uint8_t>(',');
-    if (s == "DOT" || s == "." || s == "PERIOD")
-        return static_cast<uint8_t>('.');
-    if (s == "SLASH" || s == "/")
-        return static_cast<uint8_t>('/');
+    // Additional Control Keys
+    if (s == "INSERT" || s == "INS")
+        return KEY_INSERT;
+    if (s == "DELETE" || s == "DEL")
+        return KEY_DELETE;
+    if (s == "PRINTSCREEN" || s == "PRTSC")
+        return KEY_PRINT_SCREEN;
+    if (s == "SCROLLLOCK")
+        return KEY_SCROLL_LOCK;
+    if (s == "PAUSE" || s == "BREAK")
+        return KEY_PAUSE;
+    if (s == "NUMLOCK")
+        return KEY_NUM_LOCK;
 
-    // Arrow keys -> use Arduino/TinyUSB constants
-    if (s == "RIGHT" || s == "ARROWRIGHT")
-        return KEY_RIGHT_ARROW;
-    if (s == "LEFT" || s == "ARROWLEFT")
-        return KEY_LEFT_ARROW;
-    if (s == "DOWN" || s == "ARROWDOWN")
-        return KEY_DOWN_ARROW;
+    // Navigation
     if (s == "UP" || s == "ARROWUP")
         return KEY_UP_ARROW;
+    if (s == "DOWN" || s == "ARROWDOWN")
+        return KEY_DOWN_ARROW;
+    if (s == "LEFT" || s == "ARROWLEFT")
+        return KEY_LEFT_ARROW;
+    if (s == "RIGHT" || s == "ARROWRIGHT")
+        return KEY_RIGHT_ARROW;
+    if (s == "PGUP" || s == "PAGEUP")
+        return KEY_PAGE_UP;
+    if (s == "PGDN" || s == "PAGEDOWN")
+        return KEY_PAGE_DOWN;
+    if (s == "HOME")
+        return KEY_HOME;
+    if (s == "END")
+        return KEY_END;
 
-    // unknow
+    // Modifiers
+    if (s == "CTRL" || s == "LCTRL")
+        return KEY_LEFT_CTRL;
+    if (s == "RCTRL")
+        return KEY_RIGHT_CTRL;
+    if (s == "SHIFT" || s == "LSHIFT")
+        return KEY_LEFT_SHIFT;
+    if (s == "RSHIFT")
+        return KEY_RIGHT_SHIFT;
+    if (s == "ALT" || s == "LALT")
+        return KEY_LEFT_ALT;
+    if (s == "RALT")
+        return KEY_RIGHT_ALT;
+    if (s == "GUI" || s == "WIN" || s == "WINDOWS" || s == "CMD" || s == "COMMAND" || s == "LWIN")
+        return KEY_LEFT_GUI;
+    if (s == "RGUI" || s == "RWIN")
+        return KEY_RIGHT_GUI;
+
+    // Japanese Keys
+    if (s == "HENKAN")
+        return KEY_HENKAN;
+    if (s == "MUHENKAN")
+        return KEY_MUHENKAN;
+    if (s == "ZENKAKU" || s == "HANKAKU" || s == "ZENKAKUHANKAKU")
+        return KEY_ZENKAKU_HANKAKU;
+    if (s == "KATAKANA" || s == "HIRAGANA")
+        return KEY_KATAKANA_HIRAGANA;
+
+    // Symbols (Named)
+    if (s == "EXCLAMATION" || s == "EXCLAM")
+        return '!';
+    if (s == "DOUBLEQUOTE" || s == "DQUOTE")
+        return '"';
+    if (s == "HASH" || s == "POUND")
+        return '#';
+    if (s == "DOLLAR")
+        return '$';
+    if (s == "PERCENT")
+        return '%';
+    if (s == "AMPERSAND" || s == "AMP")
+        return '&';
+    if (s == "APOSTROPHE" || s == "'")
+        return '\'';
+    if (s == "LEFTPAREN" || s == "LPAREN")
+        return '(';
+    if (s == "RIGHTPAREN" || s == "RPAREN")
+        return ')';
+    if (s == "ASTERISK" || s == "ASTER" || s == "MUL")
+        return '*';
+    if (s == "PLUS" || s == "ADD")
+        return '+';
+    if (s == "COMMA" || s == ",")
+        return ',';
+    if (s == "MINUS" || s == "-")
+        return '-';
+    if (s == "DOT" || s == "." || s == "PERIOD")
+        return '.';
+    if (s == "SLASH" || s == "/")
+        return '/';
+    if (s == "COLON")
+        return ':';
+    if (s == "SEMICOLON" || s == ";")
+        return ';';
+    if (s == "LESS" || s == "LT")
+        return '<';
+    if (s == "EQUAL" || s == "=")
+        return '=';
+    if (s == "GREATER" || s == "GT")
+        return '>';
+    if (s == "QUESTION" || s == "QUES")
+        return '?';
+    if (s == "AT")
+        return '@';
+    if (s == "LEFTBRACE" || s == "[")
+        return '[';
+    if (s == "BACKSLASH" || s == "\\")
+        return '\\';
+    if (s == "RIGHTBRACE" || s == "]")
+        return ']';
+    if (s == "CARET" || s == "CIRCUMFLEX")
+        return '^';
+    if (s == "UNDERSCORE" || s == "UNDER")
+        return '_';
+    if (s == "GRAVE" || s == "`")
+        return '`';
+    if (s == "LEFTCURLY" || s == "LBRACE" || s == "LCURLY")
+        return '{';
+    if (s == "PIPE" || s == "BAR")
+        return '|';
+    if (s == "RIGHTCURLY" || s == "RBRACE" || s == "RCURLY")
+        return '}';
+    if (s == "TILDE")
+        return '~';
+
     return 0;
 }
 
+// ... (後略) ...
 static std::pair<bool, double> eval_expression(ScriptState &st, const std::string &expr)
 {
     // エラー時の行内容取得用

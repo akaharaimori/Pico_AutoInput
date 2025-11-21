@@ -76,17 +76,21 @@ body {
 
 /* Editor Wrapper */
 #editor-wrapper {
-    position: relative;
     flex-grow: 1;
     width: 100%;
     height: 0; /* Flexbox内でのスクロールに必要 */
     background-color: #fafafa;
-    /* 修正: ラッパー要素でスクロールを管理する */
-    overflow: auto;
+    
+    /* 修正: Gridレイアウトを使用して子要素を重ねる */
+    display: grid;
+    overflow: auto; /* 親要素がスクロールを担当 */
 }
 
 /* Editor Layers */
 .editor-layer {
+    /* 修正: Gridの同じセル(1行1列)に配置して重ねる */
+    grid-area: 1 / 1;
+    
     /* 共通スタイル */
     font-family: "Consolas", "Monaco", monospace;
     font-size: 14px;
@@ -96,29 +100,27 @@ body {
     box-sizing: border-box;
     margin: 0;
     border: none;
+    
+    /* サイズはGridセルに従う */
+    width: 100%;
+    height: 100%;
 }
 
 #code-highlight {
-    /* 修正: ハイライト層を文書フロー内に配置し、内容に応じてサイズを広げる */
-    position: relative;
-    top: 0; 
-    left: 0;
-    min-width: 100%;
-    width: max-content;  /* 内容（エラー含む）に合わせて幅を広げる */
-    min-height: 100%;
-    height: max-content;
     z-index: 1;
     pointer-events: none; /* クリックは下のtextareaに通す */
+    
+    /* 修正: コンテンツに合わせてサイズを決定する（これがGridセルのサイズになる） */
+    width: max-content;
+    min-width: 100%;
+    height: max-content;
+    min-height: 100%;
+    
+    /* テキストエリアと完全に一致させるための調整 */
     overflow: hidden;
 }
 
 #code-input {
-    /* 修正: テキストエリアはハイライト層のサイズに合わせて追従 */
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;  /* 親(max-content)に合わせる */
-    height: 100%;
     z-index: 2;
     color: transparent;
     background: transparent;
@@ -126,6 +128,10 @@ body {
     outline: none;
     resize: none;
     overflow: hidden; /* 自身のスクロールバーは消す */
+    
+    /* Gridセル（highlightのサイズ）いっぱいに広がる */
+    width: 100%;
+    height: 100%;
 }
 
 #code-input::selection {
@@ -137,7 +143,7 @@ body {
 .line {
     display: block;
     min-height: 1.5em;
-    /* 修正: エラーメッセージ等が長い場合に親要素を広げる */
+    /* エラーメッセージ等が長い場合に親要素を広げる */
     width: max-content;
     min-width: 100%;
     padding-right: 20px;
@@ -406,6 +412,73 @@ body.show-errors .warn-text {
 
 .detail-sample code {
     font-family: inherit;
+}
+
+/* 追加: ネストされた詳細（サブドロップダウン） */
+.sub-doc-entry {
+    margin-top: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background: #fff;
+}
+
+.sub-doc-header {
+    display: flex;
+    justify-content: space-between;
+    padding: 5px 10px;
+    background: #f0f0f0;
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: bold;
+    color: #555;
+    border-bottom: 1px solid transparent;
+    transition: background 0.1s;
+}
+
+.sub-doc-header:hover {
+    background: #e0e0e0;
+}
+
+.sub-doc-detail {
+    display: none;
+    padding: 10px;
+    border-top: 1px solid #ddd;
+    background: #fff;
+    font-size: 0.85rem;
+}
+
+.sub-doc-entry.expanded .sub-doc-header {
+    border-bottom: 1px solid #ddd;
+}
+
+.sub-doc-entry.expanded .sub-doc-detail {
+    display: block;
+}
+
+/* 追加: キー定数対応表 */
+.key-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.8rem;
+    background: #fff;
+}
+
+.key-table th, .key-table td {
+    border: 1px solid #ccc;
+    padding: 4px 8px;
+    text-align: left;
+}
+
+.key-table th {
+    background: #eee;
+    font-weight: bold;
+    color: #333;
+}
+
+.key-code {
+    font-family: monospace;
+    color: #a52a2a;
+    font-weight: bold;
 }
 
 h2 {

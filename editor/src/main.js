@@ -2,6 +2,8 @@ import './style.css';
 import { analyzeCode, updateParenMatch } from './editor.js';
 import { checkAutocomplete, handleKey } from './autocomplete.js';
 import * as UI from './ui.js';
+// samples.html の内容を文字列としてインポート (Viteの機能)
+import samplesHtml from './samples.html?raw';
 
 const inputEl = document.getElementById('code-input');
 const highlightEl = document.getElementById('code-highlight');
@@ -9,10 +11,18 @@ const acList = document.getElementById('autocomplete-list');
 
 // Initialize
 window.onload = () => {
+    // サンプルHTMLを注入
+    const samplesContainer = document.getElementById('samples');
+    if (samplesContainer) {
+        samplesContainer.innerHTML = samplesHtml;
+    }
+
+    // イベントリスナーを設定 (リファレンスとサンプルの両方に適用)
+    UI.setupDocumentInteractions(inputEl);
+
     updateView();
     UI.updateStructureTab(inputEl);
     UI.openHelp();
-    UI.setupReferenceToggles(); // 追加: リファレンスのトグル初期化
 };
 
 function updateView() {
@@ -20,9 +30,6 @@ function updateView() {
     const res = analyzeCode(inputEl.value);
     highlightEl.innerHTML = res.html;
     UI.updateStatus(res.errorCount, res.warningCount);
-    
-    // 修正: CSSによるレイアウト制御（親要素スクロール）に変更したため、
-    // JSによるスクロール同期やパディング調整は不要になりました。
 }
 
 // Editor Events
@@ -31,7 +38,7 @@ inputEl.addEventListener('input', () => {
     checkAutocomplete(inputEl, acList);
 });
 
-// 修正: 親要素(wrapper)がスクロールを管理するため、textareaのscrollイベントリスナーは削除
+// スクロール連動はCSSで制御するように変更したためJSでのイベントリスナーは不要または削除済み
 // inputEl.addEventListener('scroll', ...);
 
 inputEl.addEventListener('keydown', (e) => {
@@ -62,8 +69,7 @@ document.getElementById('file-input').onchange = (e) => {
             highlightEl.innerHTML = res.html;
             UI.updateStructureTab(inputEl);
             UI.updateStatus(res.errorCount, res.warningCount);
-            // ファイル読み込み後にビューを更新
-            updateView();
+            updateView(); // ファイル読み込み後もビューを更新
         };
         r.readAsText(e.target.files[0]);
     }
@@ -79,11 +85,6 @@ window.onclick = (e) => { if (e.target === document.getElementById('help-modal')
 // Tabs
 document.querySelectorAll('.tab').forEach(t => {
     t.onclick = () => UI.switchTab(t.dataset.tab);
-});
-
-// Reference Items (insert text)
-document.querySelectorAll('.doc-item').forEach(item => {
-    item.onclick = () => UI.insertText(item.dataset.insert, inputEl);
 });
 
 // Flowchart Update

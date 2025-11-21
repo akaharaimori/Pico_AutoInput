@@ -1,0 +1,219 @@
+
+    // --- Autocomplete ---
+    function checkAutocomplete() {
+        const cursorPos = inputEl.selectionStart;
+        const text = inputEl.value;
+        
+        const before = text.substring(0, cursorPos);
+        const lineStart = before.lastIndexOf('\n') + 1;
+        const lineEnd = text.indexOf('\n', cursorPos);
+        const line = text.substring(lineStart, lineEnd === -1 ? text.length : lineEnd);
+        const cursorInLine = cursorPos - lineStart;
+        const trimLine = line.trim();
+
+        if (!trimLine) { acList.style.display = 'none'; return; }
+
+        // 1. Identify Command
+        let activeCmd = null;
+        const firstSpace = trimLine.indexOf(' ');
+        const cmdRaw = (firstSpace === -1 ? trimLine : trimLine.substring(0, firstSpace)).toUpperCase();
+        const paren = cmdRaw.indexOf('(');
+        const cmdPure = (paren !== -1 ? cmdRaw.substring(0, paren) : cmdRaw);
+
+        // GOTO/IF Special
+        if (cmdPure === "IF") {
+            const gt = line.toUpperCase().indexOf("GOTO");
+            if (gt !== -1 && cursorInLine > gt + 4) activeCmd = "GOTO"; 
+        } else {
+            if (COMMANDS.some(c => c.toUpperCase() === cmdPure)) activeCmd = cmdPure;
+        }
+
+        if (!activeCmd) { acList.style.display = 'none'; return; }
+
+        // 2. Candidates
+        let candidates = [];
+        let isLabel = (activeCmd === "GOTO" || activeCmd === "GOSUB");
+        if (isLabel) candidates = Array.from(definedLabels.keys());
+        else if (AC_CONSTANTS[activeCmd]) candidates = AC_CONSTANTS[activeCmd];
+        else { acList.style.display = 'none'; return; }
+
+        // 3. Find Token for replacement
+        const separators = /[ \(,]/;
+        let tStart = cursorInLine;
+        while (tStart > 0 && !separators.test(line[tStart-1])) tStart--;
+        
+        // Scan forward to include rest of token (Fix for "insert cleanly")
+        let tEnd = cursorInLine;
+        while (tEnd < line.length && !separators.test(line[tEnd]) && line[tEnd] !== ')') tEnd++;
+
+        const tokenPrefix = line.substring(tStart, cursorInLine); // match against this
+        const fullTokenLen = tEnd - tStart; // replace this length
+
+        // Filter
+        const matches = candidates.filter(c => c.toUpperCase().startsWith(tokenPrefix.toUpperCase()));
+        if (matches.length === 0) { acList.style.display = 'none'; return; }
+
+        // Position
+        const lh = 21; 
+        const linesBefore = text.substring(0, lineStart + tStart).split('\n');
+        const top = (linesBefore.length * lh) - inputEl.scrollTop; 
+        const lastLineText = linesBefore[linesBefore.length - 1];
+        const left = lastLineText.length * 8.4 + 10; 
+
+        acList.innerHTML = '';
+        matches.forEach(c => {
+            const div = document.createElement('div');
+            div.className = 'ac-item';
+            div.innerHTML = `<span class="ac-match">${c.substring(0, tokenPrefix.length)}</span>${c.substring(tokenPrefix.length)}` + (isLabel ? '<span class="ac-type">Label</span>' : '');
+            div.onmousedown = (e) => { 
+                e.preventDefault(); 
+                applyAc(c, lineStart + tStart, fullTokenLen); 
+            };
+            acList.appendChild(div);
+        });
+
+        acList.style.display = 'block';
+        acList.style.top = (top + 5) + 'px';
+        acList.style.left = left + 'px';
+    }
+
+    function applyAc(val, start, len) {
+        const old = inputEl.value;
+        inputEl.value = old.substring(0, start) + val + old.substring(start + len);
+        inputEl.selectionStart = inputEl.selectionEnd = start + val.length;
+        acList.style.display = 'none';
+        analyzeCode();
+        inputEl.focus();
+    }
+
+    function handleKey(e) {
+        if (acList.style.display === 'block') {
+            if (e.key === 'Enter' || e.key === 'Tab') {
+                e.preventDefault();
+                acList.firstElementChild.onmousedown({preventDefault:()=>{}});
+            } else if (e.key === 'Escape') {
+                acList.style.display = 'none';
+            }
+        } else {
+            if (e.key === 'Tab') {
+                e.preventDefault();
+                insertText("    ");
+            }
+        }
+    }
+
+    // --- Utils ---
+    function insertText(t) {
+        const s = inputEl.selectionStart;
+        const e = inputEl.selectionEnd;
+        inputEl.value = inputEl.value.substring(0,s) + t + inputEl.value.substring(e);
+        inputEl.selectionStart = inputEl.selectionEnd = s + t.length;
+        inputEl.focus();
+        analyzeCode();
+    }
+
+    function saveFile() {
+        const b = new Blob([inputEl.value], {type:"text/plain"});
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(b);
+        a.download = "script.txt";
+        a.click();
+    }
+
+    function toggleErrors() {
+        document.body.classList.toggle('show-errors', document.getElementById('chk-errors').checked);
+    }
+
+    document.getElementById('file-input').addEventListener('change', (e) => {
+        if(e.target.files[0]) {
+            const r = new FileReader();
+            r.onload = (ev) => { inputEl.value = ev.target.result; analyzeCode(); };
+            r.readAsText(e.target.files[0]);
+        }
+    });
+
+    // --- Info Pane ---
+    function switchTab(id) {
+        document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));
+        document.querySelector(`.tab[onclick="switchTab('${id}')"]`).classList.add('active');
+        document.getElementById(id).classList.add('active');
+        if(id === 'flowchart') updateFlowchart();
+    }
+
+    function updateStructureTab() {
+        const ll = document.getElementById('label-list');
+        const vl = document.getElementById('var-list');
+        ll.innerHTML = ''; vl.innerHTML = '';
+        definedLabels.forEach((ln, nm) => {
+            const d = document.createElement('div'); d.className='struct-item';
+            d.innerHTML=`<span class="struct-name">${nm}</span><span>L${ln}</span>`;
+            d.onclick=()=>jumpTo(ln); ll.appendChild(d);
+        });
+        definedVars.forEach((ln, nm) => {
+            const d = document.createElement('div'); d.className='struct-item';
+            d.innerHTML=`<span class="struct-name">${nm}</span><span>Def: L${ln}</span>`;
+            d.onclick=()=>jumpTo(ln); vl.appendChild(d);
+        });
+    }
+
+    function jumpTo(ln) {
+        inputEl.scrollTop = (ln - 5) * 21;
+    }
+
+    function updateFlowchart() {
+        const con = document.getElementById('mermaid-container');
+        con.innerHTML = 'Loading...';
+        let g = "graph TD;\n";
+        let cid = "START"; let clbl = "START";
+        let nodes = [];
+        
+        scriptLines.forEach((line, i) => {
+            const t = line.trim();
+            if (!t || t.startsWith('#') || t.toUpperCase().startsWith('REM')) return;
+            if (t.toUpperCase().startsWith("LABEL")) {
+                const l = t.split(/\s+/)[1];
+                if (clbl) nodes.push({id:cid, lbl:clbl, next:l});
+                cid = l; clbl = l + "\n";
+                return;
+            }
+            if (t.toUpperCase().startsWith("GOTO")) {
+                nodes.push({id:cid, lbl:clbl+"GOTO "+t.split(/\s+/)[1], jump:t.split(/\s+/)[1]});
+                cid="N"+i; clbl=""; return;
+            }
+            if (t.toUpperCase().startsWith("IF")) {
+                const idx = t.toUpperCase().indexOf("GOTO");
+                if(idx!==-1) {
+                    nodes.push({id:cid, lbl:clbl+"IF "+t.substring(2,idx).trim(), jump:t.substring(idx+4).trim(), next:"N"+i});
+                    cid="N"+i; clbl=""; return;
+                }
+            }
+            if(t.toUpperCase()=="END" || t.toUpperCase()=="RETURN") {
+                nodes.push({id:cid, lbl:clbl+t}); cid="N"+i; clbl=""; return;
+            }
+            clbl += t.replace(/[()"]/g,'') + "\n";
+        });
+        if(clbl) nodes.push({id:cid, lbl:clbl});
+
+        nodes.forEach(n => {
+            if(!n.lbl.trim()) return;
+            let txt = n.lbl.trim().replace(/\n/g, '<br>');
+            g += `    ${n.id}["${txt}"]\n`;
+            if(n.jump) g += `    ${n.id} --> ${n.jump}\n`;
+            if(n.next) g += `    ${n.id} --> ${n.next}\n`;
+        });
+
+        try { mermaid.render('graphDiv', g).then(r => con.innerHTML = r.svg); } catch(e){ con.innerHTML="Error"; }
+    }
+
+    // Help Modal
+    function openHelp() { document.getElementById('help-modal').style.display = 'block'; }
+    function closeHelp() { document.getElementById('help-modal').style.display = 'none'; }
+    window.onclick = function(event) {
+        if (event.target == modal) closeHelp();
+    }
+
+    analyzeCode();
+</script>
+</body>
+</html>

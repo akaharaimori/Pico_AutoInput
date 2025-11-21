@@ -1,0 +1,512 @@
+<div class="doc-section">
+    <h2>LED制御サンプル</h2>
+
+    <div class="doc-entry">
+        <div class="doc-header">
+            <div class="doc-item" data-insert='UseLED(1)
+SET r = 255
+SET g = 0
+SET b = 0
+
+LABEL Loop
+SetLED(r, g, b)
+WAIT 0.5
+SetLED(0, 0, 0)
+WAIT 0.5
+GOTO Loop
+'>
+                <span class="doc-syntax">Lチカ (赤色点滅)</span>
+                <div class="doc-desc">0.5秒間隔で赤色LEDを点滅させる基本ループです。</div>
+            </div>
+            <button class="doc-toggle">▼</button>
+        </div>
+        <div class="doc-detail">
+            <div class="detail-desc">
+                無限ループを使ってLEDを点滅させる、最も基本的なプログラムです。<br>
+                <b>ポイント:</b>
+                <ul>
+                    <li><code>UseLED(1)</code> でLED制御を有効化します。</li>
+                    <li><code>SetLED</code> で色を指定し、<code>WAIT</code> で点灯時間を制御します。</li>
+                    <li><code>GOTO</code> で処理を先頭に戻すことで、電源を切るまで動作し続けます。</li>
+                </ul>
+            </div>
+            <div class="detail-sample">UseLED(1)
+REM 変数で色を定義
+SET r = 255
+SET g = 0
+SET b = 0
+
+LABEL Loop
+REM 点灯
+SetLED(r, g, b)
+WAIT 0.5
+
+REM 消灯 (黒色)
+SetLED(0, 0, 0)
+WAIT 0.5
+
+REM 最初に戻る
+GOTO Loop</div>
+        </div>
+    </div>
+
+    <div class="doc-entry">
+        <div class="doc-header">
+            <div class="doc-item" data-insert='UseLED(1)
+SET hue = 0
+
+LABEL ColorLoop
+REM HSVのような色変化簡易版
+SET r = (sin(deg2rad(hue)) + 1) * 127
+SET g = (sin(deg2rad(hue + 120)) + 1) * 127
+SET b = (sin(deg2rad(hue + 240)) + 1) * 127
+
+SetLED(r, g, b)
+WAIT 0.05
+
+REM 角度を進める
+SET hue = hue + 5
+REM 360未満ならループ継続、360以上ならリセット
+IF hue < 360 GOTO ColorLoop
+SET hue = 0
+GOTO ColorLoop
+'>
+                <span class="doc-syntax">レインボー点灯</span>
+                <div class="doc-desc">三角関数を使って滑らかに色を変化させます。</div>
+            </div>
+            <button class="doc-toggle">▼</button>
+        </div>
+        <div class="doc-detail">
+            <div class="detail-desc">
+                <code>sin</code> 関数と位相のずれを利用して、滑らかなグラデーションを作ります。<br>
+                <b>ポイント:</b>
+                <ul>
+                    <li><code>deg2rad</code> で角度をラジアンに変換して <code>sin</code> に渡します。</li>
+                    <li><code>IF</code> 文で角度が360を超えたら0に戻すループ処理を行っています。</li>
+                </ul>
+            </div>
+            <div class="detail-sample">UseLED(1)
+SET hue = 0
+
+LABEL ColorLoop
+REM 角度をずらしてRGBを計算
+SET r = (sin(deg2rad(hue)) + 1) * 127
+SET g = (sin(deg2rad(hue + 120)) + 1) * 127
+SET b = (sin(deg2rad(hue + 240)) + 1) * 127
+
+SetLED(r, g, b)
+WAIT 0.05
+
+REM 角度を進める
+SET hue = hue + 5
+
+REM 360未満ならループ継続
+IF hue < 360 GOTO ColorLoop
+
+REM 360以上になったらリセットしてループ
+SET hue = 0
+GOTO ColorLoop</div>
+        </div>
+    </div>
+</div>
+
+<div class="doc-section">
+    <h2>マウス・キーボード操作</h2>
+
+    <div class="doc-entry">
+        <div class="doc-header">
+            <div class="doc-item" data-insert='REM マウス相対移動で円を描く
+UseLED(0)
+Mode(KeyMouse)
+
+LABEL START
+REM 左クリックして描画開始
+MousePress(LEFT)
+
+REM パラメータ設定
+SET angle = 0
+SET radius = 300
+SET step = 0.1
+
+REM 初期位置計算（ジャンプ防止）
+SET x = round(radius * cos(angle))
+SET y = round(radius * sin(angle))
+SET prevx = x
+SET prevy = y
+SET angle = angle + step
+
+LABEL CIRCLE_LOOP
+REM 次の点を計算
+SET x = round(radius * cos(angle))
+SET y = round(radius * sin(angle))
+
+REM 差分計算 (相対移動)
+SET dx = x - prevx
+SET dy = y - prevy
+
+REM 移動実行
+MouseMove(dx, dy, 1)
+WAIT 0.02
+
+REM 位置更新
+SET prevx = x
+SET prevy = y
+SET angle = angle + step
+
+REM 1周 (2*pi ≒ 6.283) したら終了
+IF angle < 6.283185 GOTO CIRCLE_LOOP
+
+MouseRelease(LEFT)
+END
+'>
+                <span class="doc-syntax">マウスで円を描く</span>
+                <div class="doc-desc">マウスカーソルをくるくると円状に動かします。</div>
+            </div>
+            <button class="doc-toggle">▼</button>
+        </div>
+        <div class="doc-detail">
+            <div class="detail-desc">
+                自動マウス操作のサンプルです。計算した座標への相対移動を繰り返して円を描きます。<br>
+                <b>使用上の注意:</b> ペイントソフトなどを前面に置いてから実行してください。<br>
+                <b>ポイント:</b>
+                <ul>
+                    <li><code>MouseMove</code> は相対移動なので、前回の座標(<code>prevx, prevy</code>)との差分(<code>dx, dy</code>)を計算して移動させています。</li>
+                    <li><code>radius</code> (半径) や <code>step</code> (刻み幅) を調整するとサイズや速度が変わります。</li>
+                </ul>
+            </div>
+            <div class="detail-sample">REM マウス相対移動で円を描く
+UseLED(0)
+Mode(KeyMouse)
+
+LABEL START
+REM 左クリックして描画開始
+MousePress(LEFT)
+
+REM パラメータ設定
+SET angle = 0
+SET radius = 300
+SET step = 0.1
+
+REM 初期位置計算（ジャンプ防止）
+SET x = round(radius * cos(angle))
+SET y = round(radius * sin(angle))
+SET prevx = x
+SET prevy = y
+SET angle = angle + step
+
+LABEL CIRCLE_LOOP
+REM 次の点を計算
+SET x = round(radius * cos(angle))
+SET y = round(radius * sin(angle))
+
+REM 差分計算 (相対移動)
+SET dx = x - prevx
+SET dy = y - prevy
+
+REM 移動実行
+MouseMove(dx, dy, 1)
+WAIT 0.02
+
+REM 位置更新
+SET prevx = x
+SET prevy = y
+SET angle = angle + step
+
+REM 1周 (2*pi ≒ 6.283) したら終了
+IF angle < 6.283185 GOTO CIRCLE_LOOP
+
+MouseRelease(LEFT)
+END</div>
+        </div>
+    </div>
+
+    <div class="doc-entry">
+        <div class="doc-header">
+            <div class="doc-item" data-insert='UseLED(0)
+Mode(KeyMouse)
+REM スパイログラフ描画の初期設定
+MousePress(LEFT)
+SET R_big = 100
+SET r_small = 35
+SET d = 60
+SET step = 0.05
+SET scale = 3
+SET steps = 4000
+SET i = 0
+SET t = 0
+REM 初期点を計算してジャンプを防止
+SET x = (R_big - r_small) * cos(t) + d * cos(((R_big - r_small) / r_small) * t)
+SET y = (R_big - r_small) * sin(t) - d * sin(((R_big - r_small) / r_small) * t)
+SET prevx = round(x * scale)
+SET prevy = round(y * scale)
+LABEL LOOP
+SET t = i * step
+SET x = (R_big - r_small) * cos(t) + d * cos(((R_big - r_small) / r_small) * t)
+SET y = (R_big - r_small) * sin(t) - d * sin(((R_big - r_small) / r_small) * t)
+REM 整数スケール位置を使って相対移動を計算
+SET xs = round(x * scale)
+SET ys = round(y * scale)
+SET dx = xs - prevx
+SET dy = ys - prevy
+MouseMove(dx, dy, 1)
+WAIT 0.01
+SET prevx = xs
+SET prevy = ys
+SET i = i + 1
+IF i < steps GOTO LOOP
+MouseRelease(LEFT)
+END
+'>
+                <span class="doc-syntax">スパイログラフ描画</span>
+                <div class="doc-desc">マウスで幾何学模様（ヒポトロコイド）を描画します。</div>
+            </div>
+            <button class="doc-toggle">▼</button>
+        </div>
+        <div class="doc-detail">
+            <div class="detail-desc">
+                数学関数を駆使して、複雑な幾何学模様をマウス操作で描画します。<br>
+                <b>使い方:</b> ペイントソフト（MSペイントなど）を開き、キャンバスを前面にしてから実行してください。<br>
+                <b>仕組み:</b> 内トロコイドの公式に基づいて座標を計算し、<code>MouseMove</code> で相対移動させることで軌跡を描きます。
+            </div>
+            <div class="detail-sample">UseLED(0)
+Mode(KeyMouse)
+REM 左クリック押下（描画開始）
+MousePress(LEFT)
+
+REM パラメータ設定
+SET R_big = 100
+SET r_small = 35
+SET d = 60
+SET step = 0.05
+SET scale = 3
+SET steps = 4000
+SET i = 0
+SET t = 0
+
+REM 初期位置計算
+SET x = (R_big - r_small) * cos(t) + d * cos(((R_big - r_small) / r_small) * t)
+SET y = (R_big - r_small) * sin(t) - d * sin(((R_big - r_small) / r_small) * t)
+SET prevx = round(x * scale)
+SET prevy = round(y * scale)
+
+LABEL LOOP
+REM 次の点の計算
+SET t = i * step
+SET x = (R_big - r_small) * cos(t) + d * cos(((R_big - r_small) / r_small) * t)
+SET y = (R_big - r_small) * sin(t) - d * sin(((R_big - r_small) / r_small) * t)
+
+REM 差分移動
+SET xs = round(x * scale)
+SET ys = round(y * scale)
+SET dx = xs - prevx
+SET dy = ys - prevy
+MouseMove(dx, dy, 1)
+
+WAIT 0.01
+SET prevx = xs
+SET prevy = ys
+SET i = i + 1
+IF i < steps GOTO LOOP
+
+MouseRelease(LEFT)
+END</div>
+        </div>
+    </div>
+
+    <div class="doc-entry">
+        <div class="doc-header">
+            <div class="doc-item" data-insert='Mode(KeyMouse)
+WAIT 3
+KeyType("Hello World!\n", 0.05, 0.05)
+WAIT 1
+KeyType("This is auto typing demo.", 0.05, 0.05)
+'>
+                <span class="doc-syntax">自動タイピング</span>
+                <div class="doc-desc">文字列を自動で入力します。</div>
+            </div>
+            <button class="doc-toggle">▼</button>
+        </div>
+        <div class="doc-detail">
+            <div class="detail-desc">
+                定型文を自動入力するサンプルです。<br>
+                <b>ポイント:</b>
+                <ul>
+                    <li><code>KeyType</code> の第1引数はダブルクォーテーションで囲む必要があります。</li>
+                    <li><code>\n</code> を入れるとEnterキー（改行）が入力されます。</li>
+                </ul>
+            </div>
+            <div class="detail-sample">Mode(KeyMouse)
+REM メモ帳などを開く時間を待つ
+WAIT 3
+
+REM 挨拶を入力して改行
+KeyType("Hello World!\n", 0.05, 0.05)
+
+WAIT 1
+
+REM 文章を入力
+KeyType("This is auto typing demo.", 0.05, 0.05)</div>
+        </div>
+    </div>
+</div>
+
+<div class="doc-section">
+    <h2>応用テクニック</h2>
+
+    <div class="doc-entry">
+        <div class="doc-header">
+            <div class="doc-item" data-insert='DEBUG(1)
+Mode(KeyMouse)
+UseLED(1)
+WAIT 0.5
+
+LABEL MAIN_LOOP
+REM --- 押されていない場合: 赤にして待機 ---
+IF IsPressed() GOTO PRESSED
+SetLED(255,0,0)
+GOTO MAIN_LOOP
+
+LABEL PRESSED
+REM --- 押されている場合: 青にして連打 ---
+SetLED(0,0,255)
+WAIT 0.02
+
+LABEL PRESSED_LOOP
+REM ボタン確認: 離されたら戻る
+IF IsPressed() == 0 GOTO MAIN_LOOP
+
+REM クリック連打
+MousePress(LEFT)
+WAIT 0.02
+MouseRelease(LEFT)
+WAIT 0.02
+GOTO PRESSED_LOOP
+'>
+                <span class="doc-syntax">ボタン連打 (IsPressed)</span>
+                <div class="doc-desc">本体ボタンを押している間、左クリックを連打します。</div>
+            </div>
+            <button class="doc-toggle">▼</button>
+        </div>
+        <div class="doc-detail">
+            <div class="detail-desc">
+                Pico本体のBOOTSELボタンを「連打スイッチ」として利用するサンプルです。<br>
+                <b>動作:</b>
+                <ul>
+                    <li>ボタンを押していない時は赤色LEDが点灯し、待機します。</li>
+                    <li>ボタンを押すと青色LEDに変わり、マウスの左クリックを高速連打します。</li>
+                    <li>ボタンを離すと連打が止まります。</li>
+                </ul>
+            </div>
+            <div class="detail-sample">DEBUG(1)
+Mode(KeyMouse)
+UseLED(1)
+WAIT 0.5
+
+LABEL MAIN_LOOP
+REM --- 押されていない場合 ---
+IF IsPressed() GOTO PRESSED
+SetLED(255,0,0)
+GOTO MAIN_LOOP
+
+LABEL PRESSED
+REM --- 押されている場合 ---
+SetLED(0,0,255)
+WAIT 0.02
+
+LABEL PRESSED_LOOP
+REM ボタン確認: 離されたら戻る
+REM (IsPressed() は押されていると1.0)
+SET p = IsPressed()
+IF p == 0 GOTO MAIN_LOOP
+
+REM クリック実行
+MousePress(LEFT)
+WAIT 0.02
+MouseRelease(LEFT)
+WAIT 0.02
+GOTO PRESSED_LOOP</div>
+        </div>
+    </div>
+
+    <div class="doc-entry">
+        <div class="doc-header">
+            <div class="doc-item" data-insert='DEBUG(1)
+WAIT 0.5
+LABEL START
+REM --- KeyMouse: タイプとマウス操作 ---
+Mode(KeyMouse)
+WAIT 0.5
+KeyType("Hello", 0.05, 0.05)
+WAIT 1
+MouseMove(20, 0, 1)
+WAIT 0.2
+MousePress(LEFT)
+WAIT 0.5
+MouseRelease(LEFT)
+WAIT 1
+
+REM --- 切替: ProController ---
+Mode(ProController)
+WAIT 0.5
+ProConPress(A)
+WAIT 1
+ProConRelease(A)
+WAIT 0.5
+ProConPushFor(B, 1)
+WAIT 1
+ProConHat(UP)
+WAIT 1
+ProConHat(CENTER)
+WAIT 0.5
+
+REM --- 戻す: KeyMouse ---
+Mode(KeyMouse)
+WAIT 0.5
+KeyPress(ENTER)
+WAIT 0.2
+KeyRelease(ENTER)
+WAIT 1
+
+GOTO START
+'>
+                <span class="doc-syntax">モード切替デモ</span>
+                <div class="doc-desc">KeyMouseとProControllerモードを切り替えて動作します。</div>
+            </div>
+            <button class="doc-toggle">▼</button>
+        </div>
+        <div class="doc-detail">
+            <div class="detail-desc">
+                1つのスクリプト内でUSBデバイスの役割（モード）を動的に切り替えるサンプルです。<br>
+                <b>注意:</b> <code>Mode()</code> コマンドを実行すると、USBデバイスの再接続処理が走るため、OS側で認識されるまで一瞬ラグが発生します。<br>
+                <b>動作:</b> キーボード操作 → Switchコン操作 → キーボード操作 を繰り返します。
+            </div>
+            <div class="detail-sample">DEBUG(1)
+WAIT 0.5
+LABEL START
+
+REM --- KeyMouseモード ---
+Mode(KeyMouse)
+WAIT 0.5
+REM 文字入力
+KeyType("Hello", 0.05, 0.05)
+WAIT 1
+
+REM --- ProControllerモードへ切替 ---
+Mode(ProController)
+WAIT 0.5
+REM Aボタンなどを操作
+ProConPress(A)
+WAIT 1
+ProConRelease(A)
+
+REM --- KeyMouseモードへ戻す ---
+Mode(KeyMouse)
+WAIT 0.5
+KeyPress(ENTER)
+WAIT 0.2
+KeyRelease(ENTER)
+
+GOTO START</div>
+        </div>
+    </div>
+</div>
