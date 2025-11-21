@@ -17,38 +17,135 @@
                 <span class="close-btn" id="close-help-btn">&times;</span>
             </div>
             <div class="modal-body">
-                <p>このエディタは、<b>Pico AutoInput</b> デバイスのスクリプト編集を支援する公式ツールです。</p>
+                <p><b>Pico AutoInput</b> は、あなたの代わりにキーボードやマウスを操作してくれる自動化デバイスです。</p>
 
-                <h3 class="help-h3">エディタの配色（シンタックスハイライト）</h3>
+                <h3 class="help-h3">🔘 2つのボタンの使い分け</h3>
+                <div style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
+                    <div style="flex: 1; min-width: 200px; background: #eef; padding: 15px; border-radius: 8px; border: 2px solid #ccd;">
+                        <strong style="font-size: 1.1em;">⚫ 黒いボタン (決定・開始)</strong>
+                        <ul style="margin: 5px 0 0 0; padding-left: 20px;">
+                            <li><b>スクリプトを動かす:</b> 準備ができたら「カチッ」と1回押します。</li>
+                            <li><b>設定をリセットする:</b> 緑ランプのときに10秒長押しします。</li>
+                            <li><b>中身を書き換える:</b> このボタンを押しながらPCに繋ぐと、ファームウェア更新モードになります。</li>
+                        </ul>
+                    </div>
+                    <div style="flex: 1; min-width: 200px; background: #fee; padding: 15px; border-radius: 8px; border: 2px solid #dcc;">
+                        <strong style="font-size: 1.1em;">⚪ 白いボタン (再起動)</strong>
+                        <ul style="margin: 5px 0 0 0; padding-left: 20px;">
+                            <li><b>やり直す:</b> 押すと電源が切れ、すぐ再起動します。<br>（ケーブルを抜き差しするのと同じ効果です）</li>
+                            <li><b>緊急停止:</b> 動いているスクリプトをすぐに止めたい時に押します。</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <h3 class="help-h3">🔰 初めての方へ：失敗しないための5つのポイント</h3>
+                <div style="background:#fff3cd; border:1px solid #ffeeba; padding:15px; border-radius:5px; color:#856404;">
+                    <ul style="margin:0; padding-left:20px;">
+                        <li style="margin-bottom:10px;">
+                            <b>🔌 ケーブルは「通信対応」のものを使う</b><br>
+                            100円ショップなどで売られている「充電専用」のケーブルでは動きません。スマートフォンとPCを繋いで写真が転送できるような<b>「データ通信対応」のUSBケーブル</b>（Type-C）を必ずご用意ください。
+                        </li>
+                        <li style="margin-bottom:10px;">
+                            <b>📄 ファイル名は「Script.txt」にする</b><br>
+                            保存する際、ファイル名は正確に <code>Script.txt</code> にしてください。<br>
+                            <span style="font-size:0.9em; color:#d9534f;">※注意: PCの設定によっては、後ろの <code>.txt</code> が隠れている場合があります。その場合、<code>Script</code> とだけ名前を付けて保存してください（<code>Script.txt.txt</code> になると動きません）。</span>
+                        </li>
+                        <li style="margin-bottom:10px;">
+                            <b>📂 保存場所は「一番上の階層」へ</b><br>
+                            PCに繋ぐとUSBメモリのように認識されます。フォルダを作らず、開いた場所に直接ファイルを置いてください。
+                        </li>
+                        <li style="margin-bottom:10px;">
+                            <b>📺 画面を準備してから「黒ボタン」を押す</b><br>
+                            このデバイスは画面が見えていません。<b>黒いボタン</b>を押す前に、操作したい画面（ゲームやExcelなど）を必ず手前に出しておいてください。
+                        </li>
+                        <li>
+                            <b>🛑 困ったら「白ボタン」またはケーブルを抜く</b><br>
+                            予期しない動きをして止めたい場合は、落ち着いて<b>白いボタン</b>を押すか、USBケーブルを抜いてください。完全に停止します。
+                        </li>
+                    </ul>
+                </div>
+
+                <h3 class="help-h3">🎨 エディタ画面の見方と便利機能</h3>
+                
+                <p style="margin-bottom:10px;"><b>1. 文字の色（シンタックスハイライト）</b></p>
                 <ul>
-                    <li><span class="legend-box legend-func"></span><b style="color:#008000">緑色</b> : コマンド、関数、構文 (例:
-                        <code>WAIT</code>, <code>(</code>, <code>)</code>)</li>
-                    <li><span class="legend-box legend-var"></span><b style="color:#a52a2a">茶色</b> : 変数、ラベル (例:
-                        <code>i</code>, <code>LOOP</code>)</li>
-                    <li><span class="legend-box legend-arg"></span><b style="color:#d4a017">黄色</b> : 引数、数値、定数 (例:
-                        <code>0.5</code>, <code>LEFT</code>)</li>
-                    <li><span class="legend-box legend-other"></span><b style="color:#0000ff">青色</b> : コメント、その他 (例:
-                        <code>REM</code>, <code>#</code>)</li>
-                    <li><b style="border-bottom:2px solid #008000; background:rgba(0,255,0,0.1)">緑の下線</b> :
-                        現在カーソルがある括弧に対応するペア</li>
+                    <li><span class="legend-box legend-func"></span><b style="color:#008000">緑色 (命令)</b> : 
+                        <code>WAIT</code> や <code>KeyPress</code> など、PCへの命令です。ここが黒色のままだとスペルミスの可能性があります。
+                    </li>
+                    <li><span class="legend-box legend-var"></span><b style="color:#a52a2a">茶色 (名前)</b> : 
+                        <code>Loop</code> や <code>i</code> など、自分で決めた名前（ラベルや変数）です。
+                    </li>
+                    <li><span class="legend-box legend-arg"></span><b style="color:#d4a017">黄色 (設定値)</b> : 
+                        <code>0.5</code> や <code>LEFT</code> など、命令の具体的な内容です。
+                    </li>
+                    <li><span class="legend-box legend-other"></span><b style="color:#0000ff">青色 (メモ)</b> : 
+                        <code>REM</code> で始まる行は「コメント」として無視されます。
+                    </li>
                 </ul>
 
-                <h3 class="help-h3">エディタの機能</h3>
+                <p style="margin-top:15px; margin-bottom:10px;"><b>2. 間違い探し機能（エラー表示）</b></p>
                 <ul>
-                    <li><b>入力補完:</b> <span class="help-key">MousePress</span>
-                        等の引数入力中に候補を表示します。クリックで挿入でき、既存の文字は正しく置換されます。</li>
-                    <li><b>ラベル補完:</b> <span class="help-key">GOTO</span> や <span class="help-key">IF...GOTO</span>
-                        入力時、定義済みのラベルが候補に出ます。</li>
-                    <li><b>リファレンス:</b> 右パネルの項目をクリックすると、そのコマンドがカーソル位置に挿入されます。「▼」ボタンで詳細とサンプルを確認できます。</li>
+                    <li>
+                        <span style="display:inline-block; width:12px; height:12px; background:#ffcccc; border:1px solid #f88; margin-right:5px; vertical-align:middle;"></span>
+                        <strong>赤色の背景 (エラー)</strong> : 
+                        「スペルミス」「カッコの閉じ忘れ」など、<b style="color:#d32f2f;">このままでは動かない重大なミス</b>です。
+                    </li>
+                    <li>
+                        <span style="display:inline-block; width:12px; height:12px; background:#fff8c4; border:1px solid #e6a800; margin-right:5px; vertical-align:middle;"></span>
+                        <strong>黄色の背景 (警告)</strong> : 
+                        文法は合っていますが、「数字が変」など、意図しない動作になる可能性がある箇所です。
+                    </li>
                 </ul>
 
-                <h3 class="help-h3">サンプルの使い方</h3>
+                <p style="margin-top:15px; margin-bottom:10px;"><b>3. 入力サポート機能</b></p>
+                <ul>
+                    <li><b>入力補完 (定数オートコンプリート):</b><br>
+                        コマンドのカッコ <code>(</code> 内で文字を入力すると、そこで使える<b>「定数（キーの名前など）」</b>の候補リストが出ます。<br>
+                        <span style="font-size:0.9em; color:#666;">例: <code>KeyPress(</code> の中で <code>S</code> と打つと、<code>SHIFT</code> や <code>SPACE</code> が候補に出ます。（※コマンド名の補完ではありません）</span>
+                    </li>
+                    <li><b>ラベル補完:</b><br>
+                        <code>GOTO</code> の後ろなどで、すでに作った「ラベルの名前」が候補に出るので、簡単に指定できます。
+                    </li>
+                    <li><b>リファレンス (右パネル):</b><br>
+                        コマンドをクリックするとエディタに挿入されます。「▼」で詳しい使い方とサンプルが見れます。
+                    </li>
+                </ul>
+
+                <h3 class="help-h3">💡 LEDの色と状態</h3>
+                <ul>
+                    <li><b>LEDの意味:</b>
+                        <ul>
+                            <li><b style="color:green">緑色</b> : <b>待機中 (準備OK)</b><br>PCに接続され、<b>黒ボタン</b>が押されるのを待っている状態です。</li>
+                            <li><b style="color:#d4a017">黄色</b> : <b>実行中</b><br>スクリプトが動作しています（色の指定がない場合の基本色）。</li>
+                            <li><b style="color:purple">紫色 (点滅)</b> : <b>エラー発生</b><br>スクリプトの内容に間違いがあり停止しました。ドライブ内の <code>error_log.txt</code> に原因が書かれています。</li>
+                            <li><b>白色</b> : <b>初期化中</b><br>ストレージをリセットしています。絶対にケーブルを抜かないでください。</li>
+                            <li><b style="color:red">赤色 (点滅)</b> : <b>起動準備中</b><br>PCに繋いだ直後の状態です。起動に連続で失敗すると点滅回数が増えます。</li>
+                        </ul>
+                    </li>
+                    <li><b>強制初期化 (工場出荷時に戻す):</b><br>
+                        動かなくなった場合、以下の手順でリセットできます。
+                        <ul>
+                            <li><b>黒ボタン長押しリセット:</b><br>
+                                LEDが <b style="color:green">緑色</b> のときに、<b>黒いボタン</b> を <b>10秒間長押し</b> すると初期化されます。
+                            </li>
+                            <li><b>連続起動失敗リセット:</b><br>
+                                PCに接続して <b style="color:red">赤色</b> が点滅している間に「<b>白いボタン</b>を押して再起動する」操作を <b>3回連続</b> で行うと、次回起動時に自動的に初期化されます。<br>
+                                ※失敗カウントがたまると、起動時の赤点滅の回数がだんだん増えます。
+                            </li>
+                        </ul>
+                    </li>
+                    <li><b>【重要】接続時の注意:</b><br>
+                        PCに接続した直後の <b style="color:red">赤点滅</b> は、準備運動のようなものです。ここで電源を切ると「起動失敗」とカウントされてしまい、意図せず初期化される原因になります。<br>
+                        <b>赤点滅が終わって緑色になるまで（約10秒）、ボタンを押さずにお待ちください。</b>
+                    </li>
+                </ul>
+
+                <h3 class="help-h3">📝 サンプルの使い方</h3>
                 <ol>
-                    <li>エディタでスクリプトを作成するか、サンプルコードをコピーして貼り付けます。</li>
-                    <li>ツールバーの「<b>保存</b>」ボタンを押し、ファイル名を <code>Script.txt</code> にして保存します。</li>
-                    <li>Pico AutoInput をPCに接続し、USBドライブとして認識させます。</li>
-                    <li>保存した <code>Script.txt</code> をドライブのルート（一番上の階層）にコピー（上書き）します。</li>
-                    <li>Picoの <b>BOOTSELボタン</b> を短く押すとスクリプトが実行されます。</li>
+                    <li>この画面（エディタ）で作りたい動作を選んだり、書いたりします。</li>
+                    <li>右上の「<b>保存</b>」ボタンを押し、<code>Script.txt</code> という名前でPCに保存します。</li>
+                    <li>Pico AutoInput をPCに接続し、出てきたドライブの中に <code>Script.txt</code> を入れます。</li>
+                    <li>操作したい画面を開いてから、本体の <b>黒いボタン</b> を「カチッ」と1回押すとスタートします。</li>
                 </ol>
 
                 <h3 class="help-h3">ファームウェアの更新方法</h3>
@@ -57,22 +154,14 @@
                         配布URL: <a href="#" class="help-link" onclick="alert('配布URLは後日決定されます。')">[こちらをクリックしてダウンロード]</a>
                         (準備中)</li>
                     <li>PicoをPCから取り外します。</li>
-                    <li>Pico本体の <b>BOOTSELボタン</b> を<b>押したまま</b>、USBケーブルでPCに接続します。</li>
+                    <li>Pico本体の <b>黒いボタン</b> を<b>押したまま</b>、USBケーブルでPCに接続します。</li>
                     <li>"RPI-RP2" というドライブが認識されたらボタンを離します。</li>
                     <li><code>.uf2</code> ファイルをそのドライブにドラッグ＆ドロップします。自動的に再起動して更新完了です。</li>
                 </ol>
 
-                <h3 class="help-h3">トラブルシューティング</h3>
-                <ul>
-                    <li><b>Q. デバイスが反応しない / 起動しなくなった</b><br>
-                        A. 起動直後やスクリプト実行中にフリーズしている可能性があります。<br>
-                        <b>「3回連続リセット」機能</b>を試してください。USBケーブルを抜き差し（再起動）して、起動処理中にわざと電源を切る、を3回繰り返すと、自動的に内部ストレージが初期化されて復旧します。この機能が発動しそうになると起動時に赤いランプが点滅する回数が増えていきます。
-                    </li>
-                </ul>
-
                 <h3 class="help-h3">オープンソースライセンス</h3>
                 <p style="font-size: 0.85rem; color: #666;">
-                    本ソフトウェアは、以下のオープンソースソフトウェアを含んでいます。各ライセンスの全文はソースコードリポジトリを参照してください。
+                    本ソフトウェアは、以下のオープンソースソフトウェアを含んでいます。
                 </p>
                 <ul style="font-size: 0.85rem; color: #666;">
                     <li><b>TinyUSB</b> (MIT License) - Copyright (c) 2019 Ha Thach (tinyusb.org)</li>
@@ -1580,6 +1669,28 @@ LABEL Next
             <div id="flowchart" class="tab-content">
                 <div id="mermaid-container">Loading...</div>
                 <button class="tool-btn" id="btn-update-flowchart" style="margin-top:10px;">更新</button>
+            </div>
+        </div>
+    </div>
+    <div id="disclaimer-modal" class="modal-overlay">
+        <div class="modal-content">
+            <h2 class="modal-title">【重要】免責事項 (Disclaimer)</h2>
+            <div class="modal-body">
+                <p>本デバイスおよび本ソフトウェア（以下「本製品」）の利用は、すべて<strong>利用者の自己責任</strong>において行われるものとします。</p>
+                <p>開発者および販売者は、本製品の使用に関連して利用者が被ったいかなる損害（セキュリティ事故、アカウント停止/BAN、ハードウェアの故障、利益の損失等）について、一切の責任を負いません。</p>
+                <div class="modal-alert">
+                    <ul>
+                        <li><strong>パスワード管理:</strong> 自動入力機能を使用する場合、情報はデバイス内に保存されます。紛失・盗難には十分ご注意ください。</li>
+                        <li><strong>規約違反リスク:</strong> オンラインゲーム等での自動化ツールの使用は、サービスの利用規約に違反する可能性があります。</li>
+                    </ul>
+                </div>
+                <p>上記を理解し、同意した上で使用してください。</p>
+            </div>
+            <div class="modal-footer">
+                <label class="modal-checkbox">
+                    <input type="checkbox" id="dont-show-again"> 次回から表示しない
+                </label>
+                <button id="agree-btn" class="modal-btn">同意して使用する</button>
             </div>
         </div>
     </div>

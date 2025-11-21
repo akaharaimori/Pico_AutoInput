@@ -640,3 +640,91 @@ h2 {
 .legend-other {
     background-color: #0000ff;
 }
+/* --- 免責事項モーダル用追加スタイル (修正版) --- */
+
+/* 背景のオーバーレイ */
+.modal-overlay {
+    display: none; /* 初期状態は非表示 */
+    position: fixed;
+    z-index: 9999; /* 最前面 */
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.85); /* 背景を暗くして警告感を出す */
+    justify-content: center;
+    align-items: center;
+    backdrop-filter: blur(4px); /* すりガラス効果 */
+}
+
+/* 表示時のクラス (main.jsで制御) */
+.modal-overlay.show {
+    display: flex;
+}
+
+/* 注: .modal-content (白い箱) は既存のスタイルを流用するため定義しません */
+
+/* タイトル (警告色) */
+.modal-title {
+    margin-top: 0;
+    color: #d32f2f; /* 赤色 */
+    border-bottom: 1px solid #ddd;
+    padding-bottom: 10px;
+    font-size: 1.4em;
+}
+
+/* 警告ボックス (黄色い枠) */
+.modal-alert {
+    background-color: #fff3cd;
+    color: #856404;
+    border: 1px solid #ffeeba;
+    padding: 15px;
+    border-radius: 4px;
+    margin: 15px 0;
+    font-size: 0.95em;
+}
+
+.modal-alert ul {
+    margin: 5px 0 0 0;
+    padding-left: 20px;
+}
+
+.modal-alert li {
+    margin-bottom: 4px;
+}
+
+/* フッター (ボタン周り) */
+.modal-footer {
+    margin-top: 20px;
+    padding-top: 15px;
+    border-top: 1px solid #ddd;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+/* 同意ボタン */
+.modal-btn {
+    background-color: #1976d2;
+    color: white;
+    border: none;
+    padding: 10px 24px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 1em;
+    transition: background-color 0.2s;
+}
+
+.modal-btn:hover {
+    background-color: #115293;
+}
+
+.modal-checkbox {
+    font-size: 0.9em;
+    color: #333;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}

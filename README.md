@@ -1,45 +1,116 @@
-# Demonstration of USB and FatFs operation of PICO flash memory
+# Pico AutoInput - High-Performance Programmable Macro Pad
 
-This implementation builds a FAT12 file system in the Raspberry Pi Pico's onboard
-flash memory, supporting both file operations from inside the Pico using the FatFs
-library and from the USB host using the USB Mass storage class.
+**Pico AutoInput** は、Raspberry Pi Pico をベースに開発された、高度なスクリプト実行機能を持つプログラマブル・マクロパッド（HID エミュレータ）です。
 
-## Build and install
+単なるキー入力の記録・再生にとどまらず、デバイス単体で動作する独自のインタプリタを搭載し、条件分岐・ループ処理・数学関数を含む複雑な自動化ロジックを実行可能です。また、PC 側に専用ソフトウェアをインストールすることなく、ブラウザベースの統合開発環境（IDE）でスクリプトを作成・管理できるモダンな設計を採用しています。
 
+## 🌟 特徴 (Key Features)
+
+- **マルチモード HID エミュレーション**
+  - **KeyMouse Mode:** 標準的なキーボード・マウスとして動作。相対移動、絶対移動（エミュレーション）、長押し、連打などを自在に制御。
+  - **ProController Mode:** Nintendo Switch Pro コントローラーとして認識され、ゲーム機や対応 PC ゲームでの操作自動化を実現。
+- **オンボード・スクリプトエンジン**
+  - C++で実装された軽量・高速な独自インタプリタを内蔵。
+  - 変数 (`SET`), 条件分岐 (`IF`), ループ (`GOTO`), サブルーチン (`GOSUB`), 数学関数 (`sin`, `cos`, `rand` 等) をサポートし、柔軟なロジック記述が可能。
+- **ドライバーレス & Web IDE**
+  - PC に接続すると USB メモリ (MSC) として認識されます。
+  - 同梱の `!使い方.html` を開くだけで、ブラウザ上で動作する**専用エディタ**が起動。シンタックスハイライト、入力補完、エラーチェック機能を備え、快適な開発環境を提供します。
+- **セーフティ & リカバリ機能**
+  - 無限ループやメモリ不足を検知して安全に停止するガード機能を搭載。
+  - 物理ボタンによる緊急停止・設定リセット機能をハードウェアレベルで実装。
+
+## 🛠️ ハードウェア (Hardware)
+
+- **MCU:** Raspberry Pi Pico (RP2040)
+- **Interface:** USB Type-C (Data + Power)
+- **Controls:**
+  - **黒ボタン (Action):** スクリプト実行 / 決定
+  - **白ボタン (Reset):** 再起動 / 緊急停止
+- **Indicator:** フルカラー LED (ステータス表示)
+
+## 🚀 クイックスタート (Quick Start)
+
+1.  **インストール:**
+    - Release ページから最新の `Pico_AutoInput.uf2` をダウンロードします。
+    - Pico の **boot ボタン** を押しながら PC に USB 接続し、ドライブとして認識されたら `.uf2` ファイルをドラッグ＆ドロップします。
+2.  **スクリプト作成:**
+    - 再起動後、認識された USB ドライブ内の `使い方.html` を開きます。
+    - Web エディタでスクリプトを作成し、`Script.txt` という名前で保存します。
+3.  **転送と実行:**
+    - `Script.txt` をドライブの直下にコピーします。
+    - **黒ボタン** を 1 回押すと、スクリプトが実行されます。
+
+## 📖 スクリプト言語仕様 (Scripting Language)
+
+独自のスクリプト言語により、ハードウェアを直接制御します。
+
+### 基本コマンド例
+
+```basic
+REM --- シンプルな自動化スクリプト ---
+Mode(KeyMouse)   REM モード設定
+UseLED(1)        REM LED制御有効化
+
+LABEL LoopStart
+  SetLED(0, 255, 0)      REM LEDを緑に
+  KeyType("Hello\n", 0.05, 0.05)  REM 文字列入力
+
+  WAIT Rand(1.0, 3.0)    REM 1～3秒ランダム待機
+
+  IF IsPressed() GOTO EndProcess REM ボタンが押されたら終了
+GOTO LoopStart
+
+LABEL EndProcess
+  SetLED(255, 0, 0)      REM 赤色で終了通知
+  END
 ```
-git submodule update --init
-cd lib/pico-sdk; git submodule update --init; cd ../../
 
-mkdir build; cd build
-cmake ..
-make
+### 主なコマンド一覧
+
+| カテゴリ     | コマンド                            | 説明                                |
+| ------------ | ----------------------------------- | ----------------------------------- |
+| **制御**     | `WAIT`, `GOTO`, `IF`, `GOSUB`       | フロー制御、条件分岐、待機          |
+| **入力**     | `KeyPress`, `KeyType`, `MouseMove`  | キーボード・マウス操作              |
+| **ゲーム**   | `ProConPress`, `ProConJoy`          | コントローラー操作 (Pro コンモード) |
+| **演算**     | `SET`, `sin()`, `round()`, `Rand()` | 変数演算、数学関数、乱数生成        |
+| **システム** | `Mode()`, `LogConfig()`             | 動作モード切替、ログ設定            |
+
+詳細な仕様は Web エディタ内のリファレンスを参照してください。
+
+## 💻 開発環境のビルド (Build Instructions)
+
+本プロジェクトは、ファームウェア(C++)と Web エディタ(Node.js)の複合プロジェクトです。
+
+### 必要要件
+
+- Git, CMake, GCC for ARM (arm-none-eabi)
+- Python 3.x
+- Node.js & npm
+
+### ビルド手順
+
+リポジトリ直下の `build.bat` (Windows) を実行することで、以下の工程が一括で行われます。
+
+1.  **Editor Build:** `editor/` ディレクトリで `npm run build` を実行し、HTML/JS をバンドル。
+2.  **Asset Conversion:** 生成された HTML を `html_to_c_header.py` で C ヘッダーファイルに変換。
+3.  **Firmware Build:** `build/` ディレクトリで `cmake` および `make` を実行し、`.uf2` を生成。
+
+<!-- end list -->
+
+```cmd
+> build.bat
 ```
 
-Now you have `picofs.uf2` and can drag and drop it onto your Raspberry Pi Pico to
-install and run it.
+## 🛣️ Future Roadmap (今後の展望)
 
-## Files
+本プロジェクトは拡張性を重視したアーキテクチャを採用しており、ファームウェアのアップデートにより以下の機能追加を計画しています。
 
-The main thing.
+- **v2.0: XInput / DirectInput 対応**
+  - PC ゲームおよびレガシーなコントローラー入力への対応を拡大し、より汎用的な入力デバイスとして進化させます。
+- **v3.0: 複合デバイス機能の強化**
+  - キーボード、マウス、ゲームパッドを同時にエミュレートする複合 HID デバイスとしての挙動を最適化します。
 
-- `flash.c`:          Read/write Pico onboard flash memory FAT12
-- `fatfs_driver.c`:   FatFs driver for Pico onboard flash memory
-- `usb_msc_driver.c`: USB Mass Storage Class driver to Pico onboard flash memory
-- `bootsel_button.h`: Onboard BOOTSEL button readout.
-- `lib`:              pico-sdk
-- `main.c`:           main
+## ⚠️ 免責事項 (Disclaimer)
 
-## Concurrent Access Issues
-
-FAT12 does not take concurrent access into account, so concurrent access, including
-updates from the USB host and PICO, will have unintended consequences; with proper
-unmounting and mounting operations on the USB host, the files can be manipulated
-relatively safely.
-For example, if Pico is in the process of continuously appending temperature data to
-a file, it will be cached when it is connected to the USB host, and the USB host
-will not know about the update.
-
-## Reference
-
-- pico-sdk https://github.com/raspberrypi/pico-sdk
-- FatFs http://elm-chan.org/fsw/ff/
+本製品およびソフトウェアの利用は、すべて利用者の自己責任において行われるものとします。
+特に、オンラインゲーム等での自動化機能の利用は、各サービスの利用規約に抵触する可能性があります。開発者は、本製品の使用に起因するアカウント停止（BAN）、損害、トラブル等について一切の責任を負いません。
