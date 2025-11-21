@@ -344,19 +344,20 @@ static std::set<te_variable> build_te_variables_and_funcs(ScriptState &st)
 // Helper: map human-friendly key names to Arduino/TinyUSB keyboard codes or ASCII.
 static uint8_t key_name_to_hid(const std::string &name)
 {
+    // ■ 修正: 先に1文字判定を行う (大文字化する前に返すことで小文字を維持)
+    if (name.size() == 1)
+    {
+        char c = name[0];
+        // ASCII印刷可能文字ならそのコードをそのまま返す
+        if (c >= 0x20 && c <= 0x7E)
+            return static_cast<uint8_t>(c);
+    }
+
     std::string s = name;
     // uppercase for case-insensitive compare
     for (char &c : s)
         if (c >= 'a' && c <= 'z')
             c = c - 'a' + 'A';
-
-    // 1文字の場合はすべての印刷可能文字(ASCII)を許可
-    if (s.size() == 1)
-    {
-        char c = s[0];
-        if (c >= 0x20 && c <= 0x7E)
-            return static_cast<uint8_t>(c);
-    }
 
     // Function keys F1..F24
     if (s.size() >= 2 && s[0] == 'F')
